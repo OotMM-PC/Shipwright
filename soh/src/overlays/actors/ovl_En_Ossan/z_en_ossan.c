@@ -432,16 +432,6 @@ void EnOssan_SpawnItemsOnShelves(EnOssan* this, PlayState* play, ShopItem* shopI
             this->shelfSlots[i] = NULL;
         } else {
             itemParams = sShopItemReplaceFunc[shopItems->shopItemIndex](shopItems->shopItemIndex);
-            if (IS_RANDO && Randomizer_GetSettingValue(RSK_SHOPSANITY) != RO_SHOPSANITY_OFF) {
-                ShopItemIdentity shopItemIdentity = Randomizer_IdentifyShopItem(play->sceneNum, i + 1);
-                if (shopItemIdentity.identity.randomizerCheck != RC_UNKNOWN_CHECK) {
-                    itemParams = shopItemIdentity.enGirlAShopItem;
-
-                    if (Flags_GetRandomizerInf(shopItemIdentity.identity.randomizerInf)) {
-                        itemParams = SI_SOLD_OUT;
-                    }
-                }
-            }
 
             if (itemParams < 0) {
                 this->shelfSlots[i] = NULL;
@@ -452,9 +442,6 @@ void EnOssan_SpawnItemsOnShelves(EnOssan* this, PlayState* play, ShopItem* shopI
                     shelves->actor.world.pos.y + shopItems->yOffset, shelves->actor.world.pos.z + shopItems->zOffset,
                     shelves->actor.shape.rot.x, shelves->actor.shape.rot.y + sItemShelfRot[i],
                     shelves->actor.shape.rot.z, itemParams);
-                if (IS_RANDO && Randomizer_GetSettingValue(RSK_SHOPSANITY) != RO_SHOPSANITY_OFF) {
-                    this->shelfSlots[i]->randoSlotIndex = i + 1;
-                }
             }
         }
     }
@@ -534,8 +521,7 @@ void EnOssan_TalkGoronShopkeeper(PlayState* play) {
         } else {
             Message_ContinueTextbox(play, 0x300F);
         }
-    } else if ((!IS_RANDO && !CHECK_QUEST_ITEM(QUEST_MEDALLION_FIRE)) ||
-               (IS_RANDO && !Flags_GetEventChkInf(EVENTCHKINF_USED_FIRE_TEMPLE_BLUE_WARP))) {
+    } else if (!CHECK_QUEST_ITEM(QUEST_MEDALLION_FIRE)) {
         Message_ContinueTextbox(play, 0x3057);
     } else {
         Message_ContinueTextbox(play, 0x305B);
@@ -606,10 +592,8 @@ void EnOssan_Init(Actor* thisx, PlayState* play) {
     }
 
     // If you haven't given Zelda's Letter to the Kakariko Guard
-    // or are rando'd and haven't gotten gotten the letter from zelda yet
     if (this->actor.params == OSSAN_TYPE_MASK &&
-        (!Flags_GetInfTable(INFTABLE_SHOWED_ZELDAS_LETTER_TO_GATE_GUARD) ||
-         (IS_RANDO && !Flags_GetEventChkInf(EVENTCHKINF_OBTAINED_ZELDAS_LETTER)))) {
+        !Flags_GetInfTable(INFTABLE_SHOWED_ZELDAS_LETTER_TO_GATE_GUARD)) {
         Actor_Kill(&this->actor);
         return;
     }
@@ -619,10 +603,9 @@ void EnOssan_Init(Actor* thisx, PlayState* play) {
         return;
     }
 
-    // Don't kill bombchu shop actor in rando, making it so the shop is immediately open
     // Flags_GetEventChkInf(EVENTCHKINF_USED_DODONGOS_CAVERN_BLUE_WARP) - Completed Dodongo's Cavern
     if (this->actor.params == OSSAN_TYPE_BOMBCHUS &&
-        !Flags_GetEventChkInf(EVENTCHKINF_USED_DODONGOS_CAVERN_BLUE_WARP) && !IS_RANDO) {
+        !Flags_GetEventChkInf(EVENTCHKINF_USED_DODONGOS_CAVERN_BLUE_WARP)) {
         Actor_Kill(&this->actor);
         return;
     }
@@ -665,10 +648,6 @@ void EnOssan_UpdateCursorPos(PlayState* play, EnOssan* this) {
     Actor_GetScreenPos(play, &this->shelfSlots[this->cursorIndex]->actor, &x, &y);
     this->cursorX = x;
     this->cursorY = y;
-
-    if (CVarGetInteger(CVAR_ENHANCEMENT("MirroredWorld"), 0)) {
-        this->cursorX = SCREEN_WIDTH - x;
-    }
 }
 
 void EnOssan_EndInteraction(PlayState* play, EnOssan* this) {
@@ -776,10 +755,6 @@ void EnOssan_UpdateJoystickInputState(PlayState* play, EnOssan* this) {
     Input* input = &play->state.input[0];
     s8 stickX = input->rel.stick_x;
     s8 stickY = input->rel.stick_y;
-
-    if (CVarGetInteger(CVAR_ENHANCEMENT("MirroredWorld"), 0)) {
-        stickX = -input->rel.stick_x;
-    }
 
     this->moveHorizontal = this->moveVertical = false;
 
@@ -993,10 +968,6 @@ void EnOssan_State_FacingShopkeeper(EnOssan* this, PlayState* play, Player* play
 
         u16 dLeft = BTN_DLEFT;
         u16 dRight = BTN_DRIGHT;
-        if (CVarGetInteger(CVAR_ENHANCEMENT("MirroredWorld"), 0)) {
-            dLeft = BTN_DRIGHT;
-            dRight = BTN_DLEFT;
-        }
 
         // Stick Left
         if ((this->stickAccumX < 0) || (dpad && CHECK_BTN_ALL(input->press.button, dLeft))) {
@@ -1245,10 +1216,6 @@ void EnOssan_State_BrowseLeftShelf(EnOssan* this, PlayState* play, Player* playe
 
         u16 dLeft = BTN_DLEFT;
         u16 dRight = BTN_DRIGHT;
-        if (CVarGetInteger(CVAR_ENHANCEMENT("MirroredWorld"), 0)) {
-            dLeft = BTN_DRIGHT;
-            dRight = BTN_DLEFT;
-        }
 
         if (this->moveHorizontal) {
             if ((this->stickAccumX > 0) || (dpad && CHECK_BTN_ALL(input->press.button, dRight))) {
@@ -1318,10 +1285,6 @@ void EnOssan_State_BrowseRightShelf(EnOssan* this, PlayState* play, Player* play
 
         u16 dLeft = BTN_DLEFT;
         u16 dRight = BTN_DRIGHT;
-        if (CVarGetInteger(CVAR_ENHANCEMENT("MirroredWorld"), 0)) {
-            dLeft = BTN_DRIGHT;
-            dRight = BTN_DLEFT;
-        }
 
         if (this->moveHorizontal) {
             if ((this->stickAccumX < 0) || (dpad && CHECK_BTN_ALL(input->press.button, dLeft))) {
@@ -1538,10 +1501,8 @@ void EnOssan_HandleCanBuyBombs(PlayState* play, EnOssan* this) {
 
 void EnOssan_BuyGoronCityBombs(PlayState* play, EnOssan* this) {
     if (LINK_AGE_IN_YEARS == YEARS_CHILD) {
-        // Let players buy the right side of the goron shop in rando regardless of DC completion
-        // Players will still need a bomb bag to buy bombs (handled by vanilla behaviour)
         // Flags_GetEventChkInf(EVENTCHKINF_USED_DODONGOS_CAVERN_BLUE_WARP) - Completed Dodongo's Cavern
-        if (!IS_RANDO && !Flags_GetEventChkInf(EVENTCHKINF_USED_DODONGOS_CAVERN_BLUE_WARP)) {
+        if (!Flags_GetEventChkInf(EVENTCHKINF_USED_DODONGOS_CAVERN_BLUE_WARP)) {
             if (Flags_GetInfTable(INFTABLE_FC)) {
                 EnOssan_SetStateCantGetItem(play, this, 0x302E);
             } else {
@@ -2380,12 +2341,6 @@ void EnOssan_DrawTextRec(PlayState* play, s32 r, s32 g, s32 b, s32 a, f32 x, f32
 void EnOssan_DrawStickDirectionPrompts(PlayState* play, EnOssan* this) {
     s32 drawStickLeftPrompt = this->stickLeftPrompt.isEnabled;
     s32 drawStickRightPrompt = this->stickRightPrompt.isEnabled;
-
-    // Invert which stick prompt is active when only one is active
-    if (CVarGetInteger(CVAR_ENHANCEMENT("MirroredWorld"), 0) && (drawStickLeftPrompt != drawStickRightPrompt)) {
-        drawStickLeftPrompt = !drawStickLeftPrompt;
-        drawStickRightPrompt = !drawStickRightPrompt;
-    }
 
     OPEN_DISPS(play->state.gfxCtx);
     if (drawStickLeftPrompt || drawStickRightPrompt) {

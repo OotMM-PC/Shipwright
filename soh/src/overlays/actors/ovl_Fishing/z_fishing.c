@@ -2031,9 +2031,7 @@ void Fishing_DrawRod(PlayState* play) {
         lureXZLen = player->unk_85C - lureXZLen;
 
         spC4 = player->unk_858;
-        Math_SmoothStepToF(&player->unk_858,
-                           input->rel.stick_x * 0.02f * (CVarGetInteger(CVAR_ENHANCEMENT("MirroredWorld"), 0) ? -1 : 1),
-                           0.3f, 5.0f, 0.0f);
+        Math_SmoothStepToF(&player->unk_858, input->rel.stick_x * 0.02f, 0.3f, 5.0f, 0.0f);
         spC4 = player->unk_858 - spC4;
 
         if (player->unk_858 > 1.0f) {

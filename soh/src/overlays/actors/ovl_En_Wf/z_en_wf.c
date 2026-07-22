@@ -389,10 +389,7 @@ void EnWf_WaitToAppear(EnWf* this, PlayState* play) {
             this->actionTimer = 5;
             this->actor.flags |= ACTOR_FLAG_ATTENTION_ENABLED;
 
-            // Disable miniboss music with Enemy Randomizer because the music would keep
-            // playing if the enemy was never defeated, which is common with Enemy Randomizer.
-            if ((this->actor.params != WOLFOS_NORMAL) && (this->switchFlag != 0xFF) &&
-                !CVarGetInteger(CVAR_ENHANCEMENT("RandomizedEnemies"), 0)) {
+            if ((this->actor.params != WOLFOS_NORMAL) && (this->switchFlag != 0xFF)) {
                 func_800F5ACC(NA_BGM_MINI_BOSS);
             }
         }

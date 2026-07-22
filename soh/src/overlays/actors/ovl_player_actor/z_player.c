@@ -7326,21 +7326,10 @@ s32 Player_ActionHandler_2(Player* this, PlayState* play) {
 
                 iREG(67) = false;
 
-                if (IS_RANDO && giEntry.getItemId == RG_ICE_TRAP && giEntry.getItemFrom == ITEM_FROM_FREESTANDING) {
-                    this->actor.freezeTimer = 30;
-                    Player_SetPendingFlag(this, play);
-                    Message_StartTextbox(play, 0xF8, NULL);
-                    Audio_PlayFanfare(NA_BGM_SMALL_ITEM_GET);
-                    gSaveContext.ship.pendingIceTrapCount++;
-                    return 1;
-                }
-
                 // Show the cutscene for picking up an item. In vanilla, this happens in bombchu bowling alley (because
-                // getting bombchus need to show the cutscene) and whenever the player doesn't have the item yet. In
-                // rando, we're overruling this because we need to keep showing the cutscene because those items can be
-                // randomized and thus it's important to keep showing the cutscene.
+                // getting bombchus need to show the cutscene) and whenever the player doesn't have the item yet.
                 uint8_t showItemCutscene = play->sceneNum == SCENE_BOMBCHU_BOWLING_ALLEY ||
-                                           Item_CheckObtainability(giEntry.itemId) == ITEM_NONE || IS_RANDO;
+                                           Item_CheckObtainability(giEntry.itemId) == ITEM_NONE;
 
                 // Only skip cutscenes for drops when they're items/consumables from bushes/rocks/enemies.
                 uint8_t isDropToSkip =
@@ -7355,15 +7344,8 @@ s32 Player_ActionHandler_2(Player* this, PlayState* play) {
                 // softlocks in deku mask theatre and potentially other places.
                 uint8_t skipItemCutscene = CVarGetInteger(CVAR_ENHANCEMENT("FastDrops"), 0) && isDropToSkip;
 
-                // Same as above but for rando. Rando is different because we want to enable cutscenes for items that
-                // the player already has because those items could be a randomized item coming from scrubs,
-                // freestanding PoH's and keys. So we need to once again overrule this specifically for items coming
-                // from bushes/rocks/enemies when the player has already picked that item up.
-                uint8_t skipItemCutsceneRando =
-                    IS_RANDO && Item_CheckObtainability(giEntry.itemId) != ITEM_NONE && isDropToSkip;
-
                 // Show cutscene when picking up a item.
-                if (showItemCutscene && !skipItemCutscene && !skipItemCutsceneRando) {
+                if (showItemCutscene && !skipItemCutscene) {
 
                     Player_DetachHeldActor(play, this);
                     func_8083AE40(this, giEntry.objectId);
@@ -9294,7 +9276,7 @@ void Player_Action_80843188(Player* this, PlayState* play) {
 
         sp54 = sControlInput->rel.stick_y * 100 *
                (CVarGetInteger(CVAR_SETTING("Controls.InvertShieldAimingYAxis"), 1) ? 1 : -1);
-        sp50 = sControlInput->rel.stick_x * (CVarGetInteger(CVAR_ENHANCEMENT("MirroredWorld"), 0) ? 120 : -120) *
+        sp50 = sControlInput->rel.stick_x * -120 *
                (CVarGetInteger(CVAR_SETTING("Controls.InvertShieldAimingXAxis"), 0) ? -1 : 1);
         sp4E = this->actor.shape.rot.y - Camera_GetInputDirYaw(GET_ACTIVE_CAM(play));
         GameInteractor_ExecuteOnPlayerShieldControl(&sp50, &sp54);
@@ -12642,12 +12624,7 @@ s16 func_8084ABD8(PlayState* play, Player* this, s32 arg2, s16 arg3) {
     s32 temp1 = 0;
     s16 temp2 = 0;
     s16 temp3 = 0;
-    s8 invertXAxisMulti = ((CVarGetInteger(CVAR_SETTING("Controls.InvertAimingXAxis"), 0) &&
-                            !CVarGetInteger(CVAR_ENHANCEMENT("MirroredWorld"), 0)) ||
-                           (!CVarGetInteger(CVAR_SETTING("Controls.InvertAimingXAxis"), 0) &&
-                            CVarGetInteger(CVAR_ENHANCEMENT("MirroredWorld"), 0)))
-                              ? -1
-                              : 1;
+    s8 invertXAxisMulti = CVarGetInteger(CVAR_SETTING("Controls.InvertAimingXAxis"), 0) ? -1 : 1;
     s8 invertYAxisMulti = CVarGetInteger(CVAR_SETTING("Controls.InvertAimingYAxis"), 1) ? 1 : -1;
     f32 xAxisMulti = CVarGetFloat(CVAR_SETTING("FirstPersonCameraSensitivity.X"), 1.0f);
     f32 yAxisMulti = CVarGetFloat(CVAR_SETTING("FirstPersonCameraSensitivity.Y"), 1.0f);
@@ -13378,7 +13355,7 @@ void Player_Action_8084BF1C(Player* this, PlayState* play) {
                 if ((this->av1.actionVar1 != 0) && (sp80 != 0)) {
                     anim2 = this->ageProperties->unk_BC[this->av2.actionVar2];
 
-                    if (CVarGetInteger(CVAR_ENHANCEMENT("MirroredWorld"), 0) ? (sp80 < 0) : (sp80 > 0)) {
+                    if (sp80 > 0) {
                         this->skelAnime.prevTransl = this->ageProperties->unk_7A[this->av2.actionVar2];
                         Player_AnimPlayOnce(play, this, anim2);
                     } else {
@@ -14140,28 +14117,18 @@ s32 func_8084DFF4(PlayState* play, Player* this) {
                    equipItem >= ITEM_SWORD_KOKIRI && equipItem <= ITEM_TUNIC_ZORA && CHECK_AGE_REQ_ITEM(equipItem);
 
         Message_StartTextbox(play, giEntry.textId, &this->actor);
-        // RANDOTODO: Macro this boolean check.
-        if (!(giEntry.modIndex == MOD_RANDOMIZER && giEntry.itemId == RG_ICE_TRAP)) {
-            if (giEntry.modIndex == MOD_NONE) {
-                // RANDOTOD: Move this into Item_Give() or some other more central location
-                if (giEntry.getItemId == GI_SWORD_BGS) {
-                    gSaveContext.bgsFlag = true;
-                    gSaveContext.swordHealth = 8;
-                }
-                Item_Give(play, giEntry.itemId);
-            } else {
-                Randomizer_Item_Give(play, giEntry);
-            }
-            Player_SetPendingFlag(this, play);
+        if (giEntry.getItemId == GI_SWORD_BGS) {
+            gSaveContext.bgsFlag = true;
+            gSaveContext.swordHealth = 8;
         }
+        Item_Give(play, giEntry.itemId);
+        Player_SetPendingFlag(this, play);
 
         // Use this if we do have a getItemEntry
         if (giEntry.modIndex == MOD_NONE) {
-            if (IS_RANDO) {
-                Audio_PlayFanfare_Rando(giEntry);
-            } else if (((giEntry.itemId >= ITEM_RUPEE_GREEN) && (giEntry.itemId <= ITEM_RUPEE_RED)) ||
-                       ((giEntry.itemId >= ITEM_RUPEE_PURPLE) && (giEntry.itemId <= ITEM_RUPEE_GOLD)) ||
-                       (giEntry.itemId == ITEM_HEART)) {
+            if (((giEntry.itemId >= ITEM_RUPEE_GREEN) && (giEntry.itemId <= ITEM_RUPEE_RED)) ||
+                ((giEntry.itemId >= ITEM_RUPEE_PURPLE) && (giEntry.itemId <= ITEM_RUPEE_GOLD)) ||
+                (giEntry.itemId == ITEM_HEART)) {
                 Audio_PlaySoundGeneral(NA_SE_SY_GET_BOXITEM, &gSfxDefaultPos, 4, &gSfxDefaultFreqAndVolScale,
                                        &gSfxDefaultFreqAndVolScale, &gSfxDefaultReverb);
             } else {
@@ -14174,16 +14141,6 @@ s32 func_8084DFF4(PlayState* play, Player* this) {
                         (giEntry.itemId == ITEM_HEART_PIECE_2) ? NA_BGM_SMALL_ITEM_GET : NA_BGM_ITEM_GET | 0x900;
                 }
                 Audio_PlayFanfare(temp1);
-            }
-        } else if (giEntry.modIndex == MOD_RANDOMIZER) {
-            if (IS_RANDO) {
-                Audio_PlayFanfare_Rando(giEntry);
-            } else if (giEntry.itemId == RG_DOUBLE_DEFENSE || giEntry.itemId == RG_MAGIC_SINGLE ||
-                       giEntry.itemId == RG_MAGIC_DOUBLE) {
-                Audio_PlayFanfare(NA_BGM_HEART_GET | 0x900);
-            } else {
-                // Just in case something weird happens with MOD_INDEX
-                Audio_PlayFanfare(NA_BGM_ITEM_GET | 0x900);
             }
         } else {
             // Just in case something weird happens with modIndex.
@@ -14228,14 +14185,6 @@ s32 func_8084DFF4(PlayState* play, Player* this) {
             if (this->getItemEntry.drawFunc != NULL) {
                 this->unk_862 = 0;
             }
-
-            // #region SOH [Randomizer] TODO Better Ice trap handling?
-            if (this->getItemEntry.itemId == RG_ICE_TRAP && this->getItemEntry.modIndex == MOD_RANDOMIZER) {
-                this->unk_862 = 0;
-                gSaveContext.ship.pendingIceTrapCount++;
-                Player_SetPendingFlag(this, play);
-            }
-            // #endregion
 
             this->getItemId = GI_NONE;
             this->getItemEntry = (GetItemEntry)GET_ITEM_NONE;
@@ -14401,18 +14350,12 @@ void Player_Action_8084E6D4(Player* this, PlayState* play) {
             }
         } else {
             Player_FinishAnimMovement(this);
-            if ((this->getItemId == GI_ICE_TRAP && !IS_RANDO) ||
-                (IS_RANDO && (this->getItemId == RG_ICE_TRAP || this->getItemEntry.getItemId == RG_ICE_TRAP))) {
+            if (this->getItemId == GI_ICE_TRAP) {
                 this->stateFlags1 &= ~(PLAYER_STATE1_GETTING_ITEM | PLAYER_STATE1_CARRYING_ACTOR);
 
-                if ((this->getItemId != GI_ICE_TRAP && !IS_RANDO) ||
-                    (IS_RANDO && (this->getItemId != RG_ICE_TRAP || this->getItemEntry.getItemId != RG_ICE_TRAP))) {
+                if (this->getItemId != GI_ICE_TRAP) {
                     Actor_Spawn(&play->actorCtx, play, ACTOR_EN_CLEAR_TAG, this->actor.world.pos.x,
                                 this->actor.world.pos.y + 100.0f, this->actor.world.pos.z, 0, 0, 0, 0);
-                    func_8083C0E8(this, play);
-                } else if (IS_RANDO) {
-                    gSaveContext.ship.pendingIceTrapCount++;
-                    Player_SetPendingFlag(this, play);
                     func_8083C0E8(this, play);
                 } else {
                     this->actor.colChkInfo.damage = 0;
@@ -15050,9 +14993,9 @@ s32 Player_UpdateNoclip(Player* this, PlayState* play) {
                 if (CHECK_BTN_ALL(sControlInput->cur.button, BTN_DDOWN)) {
                     angle = temp + 0x8000;
                 } else if (CHECK_BTN_ALL(sControlInput->cur.button, BTN_DLEFT)) {
-                    angle = temp + (0x4000 * (CVarGetInteger(CVAR_ENHANCEMENT("MirroredWorld"), 0) ? -1 : 1));
+                    angle = temp + 0x4000;
                 } else if (CHECK_BTN_ALL(sControlInput->cur.button, BTN_DRIGHT)) {
-                    angle = temp - (0x4000 * (CVarGetInteger(CVAR_ENHANCEMENT("MirroredWorld"), 0) ? -1 : 1));
+                    angle = temp - 0x4000;
                 }
 
                 this->actor.world.pos.x += speed * Math_SinS(angle);
@@ -16362,16 +16305,6 @@ void func_80852648(PlayState* play, Player* this, CsCmdActorCue* cue) {
         this->heldItemId = ITEM_NONE;
         this->modelGroup = this->nextModelGroup = Player_ActionToModelGroup(this, PLAYER_IA_NONE);
         this->leftHandDLists = gPlayerLeftHandOpenDLs;
-
-        // If MS sword is shuffled and not in the players inventory, then we need to unequip the current sword
-        // and set swordless flag to mimic Link having his weapon knocked out of his hand in the Ganon fight
-        if (IS_RANDO && Randomizer_GetSettingValue(RSK_SHUFFLE_MASTER_SWORD) &&
-            !CHECK_OWNED_EQUIP(EQUIP_TYPE_SWORD, EQUIP_INV_SWORD_MASTER)) {
-            Inventory_ChangeEquipment(EQUIP_TYPE_SWORD, EQUIP_VALUE_SWORD_NONE);
-            gSaveContext.equips.buttonItems[0] = ITEM_NONE;
-            Flags_SetInfTable(INFTABLE_SWORDLESS);
-            return;
-        }
 
         Inventory_ChangeEquipment(EQUIP_TYPE_SWORD, EQUIP_VALUE_SWORD_MASTER);
         gSaveContext.equips.buttonItems[0] = ITEM_SWORD_MASTER;

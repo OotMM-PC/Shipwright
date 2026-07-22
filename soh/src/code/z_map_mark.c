@@ -143,11 +143,7 @@ void MapMark_DrawForDungeon(PlayState* play) {
                 int height_factor = (1 << 10) * markInfo->textureHeight / height;
                 int width_factor = (1 << 10) * markInfo->textureWidth / width;
 
-                // The original mark point X originates from the left edge of the map
-                // For mirror mode, we compute the new mark point X by subtracting it from the right side of the
-                // dungeon map and the textures width
-                s16 markPointX =
-                    CVarGetInteger(CVAR_ENHANCEMENT("MirroredWorld"), 0) ? 96 - markPoint->x - width : markPoint->x;
+                s16 markPointX = markPoint->x;
 
                 // Minimap chest / boss icon
                 const s32 PosX_Minimap_ori =

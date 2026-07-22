@@ -8,7 +8,6 @@
 
 #include "soh/Enhancements/game-interactor/GameInteractor.h"
 #include "soh/Enhancements/game-interactor/GameInteractor_Hooks.h"
-#include "soh/Enhancements/randomizer/draw.h"
 #include "soh/ResourceManagerHelpers.h"
 
 #include <stdlib.h>
@@ -1574,53 +1573,6 @@ void func_800906D4(PlayState* play, Player* this, Vec3f* newTipPos) {
     }
 }
 
-void Player_DrawGetItemIceTrap(PlayState* play, Player* this, Vec3f* refPos, s32 drawIdPlusOne, f32 height) {
-    OPEN_DISPS(play->state.gfxCtx);
-
-    if (CVarGetInteger(CVAR_GENERAL("LetItSnow"), 0)) {
-        Gfx_SetupDL_25Opa(play->state.gfxCtx);
-
-        Matrix_Scale(0.2f, 0.2f, 0.2f, MTXMODE_APPLY);
-        gSPMatrix(POLY_OPA_DISP++, MATRIX_NEWMTX(play->state.gfxCtx), G_MTX_MODELVIEW | G_MTX_LOAD);
-
-        gDPSetGrayscaleColor(POLY_OPA_DISP++, 75, 75, 75, 255);
-        gSPGrayscale(POLY_OPA_DISP++, true);
-
-        gSPDisplayList(POLY_OPA_DISP++, (Gfx*)gSilverRockDL);
-
-        gSPGrayscale(POLY_OPA_DISP++, false);
-    } else {
-        if (iceTrapScale < 0.01) {
-            iceTrapScale += 0.001f;
-        } else if (iceTrapScale < 0.8f) {
-            iceTrapScale += 0.2f;
-        }
-        gSPSegment(POLY_XLU_DISP++, 0x08,
-                   Gfx_TwoTexScrollEx(play->state.gfxCtx, 0, 0, (0 - play->gameplayFrames) % 128, 32, 32, 1, 0,
-                                      (play->gameplayFrames * -2) % 128, 32, 32, 0, -1, 0, -2));
-
-        Matrix_Translate(0.0f, -40.0f, 0.0f, MTXMODE_APPLY);
-        Matrix_Scale(iceTrapScale, iceTrapScale, iceTrapScale, MTXMODE_APPLY);
-        gSPMatrix(POLY_XLU_DISP++, MATRIX_NEWMTX(play->state.gfxCtx), G_MTX_NOPUSH | G_MTX_LOAD | G_MTX_MODELVIEW);
-        gDPSetEnvColor(POLY_XLU_DISP++, 0, 50, 100, 255);
-        gSPDisplayList(POLY_XLU_DISP++, gEffIceFragment3DL);
-
-        // Reset matrix for the fake item model because we're animating the size of the ice block around it before this.
-        Matrix_Translate(refPos->x + (3.3f * Math_SinS(this->actor.shape.rot.y)), refPos->y + height,
-                         refPos->z + ((3.3f + (IREG(90) / 10.0f)) * Math_CosS(this->actor.shape.rot.y)), MTXMODE_NEW);
-        Matrix_RotateZYX(0, play->gameplayFrames * 1000, 0, MTXMODE_APPLY);
-        Matrix_Scale(0.2f, 0.2f, 0.2f, MTXMODE_APPLY);
-        // Draw fake item model.
-        if (this->getItemEntry.drawFunc != NULL) {
-            this->getItemEntry.drawFunc(play, &this->getItemEntry);
-        } else {
-            GetItem_Draw(play, drawIdPlusOne - 1);
-        }
-    }
-
-    CLOSE_DISPS(play->state.gfxCtx);
-}
-
 void Player_DrawGetItemImpl(PlayState* play, Player* this, Vec3f* refPos, s32 drawIdPlusOne) {
     f32 height = (this->exchangeItemId != EXCH_ITEM_NONE) ? 6.0f : 14.0f;
 
@@ -1636,11 +1588,7 @@ void Player_DrawGetItemImpl(PlayState* play, Player* this, Vec3f* refPos, s32 dr
     Matrix_RotateZYX(0, play->gameplayFrames * 1000, 0, MTXMODE_APPLY);
     Matrix_Scale(0.2f, 0.2f, 0.2f, MTXMODE_APPLY);
 
-    if (this->getItemEntry.modIndex == MOD_RANDOMIZER && this->getItemEntry.getItemId == RG_ICE_TRAP) {
-        Player_DrawGetItemIceTrap(play, this, refPos, drawIdPlusOne, height);
-    } else if (this->getItemEntry.modIndex == MOD_RANDOMIZER && this->getItemEntry.getItemId == RG_TRIFORCE_PIECE) {
-        Randomizer_DrawTriforcePieceGI(play, this->getItemEntry);
-    } else if (this->getItemEntry.drawFunc != NULL) {
+    if (this->getItemEntry.drawFunc != NULL) {
         this->getItemEntry.drawFunc(play, &this->getItemEntry);
     } else {
         GetItem_Draw(play, drawIdPlusOne - 1);
@@ -2084,8 +2032,6 @@ void Player_DrawPauseImpl(PlayState* play, void* gameplayKeep, void* linkObject,
     Mtx* perspMtx = Graph_Alloc(play->state.gfxCtx, sizeof(Mtx));
     Mtx* lookAtMtx = Graph_Alloc(play->state.gfxCtx, sizeof(Mtx));
 
-    u8 mirrorWorldActive = CVarGetInteger(CVAR_ENHANCEMENT("MirroredWorld"), 0);
-
     OPEN_DISPS(play->state.gfxCtx);
 
     opaRef = POLY_OPA_DISP;
@@ -2096,11 +2042,6 @@ void Player_DrawPauseImpl(PlayState* play, void* gameplayKeep, void* linkObject,
 
     gSPDisplayList(WORK_DISP++, POLY_OPA_DISP);
     gSPDisplayList(WORK_DISP++, POLY_XLU_DISP);
-
-    if (mirrorWorldActive) {
-        gSPSetExtraGeometryMode(POLY_OPA_DISP++, G_EX_INVERT_CULLING);
-        gSPSetExtraGeometryMode(POLY_XLU_DISP++, G_EX_INVERT_CULLING);
-    }
 
     gSPSegment(POLY_OPA_DISP++, 0x00, NULL);
 
@@ -2163,7 +2104,7 @@ void Player_DrawPauseImpl(PlayState* play, void* gameplayKeep, void* linkObject,
                       ? 25
                       : 0),
         pos->y - (CVarGetInteger(CVAR_GENERAL("PauseMenuAnimatedLinkTriforce"), 0) ? 16 : 0), pos->z, rot);
-    Matrix_Scale(scale * (mirrorWorldActive ? -1 : 1), scale, scale, MTXMODE_APPLY);
+    Matrix_Scale(scale, scale, scale, MTXMODE_APPLY);
 
     gSPSegment(POLY_OPA_DISP++, 0x04, gameplayKeep);
     gSPSegment(POLY_OPA_DISP++, 0x06, linkObject);
@@ -2184,14 +2125,9 @@ void Player_DrawPauseImpl(PlayState* play, void* gameplayKeep, void* linkObject,
     if (CVarGetInteger(CVAR_GENERAL("PauseMenuAnimatedLinkTriforce"), 0)) {
         Matrix_SetTranslateRotateYXZ(pos->x - (LINK_AGE_IN_YEARS == YEARS_ADULT ? 25 : 0),
                                      pos->y + 280 + (LINK_AGE_IN_YEARS == YEARS_ADULT ? 48 : 0), pos->z, rot);
-        Matrix_Scale(scale * (mirrorWorldActive ? -1 : 1), scale * 1, scale * 1, MTXMODE_APPLY);
+        Matrix_Scale(scale, scale * 1, scale * 1, MTXMODE_APPLY);
 
         Pause_DrawTriforceSpot(play, 1);
-    }
-
-    if (mirrorWorldActive) {
-        gSPClearExtraGeometryMode(POLY_OPA_DISP++, G_EX_INVERT_CULLING);
-        gSPClearExtraGeometryMode(POLY_XLU_DISP++, G_EX_INVERT_CULLING);
     }
 
     gSPEndDisplayList(POLY_OPA_DISP++);

@@ -393,9 +393,7 @@ void Map_InitData(PlayState* play, s16 room) {
                     extendedMapIndex = 0x14;
                 }
             } else if (play->sceneNum == SCENE_LAKE_HYLIA) {
-                if ((LINK_AGE_IN_YEARS == YEARS_ADULT) &&
-                    ((!IS_RANDO && !CHECK_QUEST_ITEM(QUEST_MEDALLION_WATER)) ||
-                     (IS_RANDO && !Flags_GetEventChkInf(EVENTCHKINF_USED_WATER_TEMPLE_BLUE_WARP)))) {
+                if ((LINK_AGE_IN_YEARS == YEARS_ADULT) && !CHECK_QUEST_ITEM(QUEST_MEDALLION_WATER)) {
                     extendedMapIndex = 0x15;
                 }
             } else if (play->sceneNum == SCENE_GERUDO_VALLEY) {
@@ -403,8 +401,7 @@ void Map_InitData(PlayState* play, s16 room) {
                     extendedMapIndex = 0x16;
                 }
             } else if (play->sceneNum == SCENE_GERUDOS_FORTRESS) {
-                if ((!IS_RANDO && GET_EVENTCHKINF_CARPENTERS_FREE_ALL()) ||
-                    (IS_RANDO && CHECK_QUEST_ITEM(QUEST_GERUDO_CARD))) {
+                if (GET_EVENTCHKINF_CARPENTERS_FREE_ALL()) {
                     extendedMapIndex = 0x17;
                 }
             }
@@ -638,28 +635,12 @@ void Minimap_DrawCompassIcons(PlayState* play) {
         gDPSetEnvColor(OVERLAY_DISP++, 0, 0, 0, 255);
         gDPSetCombineMode(OVERLAY_DISP++, G_CC_PRIMITIVE, G_CC_PRIMITIVE);
 
-        s16 mapWidth = 0;
-        s16 mapStartPosX = 0;
-        if (play->sceneNum >= SCENE_HYRULE_FIELD && play->sceneNum <= SCENE_OUTSIDE_GANONS_CASTLE) { // Overworld
-            mapStartPosX = R_OW_MINIMAP_X;
-            mapWidth = gMapData->owMinimapWidth[R_MAP_INDEX];
-        } else if (play->sceneNum >= SCENE_DEKU_TREE && play->sceneNum <= SCENE_ICE_CAVERN) { // Dungeons
-            mapStartPosX = R_DGN_MINIMAP_X;
-            mapWidth = 96;
-        }
-
-        // The compass offset value is a factor of 10 compared to N64 screen pixels and originates in the center of the
-        // screen Compute the additional mirror offset value by normalizing the original offset position and taking it's
-        // distance to the center of the map, duplicating that result and casting back to a factor of 10
-        s16 mirrorOffset = ((mapWidth / 2) - ((R_COMPASS_OFFSET_X / 10) - (mapStartPosX - SCREEN_WIDTH / 2))) * 2 * 10;
-
         tempX = player->actor.world.pos.x;
         tempZ = player->actor.world.pos.z;
-        tempX /= R_COMPASS_SCALE_X * (CVarGetInteger(CVAR_ENHANCEMENT("MirroredWorld"), 0) ? -1 : 1);
+        tempX /= R_COMPASS_SCALE_X;
         tempZ /= R_COMPASS_SCALE_Y;
 
-        s16 tempXOffset =
-            R_COMPASS_OFFSET_X + (CVarGetInteger(CVAR_ENHANCEMENT("MirroredWorld"), 0) ? mirrorOffset : 0);
+        s16 tempXOffset = R_COMPASS_OFFSET_X;
         if (CVarGetInteger(CVAR_COSMETIC("HUD.Minimap.PosType"), 0) != ORIGINAL_LOCATION) {
             if (CVarGetInteger(CVAR_COSMETIC("HUD.Minimap.PosType"), 0) == ANCHOR_LEFT) {
                 if (CVarGetInteger(CVAR_COSMETIC("HUD.Minimap.UseMargins"), 0) != 0) {
@@ -699,8 +680,7 @@ void Minimap_DrawCompassIcons(PlayState* play) {
         }
         Matrix_Scale(0.4f, 0.4f, 0.4f, MTXMODE_APPLY);
         Matrix_RotateX(-1.6f, MTXMODE_APPLY);
-        tempX = ((0x7FFF - player->actor.shape.rot.y) / 0x400) *
-                (CVarGetInteger(CVAR_ENHANCEMENT("MirroredWorld"), 0) ? -1 : 1);
+        tempX = (0x7FFF - player->actor.shape.rot.y) / 0x400;
         Matrix_RotateY(tempX / 10.0f, MTXMODE_APPLY);
         gSPMatrix(OVERLAY_DISP++, MATRIX_NEWMTX(play->state.gfxCtx), G_MTX_NOPUSH | G_MTX_LOAD | G_MTX_MODELVIEW);
 
@@ -711,7 +691,7 @@ void Minimap_DrawCompassIcons(PlayState* play) {
         // Player map entry (red arrow)
         tempX = sPlayerInitialPosX;
         tempZ = sPlayerInitialPosZ;
-        tempX /= R_COMPASS_SCALE_X * (CVarGetInteger(CVAR_ENHANCEMENT("MirroredWorld"), 0) ? -1 : 1);
+        tempX /= R_COMPASS_SCALE_X;
         tempZ /= R_COMPASS_SCALE_Y;
         if (CVarGetInteger(CVAR_COSMETIC("HUD.Minimap.PosType"), 0) != ORIGINAL_LOCATION) {
             if (CVarGetInteger(CVAR_COSMETIC("HUD.Minimap.PosType"), 0) == ANCHOR_LEFT) {
@@ -751,9 +731,7 @@ void Minimap_DrawCompassIcons(PlayState* play) {
         }
         Matrix_Scale(VREG(9) / 100.0f, VREG(9) / 100.0f, VREG(9) / 100.0f, MTXMODE_APPLY);
         Matrix_RotateX(VREG(52) / 10.0f, MTXMODE_APPLY);
-        Matrix_RotateY((sPlayerInitialDirection * (CVarGetInteger(CVAR_ENHANCEMENT("MirroredWorld"), 0) ? -1 : 1)) /
-                           10.0f,
-                       MTXMODE_APPLY);
+        Matrix_RotateY(sPlayerInitialDirection / 10.0f, MTXMODE_APPLY);
         gSPMatrix(OVERLAY_DISP++, MATRIX_NEWMTX(play->state.gfxCtx), G_MTX_NOPUSH | G_MTX_LOAD | G_MTX_MODELVIEW);
 
         gDPSetPrimColor(OVERLAY_DISP++, 0, 0xFF, lastEntranceColor.r, lastEntranceColor.g, lastEntranceColor.b, 255);
@@ -813,10 +791,8 @@ void Minimap_Draw(PlayState* play) {
                         gDPSetPrimColor(OVERLAY_DISP++, 0, 0, minimapColor.r, minimapColor.g, minimapColor.b,
                                         interfaceCtx->minimapAlpha);
 
-                        u8 mirrorMode =
-                            CVarGetInteger(CVAR_ENHANCEMENT("MirroredWorld"), 0) ? G_TX_MIRROR : G_TX_NOMIRROR;
                         gDPLoadTextureBlock_4b(OVERLAY_DISP++, interfaceCtx->mapSegmentName[0], G_IM_FMT_I, 96, 85, 0,
-                                               mirrorMode | G_TX_WRAP, G_TX_NOMIRROR | G_TX_WRAP, G_TX_NOMASK,
+                                               G_TX_NOMIRROR | G_TX_WRAP, G_TX_NOMIRROR | G_TX_WRAP, G_TX_NOMASK,
                                                G_TX_NOMASK, G_TX_NOLOD, G_TX_NOLOD);
 
                         s16 dgnMiniMapX = OTRGetRectDimensionFromRightEdge(R_DGN_MINIMAP_X + X_Margins_Minimap);
@@ -844,10 +820,6 @@ void Minimap_Draw(PlayState* play) {
                         }
 
                         s32 sValue = 0;
-                        if (CVarGetInteger(CVAR_ENHANCEMENT("MirroredWorld"), 0)) {
-                            // Flip the minimap on the x-axis (s-axis) by setting s to the textures mirror boundary
-                            sValue = 96 << 5;
-                        }
 
                         gSPWideTextureRectangle(OVERLAY_DISP++, dgnMiniMapX << 2, dgnMiniMapY << 2,
                                                 (dgnMiniMapX + 96) << 2, (dgnMiniMapY + 85) << 2, G_TX_RENDERTILE,
@@ -901,11 +873,10 @@ void Minimap_Draw(PlayState* play) {
                     gDPSetPrimColor(OVERLAY_DISP++, 0, 0, minimapColor.r, minimapColor.g, minimapColor.b,
                                     interfaceCtx->minimapAlpha);
 
-                    u8 mirrorMode = CVarGetInteger(CVAR_ENHANCEMENT("MirroredWorld"), 0) ? G_TX_MIRROR : G_TX_NOMIRROR;
                     gDPLoadTextureBlock_4b(OVERLAY_DISP++, interfaceCtx->mapSegmentName[0], G_IM_FMT_IA,
                                            gMapData->owMinimapWidth[mapIndex], gMapData->owMinimapHeight[mapIndex], 0,
-                                           mirrorMode | G_TX_WRAP, G_TX_NOMIRROR | G_TX_WRAP, G_TX_NOMASK, G_TX_NOMASK,
-                                           G_TX_NOLOD, G_TX_NOLOD);
+                                           G_TX_NOMIRROR | G_TX_WRAP, G_TX_NOMIRROR | G_TX_WRAP, G_TX_NOMASK,
+                                           G_TX_NOMASK, G_TX_NOLOD, G_TX_NOLOD);
 
                     s16 oWMiniMapX = OTRGetRectDimensionFromRightEdge(R_OW_MINIMAP_X + X_Margins_Minimap);
                     s16 oWMiniMapY = R_OW_MINIMAP_Y + Y_Margins_Minimap;
@@ -932,10 +903,6 @@ void Minimap_Draw(PlayState* play) {
                     }
 
                     s32 sValue = 0;
-                    if (CVarGetInteger(CVAR_ENHANCEMENT("MirroredWorld"), 0)) {
-                        // Flip the minimap on the x-axis (s-axis) by setting s to the textures mirror boundary
-                        sValue = gMapData->owMinimapWidth[mapIndex] << 5;
-                    }
 
                     gSPWideTextureRectangle(OVERLAY_DISP++, oWMiniMapX << 2, oWMiniMapY << 2,
                                             (oWMiniMapX + gMapData->owMinimapWidth[mapIndex]) << 2,
@@ -952,13 +919,7 @@ void Minimap_Draw(PlayState* play) {
                         (LINK_AGE_IN_YEARS != YEARS_ADULT)) {
                         s16 origX = gMapData->owEntranceIconPosX[sEntranceIconMapIndex];
 
-                        // Compute the distance of the center of the original texture location to the center of the map
-                        // Then duplicate that and right-align the texture (extra 2 pixels are due to the texture being
-                        // a 6px left-aligned in a 8px tex)
-                        s16 distFromCenter =
-                            (R_OW_MINIMAP_X + (gMapData->owMinimapWidth[mapIndex] / 2)) - (origX + (iconSize / 2));
-                        s16 mirrorOffset = distFromCenter * 2 + (iconSize / 2) - 2;
-                        s16 newX = origX + (CVarGetInteger(CVAR_ENHANCEMENT("MirroredWorld"), 0) ? mirrorOffset : 0);
+                        s16 newX = origX;
 
                         // The game authentically uses larger negative values for the entrance icon Y pos value.
                         // Normally only the first 12 bits would be read when the final value is passed into
@@ -1016,7 +977,7 @@ void Minimap_Draw(PlayState* play) {
                         }
                     }
 
-                    s16 origX = CVarGetInteger(CVAR_ENHANCEMENT("MirroredWorld"), 0) ? 256 : 270;
+                    s16 origX = 270;
                     s16 entranceX = OTRGetRectDimensionFromRightEdge(origX + X_Margins_Minimap);
                     s16 entranceY = 154 + Y_Margins_Minimap;
                     if (CVarGetInteger(CVAR_COSMETIC("HUD.Minimap.PosType"), 0) != ORIGINAL_LOCATION) {

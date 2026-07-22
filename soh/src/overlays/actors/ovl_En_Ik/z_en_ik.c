@@ -234,13 +234,12 @@ void func_80A74398(Actor* thisx, PlayState* play) {
     Effect_Add(play, &this->blureIdx, EFFECT_BLURE1, 0, 0, &blureInit);
     func_80A74714(this);
 
-    uint8_t enemyRandoCCActive = CVarGetInteger(CVAR_ENHANCEMENT("RandomizedEnemies"), 0) ||
-                                 (CVarGetInteger(CVAR_REMOTE_CROWD_CONTROL("Enabled"), 0));
+    uint8_t enemyRandoCCActive = CVarGetInteger(CVAR_REMOTE_CROWD_CONTROL("Enabled"), 0);
 
     if (this->switchFlags != 0xFF) {
         // In vanilla gameplay, Iron Knuckles are despawned based on specific flags in specific scenarios.
-        // In Enemy Randomizer and Crowd Control, this made the Iron Knuckles despawn when the same flag was set by
-        // other objects. Instead, rely on the "Clear enemy room" flag when in Enemy Randomizer for Iron Knuckles that
+        // In Crowd Control, this made the Iron Knuckles despawn when the same flag was set by
+        // other objects. Instead, rely on the "Clear enemy room" flag for Iron Knuckles that
         // aren't Nabooru.
         if ((Flags_GetSwitch(play, this->switchFlags) && !enemyRandoCCActive) ||
             (thisx->params != 0 && Flags_GetClear(play, play->roomCtx.curRoom.num) && enemyRandoCCActive)) {
@@ -304,11 +303,7 @@ void func_80A747C0(EnIk* this, PlayState* play) {
         sp24.y += 30.0f;
         func_8003424C(play, &sp24);
         this->skelAnime.playSpeed = 1.0f;
-        // Disable miniboss music with Enemy Randomizer because the music would keep
-        // playing if the enemy was never defeated, which is common with Enemy Randomizer.
-        if (!CVarGetInteger(CVAR_ENHANCEMENT("RandomizedEnemies"), 0)) {
-            func_800F5ACC(NA_BGM_MINI_BOSS);
-        }
+        func_800F5ACC(NA_BGM_MINI_BOSS);
     }
     if (this->skelAnime.curFrame == 5.0f) {
         Audio_PlayActorSound2(&this->actor, NA_SE_EN_IRONNACK_WAKEUP);
@@ -668,10 +663,9 @@ void func_80A75A38(EnIk* this, PlayState* play) {
             }
             if (this->unk_2F9 == 0) {
                 Item_DropCollectibleRandom(play, &this->actor, &this->actor.world.pos, 0xB0);
-                // Don't set flag when Enemy Rando or CrowdControl are on.
+                // Don't set flag when CrowdControl is on.
                 // Instead Iron Knuckles rely on the "clear room" flag.
-                if (this->switchFlags != 0xFF && !CVarGetInteger(CVAR_ENHANCEMENT("RandomizedEnemies"), 0) &&
-                    !(CVarGetInteger(CVAR_REMOTE_CROWD_CONTROL("Enabled"), 0))) {
+                if (this->switchFlags != 0xFF && !(CVarGetInteger(CVAR_REMOTE_CROWD_CONTROL("Enabled"), 0))) {
                     Flags_SetSwitch(play, this->switchFlags);
                 }
                 Actor_Kill(&this->actor);
@@ -1460,9 +1454,8 @@ void EnIk_Init(Actor* thisx, PlayState* play) {
         func_80A780D0(this, play);
     }
 
-    // Immediately trigger Iron Knuckle for Enemy Rando and Crowd Control
-    if ((CVarGetInteger(CVAR_ENHANCEMENT("RandomizedEnemies"), 0) ||
-         (CVarGetInteger(CVAR_REMOTE_CROWD_CONTROL("Enabled"), 0))) &&
+    // Immediately trigger Iron Knuckle for Crowd Control
+    if ((CVarGetInteger(CVAR_REMOTE_CROWD_CONTROL("Enabled"), 0)) &&
         (thisx->params == 2 || thisx->params == 3)) {
         this->skelAnime.playSpeed = 1.0f;
     }

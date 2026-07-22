@@ -242,16 +242,8 @@ void EnEncount1_SpawnStalchildOrWolfos(EnEncount1* this, PlayState* play) {
 
     this->outOfRangeTimer = 0;
     spawnPos = this->actor.world.pos;
-    // In authentic gameplay, the game checks how many Stalchildren were spawned and only spawns new ones
-    // when the old ones are despawned and a timer is reached.
-    // With Enemy Randomizer on, this will keep spawning enemies based on the timer and the total amount of existing
-    // enemies because it's much more difficult tracking how many enemies specifically spawned by this spawner have
-    // been spawned and/or killed.
-    int8_t enemyCount = play->actorCtx.actorLists[ACTORCAT_ENEMY].length;
-    if ((this->curNumSpawn < this->maxCurSpawns && this->totalNumSpawn < this->maxTotalSpawns) ||
-        (CVarGetInteger(CVAR_ENHANCEMENT("RandomizedEnemies"), 0) && enemyCount < 15)) {
-        while ((this->curNumSpawn < this->maxCurSpawns && this->totalNumSpawn < this->maxTotalSpawns) ||
-               (CVarGetInteger(CVAR_ENHANCEMENT("RandomizedEnemies"), 0) && enemyCount < 15)) {
+    if (this->curNumSpawn < this->maxCurSpawns && this->totalNumSpawn < this->maxTotalSpawns) {
+        while (this->curNumSpawn < this->maxCurSpawns && this->totalNumSpawn < this->maxTotalSpawns) {
             if (play->sceneNum == SCENE_HYRULE_FIELD) {
                 if ((player->floorSfxOffset == 0) || (player->actor.floorBgId != BGCHECK_SCENE) ||
                     !(player->actor.bgCheckFlags & 1) || (player->stateFlags1 & PLAYER_STATE1_IN_WATER)) {

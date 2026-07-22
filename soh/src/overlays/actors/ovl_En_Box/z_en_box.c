@@ -191,12 +191,6 @@ void EnBox_Init(Actor* thisx, PlayState* play2) {
     Animation_Change(&this->skelanime, anim, 1.5f, animFrameStart, endFrame, ANIMMODE_ONCE, 0.0f);
 
     this->getItemEntry = ItemTable_RetrieveEntry(MOD_NONE, this->dyna.actor.params >> 5 & 0x7F);
-    if (IS_RANDO) {
-        RandomizerCheck rc = Randomizer_GetCheckFromActor(this->dyna.actor.id, play->sceneNum, this->dyna.actor.params);
-        if (rc != RC_UNKNOWN_CHECK) {
-            this->getItemEntry = Randomizer_GetItemFromKnownCheck(rc, this->dyna.actor.params >> 5 & 0x7F);
-        }
-    }
 
     EnBox_UpdateTexture(this, play);
     // For SOH we spawn a chest actor instead of rendering the object from scratch for forest boss

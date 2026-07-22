@@ -331,82 +331,9 @@ void DrawSeedHashSprites(FileChooseContext* this) {
         }
     }
 
-    // Draw Seed Icons for spoiler log:
-    // 1. On Name Entry if a rando seed has been generated
-    // 2. On Quest Menu if a spoiler has been dropped and the Randomizer quest option is currently hovered.
-    if ((Randomizer_IsSeedGenerated() || Randomizer_IsSpoilerLoaded()) &&
-        (((this->configMode == CM_NAME_ENTRY || this->configMode == CM_ROTATE_TO_NAME_ENTRY ||
-           this->configMode == CM_NAME_ENTRY_TO_RANDOMIZER_SETTINGS_MENU || this->configMode == CM_START_NAME_ENTRY ||
-           this->configMode == CM_START_RANDOMIZER_SETTINGS_MENU) ||
-          this->configMode == CM_RANDOMIZER_SETTINGS_MENU) &&
-         gSaveContext.ship.quest.id == QUEST_RANDOMIZER)) {
-
-        gDPSetPrimColor(POLY_OPA_DISP++, 0, 0, 0xFF, 0xFF, 0xFF, 0xFF);
-        u16 xStart = 64;
-        for (unsigned int i = 0; i < 5; i++) {
-            SpriteLoad(this, GetSeedTexture(GetSeedIconIndex(i)));
-            SpriteDraw(this, GetSeedTexture(GetSeedIconIndex(i)), xStart + (40 * i), 10, 24, 24);
-        }
-    }
-
     gDPPipeSync(POLY_OPA_DISP++);
 
     CLOSE_DISPS(this->state.gfxCtx);
-}
-
-u8 generating;
-int retries = 0;
-bool fileSelectSpoilerFileLoaded = false;
-
-void FileChoose_UpdateRandomizer() {
-    if (CVarGetInteger(CVAR_GENERAL("RandoGenerating"), 0) != 0 && generating == 0) {
-        generating = 1;
-        func_800F5E18(SEQ_PLAYER_BGM_MAIN, NA_BGM_HORSE, 0, 7, 1);
-        return;
-    } else if (CVarGetInteger(CVAR_GENERAL("RandoGenerating"), 0) == 0 && generating) {
-        if (Randomizer_IsSeedGenerated()) {
-            Audio_PlayFanfare(NA_BGM_HORSE_GOAL);
-            retries = 0;
-        } else {
-            Sfx_PlaySfxCentered(NA_SE_SY_OCARINA_ERROR);
-        }
-        func_800F5E18(SEQ_PLAYER_BGM_MAIN, NA_BGM_FILE_SELECT, 0, 7, 1);
-        generating = 0;
-        return;
-    } else if (generating) {
-        return;
-    }
-
-    if (!SpoilerFileExists(CVarGetString(CVAR_GENERAL("SpoilerLog"), "")) &&
-        !CVarGetInteger(CVAR_RANDOMIZER_SETTING("DontGenerateSpoiler"), 0)) {
-        CVarSetString(CVAR_GENERAL("SpoilerLog"), "");
-        Randomizer_SetSpoilerLoaded(false);
-    }
-
-    if (CVarGetInteger(CVAR_GENERAL("RandomizerNewFileDropped"), 0) != 0 ||
-        !(Randomizer_IsSeedGenerated() || Randomizer_IsSpoilerLoaded()) &&
-            SpoilerFileExists(CVarGetString(CVAR_GENERAL("SpoilerLog"), "")) && !fileSelectSpoilerFileLoaded) {
-        if (CVarGetInteger(CVAR_GENERAL("RandomizerNewFileDropped"), 0) != 0) {
-            if (SpoilerFileExists(CVarGetString(CVAR_GENERAL("RandomizerDroppedFile"), ""))) {
-                CVarSetString(CVAR_GENERAL("SpoilerLog"), CVarGetString(CVAR_GENERAL("RandomizerDroppedFile"), ""));
-                Sfx_PlaySfxCentered(NA_SE_SY_CORRECT_CHIME);
-            } else {
-                Sfx_PlaySfxCentered(NA_SE_SY_ERROR);
-            }
-        }
-        const char* fileLoc = CVarGetString(CVAR_GENERAL("SpoilerLog"), "");
-        CVarSetInteger(CVAR_GENERAL("RandomizerNewFileDropped"), 0);
-        CVarSetString(CVAR_GENERAL("RandomizerDroppedFile"), "");
-        if (!Ship_IsCStringEmpty(fileLoc)) {
-            Randomizer_ParseSpoiler(fileLoc);
-            fileSelectSpoilerFileLoaded = true;
-        }
-
-        if (SpoilerFileExists(CVarGetString(CVAR_GENERAL("SpoilerLog"), "")) &&
-            CVarGetInteger(CVAR_RANDOMIZER_SETTING("DontGenerateSpoiler"), 0)) {
-            remove(fileLoc);
-        }
-    }
 }
 
 static s16 sLastFileChooseButtonIndex;
@@ -423,8 +350,6 @@ void FileChoose_UpdateMainMenu(GameState* thisx) {
     FileChooseContext* this = (FileChooseContext*)thisx;
     Input* input = &this->state.input[0];
     bool dpad = CVarGetInteger(CVAR_SETTING("DpadInText"), 0);
-
-    FileChoose_UpdateRandomizer();
 
     if (CHECK_BTN_ALL(input->press.button, BTN_START) || CHECK_BTN_ALL(input->press.button, BTN_A)) {
         if (this->buttonIndex <= FS_BTN_MAIN_FILE_3) {
@@ -638,8 +563,6 @@ void FileChoose_UpdateQuestMenu(GameState* thisx) {
     bool dpad = CVarGetInteger(CVAR_SETTING("DpadInText"), 0);
     void* defaultName;
 
-    FileChoose_UpdateRandomizer();
-
     if (ABS(this->stickRelX) > 30 || (dpad && CHECK_BTN_ANY(input->press.button, BTN_DLEFT | BTN_DRIGHT))) {
         if (this->stickRelX > 30 || (dpad && CHECK_BTN_ANY(input->press.button, BTN_DRIGHT))) {
             this->questType[this->buttonIndex] += 1;
@@ -730,12 +653,6 @@ void FileChoose_UpdateRandomizerMenu(GameState* thisx) {
     Input* input = &this->state.input[0];
     bool dpad = CVarGetInteger(CVAR_SETTING("DpadInText"), 0);
 
-    FileChoose_UpdateRandomizer();
-
-    if (generating) {
-        return;
-    }
-
     // Fade in elements after opening Randomizer options menu
     this->randomizerUIAlpha += 25;
     if (this->randomizerUIAlpha > 255) {
@@ -775,54 +692,7 @@ void FileChoose_UpdateRandomizerMenu(GameState* thisx) {
 
     if (CHECK_BTN_ALL(input->press.button, BTN_A)) {
         if (this->randomizerIndex == RSM_START_RANDOMIZER) {
-            if (Randomizer_IsSeedGenerated() || Randomizer_IsSpoilerLoaded()) {
-                SohFileSelect_ShowPresetModal();
-                Audio_PlaySoundGeneral(NA_SE_SY_FSEL_DECIDE_L, &gSfxDefaultPos, 4, &gSfxDefaultFreqAndVolScale,
-                                       &gSfxDefaultFreqAndVolScale, &gSfxDefaultReverb);
-                static u8 emptyName[] = { 0x3E, 0x3E, 0x3E, 0x3E, 0x3E, 0x3E, 0x3E, 0x3E };
-                static u8 emptyNameNES[] = { 0xDF, 0xDF, 0xDF, 0xDF, 0xDF, 0xDF, 0xDF, 0xDF };
-                static u8 linkName[] = { 0x15, 0x2C, 0x31, 0x2E, 0x3E, 0x3E, 0x3E, 0x3E };
-                static u8 linkNameNES[] = { 0xB6, 0xCD, 0xD2, 0xCF, 0xDF, 0xDF, 0xDF, 0xDF };
-                static u8 linkNameJP[] = { 0x81, 0x87, 0x61, 0xDF, 0xDF, 0xDF, 0xDF, 0xDF };
-                u8* defaultName;
-
-                this->prevConfigMode = this->configMode;
-                this->configMode = CM_ROTATE_TO_NAME_ENTRY;
-                this->logoAlpha = 0;
-                CVarSetInteger(CVAR_GENERAL("OnFileSelectNameEntry"), 1);
-                this->kbdButton = FS_KBD_BTN_NONE;
-                this->charPage = FS_CHAR_PAGE_ENG;
-                this->kbdX = 0;
-                this->kbdY = 0;
-                this->charIndex = 0;
-                this->charBgAlpha = 0;
-                this->newFileNameCharCount = CVarGetInteger(CVAR_ENHANCEMENT("LinkDefaultName"), 0) ? 4 : 0;
-                this->nameEntryBoxPosX = 120;
-                this->nameEntryBoxAlpha = 0;
-                if (ResourceMgr_GetGameRegion(0) == GAME_REGION_PAL && gSaveContext.language != LANGUAGE_JPN) {
-                    defaultName = CVarGetInteger(CVAR_ENHANCEMENT("LinkDefaultName"), 0) ? &linkName : &emptyName;
-                } else if (gSaveContext.language == LANGUAGE_JPN) { // Japanese
-                    if (CVarGetInteger(CVAR_ENHANCEMENT("LinkDefaultName"), 0) != 0) {
-                        // Set player name to "リンク" ("Link" in Katakana, 3 characters long) when playing in Japanese.
-                        defaultName = &linkNameJP;
-                        this->newFileNameCharCount = 3;
-                    } else {
-                        defaultName = &emptyNameNES;
-                    }
-                    this->charPage = FS_CHAR_PAGE_HIRA; // Default to Hiragana Keyboard
-                } else {                                // GAME_REGION_NTSC
-                    defaultName = CVarGetInteger(CVAR_ENHANCEMENT("LinkDefaultName"), 0) ? &linkNameNES : &emptyNameNES;
-                }
-                memcpy(Save_GetSaveMetaInfo(this->buttonIndex)->playerName, defaultName, 8);
-            } else {
-                Sfx_PlaySfxCentered(NA_SE_SY_OCARINA_ERROR);
-            }
-        } else if (this->randomizerIndex == RSM_GENERATE_RANDOMIZER) {
-            Randomizer_GenerateRandomizer();
-        } else if (this->randomizerIndex == RSM_OPEN_RANDOMIZER_SETTINGS) {
-            Audio_PlaySoundGeneral(NA_SE_SY_FSEL_DECIDE_L, &gSfxDefaultPos, 4, &gSfxDefaultFreqAndVolScale,
-                                   &gSfxDefaultFreqAndVolScale, &gSfxDefaultReverb);
-            Randomizer_ShowRandomizerMenu();
+            Sfx_PlaySfxCentered(NA_SE_SY_OCARINA_ERROR);
         }
     }
 }
@@ -1826,10 +1696,7 @@ void FileChoose_DrawWindowContents(GameState* thisx) {
                 textColorB = 80;
             }
 
-            // If no randomizer is loaded and text is "start randomizer" or when a seed is generating, make all options
-            // gray.
-            if ((index == RSM_START_RANDOMIZER && !Randomizer_IsSeedGenerated() && !Randomizer_IsSpoilerLoaded()) ||
-                generating) {
+            if (index == RSM_START_RANDOMIZER) {
                 textColorR = textColorG = textColorB = 100;
             }
 
@@ -1837,16 +1704,8 @@ void FileChoose_DrawWindowContents(GameState* thisx) {
                                    (80 + (index * 16)), textColorR, textColorG, textColorB, textAlpha, 0.8f, true);
         }
 
-        // Show text to indicate randomizer is being generated.
-        if (generating) {
-            Interface_DrawTextLine(this->state.gfxCtx, SohFileSelect_GetSettingText(RSM_GENERATING, language), 70,
-                                   (80 + 64), 255, 255, 255, textAlpha, 0.8f, true);
-        }
-
-        // If no randomizer is generated and "start randomizer" is selected, show text to explain why user can't start
-        // the randomizer.
-        if (!Randomizer_IsSeedGenerated() && !Randomizer_IsSpoilerLoaded() &&
-            this->randomizerIndex == RSM_START_RANDOMIZER) {
+        // If "start randomizer" is selected, show text to explain why user can't start the randomizer.
+        if (this->randomizerIndex == RSM_START_RANDOMIZER) {
             Interface_DrawTextLine(this->state.gfxCtx,
                                    SohFileSelect_GetSettingText(RSM_NO_RANDOMIZER_GENERATED, language), 70, (80 + 64),
                                    240, 80, 80, textAlpha, 0.8f, true);
@@ -3107,7 +2966,6 @@ void FileChoose_Init(GameState* thisx) {
     this->questType[0] = MIN_QUEST;
     this->questType[1] = MIN_QUEST;
     this->questType[2] = MIN_QUEST;
-    fileSelectSpoilerFileLoaded = false;
     CVarSetInteger(CVAR_GENERAL("OnFileSelectNameEntry"), 0);
 
     SREG(30) = 1;

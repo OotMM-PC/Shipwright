@@ -1155,8 +1155,7 @@ Gfx* KaleidoScope_QuadTextureIA4(Gfx* gfx, void* texture, s16 width, s16 height,
 }
 
 Gfx* KaleidoScope_QuadTextureIA8(Gfx* gfx, void* texture, s16 width, s16 height, u16 point) {
-    u8 mirrorMode = CVarGetInteger(CVAR_ENHANCEMENT("MirroredWorld"), 0) ? G_TX_MIRROR : G_TX_NOMIRROR;
-    gDPLoadTextureBlock(gfx++, texture, G_IM_FMT_IA, G_IM_SIZ_8b, width, height, 0, mirrorMode | G_TX_WRAP,
+    gDPLoadTextureBlock(gfx++, texture, G_IM_FMT_IA, G_IM_SIZ_8b, width, height, 0, G_TX_NOMIRROR | G_TX_WRAP,
                         G_TX_NOMIRROR | G_TX_WRAP, G_TX_NOMASK, G_TX_NOMASK, G_TX_NOLOD, G_TX_NOLOD);
     gSP1Quadrangle(gfx++, point, point + 2, point + 3, point + 1, 0);
 
@@ -1632,14 +1631,9 @@ void KaleidoScope_DrawPages(PlayState* play, GraphicsContext* gfxCtx) {
 
             gSPMatrix(POLY_OPA_DISP++, MATRIX_NEWMTX(gfxCtx), G_MTX_NOPUSH | G_MTX_LOAD | G_MTX_MODELVIEW);
 
-            if (pauseCtx->randoQuestMode) {
-                POLY_OPA_DISP = KaleidoScope_DrawPageSections(POLY_OPA_DISP, pauseCtx->saveVtx, sGameOverTexs);
-                RandoKaleido_DrawMiscCollectibles(play);
-            } else {
-                POLY_OPA_DISP = KaleidoScope_DrawPageSections(POLY_OPA_DISP, pauseCtx->questPageVtx,
-                                                              sQuestStatusTexs[gSaveContext.language]);
-                KaleidoScope_DrawQuestStatus(play, gfxCtx);
-            }
+            POLY_OPA_DISP = KaleidoScope_DrawPageSections(POLY_OPA_DISP, pauseCtx->questPageVtx,
+                                                          sQuestStatusTexs[gSaveContext.language]);
+            KaleidoScope_DrawQuestStatus(play, gfxCtx);
         }
 
         if (pauseCtx->pageIndex != PAUSE_MAP) {
@@ -1727,14 +1721,9 @@ void KaleidoScope_DrawPages(PlayState* play, GraphicsContext* gfxCtx) {
 
                 gSPMatrix(POLY_OPA_DISP++, MATRIX_NEWMTX(gfxCtx), G_MTX_NOPUSH | G_MTX_LOAD | G_MTX_MODELVIEW);
 
-                if (pauseCtx->randoQuestMode) {
-                    POLY_OPA_DISP = KaleidoScope_DrawPageSections(POLY_OPA_DISP, pauseCtx->saveVtx, sGameOverTexs);
-                    RandoKaleido_DrawMiscCollectibles(play);
-                } else {
-                    POLY_OPA_DISP = KaleidoScope_DrawPageSections(POLY_OPA_DISP, pauseCtx->questPageVtx,
-                                                                  sQuestStatusTexs[gSaveContext.language]);
-                    KaleidoScope_DrawQuestStatus(play, gfxCtx);
-                }
+                POLY_OPA_DISP = KaleidoScope_DrawPageSections(POLY_OPA_DISP, pauseCtx->questPageVtx,
+                                                              sQuestStatusTexs[gSaveContext.language]);
+                KaleidoScope_DrawQuestStatus(play, gfxCtx);
 
                 if (pauseCtx->cursorSpecialPos == 0) {
                     KaleidoScope_DrawCursor(play, PAUSE_QUEST);
@@ -2285,7 +2274,6 @@ void KaleidoScope_DrawInfoPanel(PlayState* play) {
             }
         } else {
             bool pauseAnyCursor =
-                (CVarGetInteger(CVAR_ENHANCEMENT("PauseAnyCursor"), 0) == PAUSE_ANY_CURSOR_RANDO_ONLY && IS_RANDO) ||
                 (CVarGetInteger(CVAR_ENHANCEMENT("PauseAnyCursor"), 0) == PAUSE_ANY_CURSOR_ALWAYS_ON);
             if (!pauseCtx->pageIndex &&
                 (!pauseAnyCursor || (gSaveContext.inventory.items[pauseCtx->cursorPoint[PAUSE_ITEM]] !=
@@ -2436,7 +2424,6 @@ void KaleidoScope_UpdateNamePanel(PlayState* play) {
     PauseContext* pauseCtx = &play->pauseCtx;
     u16 sp2A;
     bool pauseAnyCursor =
-        (CVarGetInteger(CVAR_ENHANCEMENT("PauseAnyCursor"), 0) == PAUSE_ANY_CURSOR_RANDO_ONLY && IS_RANDO) ||
         (CVarGetInteger(CVAR_ENHANCEMENT("PauseAnyCursor"), 0) == PAUSE_ANY_CURSOR_ALWAYS_ON);
 
     if ((pauseCtx->namedItem != pauseCtx->cursorItem[pauseCtx->pageIndex]) ||
@@ -4277,11 +4264,6 @@ void KaleidoScope_Update(PlayState* play) {
                         Interface_ChangeAlpha(50);
                         pauseCtx->unk_1EC = 0;
                         pauseCtx->state = 7;
-                    } else if (IS_RANDO && CHECK_BTN_ALL(input->press.button, BTN_CUP) &&
-                               pauseCtx->pageIndex == PAUSE_QUEST) {
-                        Audio_PlaySoundGeneral(NA_SE_SY_DECIDE, &gSfxDefaultPos, 4, &gSfxDefaultFreqAndVolScale,
-                                               &gSfxDefaultFreqAndVolScale, &gSfxDefaultReverb);
-                        pauseCtx->randoQuestMode ^= 1;
                     }
                     break;
 

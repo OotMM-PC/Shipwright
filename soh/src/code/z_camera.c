@@ -1497,10 +1497,7 @@ s32 Camera_Free(Camera* camera) {
     newCamX *= (CVarGetFloat(CVAR_SETTING("FreeLook.CameraSensitivity.X"), 1.0f));
     newCamY *= (CVarGetFloat(CVAR_SETTING("FreeLook.CameraSensitivity.Y"), 1.0f));
 
-    bool invertXAxis = (CVarGetInteger(CVAR_SETTING("FreeLook.InvertXAxis"), 0) &&
-                        !CVarGetInteger(CVAR_ENHANCEMENT("MirroredWorld"), 0)) ||
-                       (!CVarGetInteger(CVAR_SETTING("FreeLook.InvertXAxis"), 0) &&
-                        CVarGetInteger(CVAR_ENHANCEMENT("MirroredWorld"), 0));
+    bool invertXAxis = CVarGetInteger(CVAR_SETTING("FreeLook.InvertXAxis"), 0);
 
     camera->play->camX += newCamX * (invertXAxis ? -1 : 1);
     camera->play->camY += newCamY * (CVarGetInteger(CVAR_SETTING("FreeLook.InvertYAxis"), 1) ? 1 : -1);

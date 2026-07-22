@@ -49,7 +49,6 @@ s32 EnGirlA_CanBuy_BlueFire(PlayState* play, EnGirlA* this);
 s32 EnGirlA_CanBuy_Bugs(PlayState* play, EnGirlA* this);
 s32 EnGirlA_CanBuy_Poe(PlayState* play, EnGirlA* this);
 s32 EnGirlA_CanBuy_Fairy(PlayState* play, EnGirlA* this);
-s32 EnGirlA_CanBuy_Randomizer(PlayState* play, EnGirlA* this);
 
 void EnGirlA_ItemGive_DekuNuts(PlayState* play, EnGirlA* this);
 void EnGirlA_ItemGive_Arrows(PlayState* play, EnGirlA* this);
@@ -67,13 +66,10 @@ void EnGirlA_ItemGive_WeirdEgg(PlayState* play, EnGirlA* this);
 void EnGirlA_ItemGive_Unk19(PlayState* play, EnGirlA* this);
 void EnGirlA_ItemGive_Unk20(PlayState* play, EnGirlA* this);
 void EnGirlA_ItemGive_DekuSeeds(PlayState* play, EnGirlA* this);
-void EnGirlA_ItemGive_Randomizer(PlayState* play, EnGirlA* this);
 void EnGirlA_BuyEvent_ShieldDiscount(PlayState* play, EnGirlA* this);
 void EnGirlA_BuyEvent_ObtainBombchuPack(PlayState* play, EnGirlA* this);
 void EnGirlA_BuyEvent_GoronTunic(PlayState* play, EnGirlA* this);
 void EnGirlA_BuyEvent_ZoraTunic(PlayState* play, EnGirlA* this);
-
-s32 Object_Spawn(ObjectContext* objectCtx, s16 objectId);
 
 const ActorInit En_GirlA_InitVars = {
     ACTOR_EN_GIRLA,
@@ -139,7 +135,6 @@ static char* sShopItemDescriptions[] = {
     "爆弾×5       ",  // "Bomb x5"
     "赤クスリ      ", // "Red medicine"
     "赤クスリ      ", // "Red medicine"
-    "Random Item  "   // "Random Item"
 };
 
 static s16 sMaskShopItems[8] = {
@@ -314,9 +309,6 @@ static ShopItemEntry shopItemEntries[] = {
     /* SI_RED_POTION_R50 */
     { OBJECT_GI_LIQUID, GID_POTION_RED, func_8002EBCC, 50, 1, 0x0065, 0x0063, GI_POTION_RED, EnGirlA_CanBuy_RedPotion,
       EnGirlA_ItemGive_BottledItem, EnGirlA_BuyEvent_ShieldDiscount },
-    /* SI_RANDOMIZED_ITEM */
-    { OBJECT_INVALID, GID_MAXIMUM, NULL, 40, 1, 0x9100, 0x9100 + NUM_SHOP_ITEMS, GI_NONE, EnGirlA_CanBuy_Randomizer,
-      EnGirlA_ItemGive_Randomizer, NULL }
 };
 
 // Defines the Hylian Shield discount amount
@@ -326,9 +318,9 @@ void EnGirlA_SetupAction(EnGirlA* this, EnGirlAActionFunc func) {
     this->actionFunc = func;
 }
 
-// #region SOH [Enhancement] [Randomizer]
+// #region SOH [Enhancement]
 s32 EnGirlA_TryChangeShopItemShip(EnGirlA* this, PlayState* play) {
-    if (!(IS_RANDO || CVarGetInteger(CVAR_ENHANCEMENT("BetterBombchuShopping"), 0))) {
+    if (!CVarGetInteger(CVAR_ENHANCEMENT("BetterBombchuShopping"), 0)) {
         switch (this->actor.params) {
             case SI_BOMBCHU_10_2:
                 if (Flags_GetItemGetInf(ITEMGETINF_06)) {
@@ -383,19 +375,6 @@ s32 EnGirlA_TryChangeShopItemShip(EnGirlA* this, PlayState* play) {
     if (this->actor.params == SI_MILK_BOTTLE) {
         if (Flags_GetItemGetInf(ITEMGETINF_TALON_BOTTLE)) {
             this->actor.params = SI_RECOVERY_HEART;
-            return true;
-        }
-    } else if (this->actor.params == SI_RANDOMIZED_ITEM) {
-        ShopItemIdentity shopItemIdentity = Randomizer_IdentifyShopItem(play->sceneNum, this->randoSlotIndex);
-        if (Flags_GetRandomizerInf(shopItemIdentity.identity.randomizerInf)) {
-            this->actor.params = SI_SOLD_OUT;
-            GetItemEntry getItemEntry = Randomizer_GetItemFromKnownCheckWithoutObtainabilityCheck(
-                shopItemIdentity.identity.randomizerCheck, shopItemIdentity.ogItemId);
-
-            // Undo the rotation for spiritual stones
-            if (getItemEntry.getItemId >= RG_KOKIRI_EMERALD && getItemEntry.getItemId <= RG_ZORA_SAPPHIRE) {
-                this->actor.shape.rot.y = this->actor.shape.rot.y - 20000;
-            }
             return true;
         }
     }
@@ -478,29 +457,7 @@ void EnGirlA_InitItem(EnGirlA* this, PlayState* play) {
         return;
     }
 
-    // #region [Randomizer]
-    if (IS_RANDO && !Randomizer_GetSettingValue(RSK_SHOPSANITY) == RO_SHOPSANITY_OFF) {
-        s16 objectId = shopItemEntries[params].objID;
-
-        if (params == SI_RANDOMIZED_ITEM) {
-            ShopItemIdentity shopItemIdentity = Randomizer_IdentifyShopItem(play->sceneNum, this->randoSlotIndex);
-            GetItemEntry getItemEntry = Randomizer_GetItemFromKnownCheckWithoutObtainabilityCheck(
-                shopItemIdentity.identity.randomizerCheck, shopItemIdentity.ogItemId);
-
-            objectId = getItemEntry.objectId;
-        }
-
-        this->requiredObjectSlot = Object_GetIndex(&play->objectCtx, objectId);
-
-        // If the object isn't normally spawned by the shop scene, then spawn it now
-        if (this->requiredObjectSlot < 0) {
-            this->requiredObjectSlot = Object_Spawn(&play->objectCtx, objectId);
-        }
-    }
-    // #endregion
-    else {
-        this->requiredObjectSlot = Object_GetIndex(&play->objectCtx, shopItemEntries[params].objID);
-    }
+    this->requiredObjectSlot = Object_GetIndex(&play->objectCtx, shopItemEntries[params].objID);
 
     if (this->requiredObjectSlot < 0) {
         Actor_Kill(&this->actor);
@@ -516,8 +473,8 @@ void EnGirlA_InitItem(EnGirlA* this, PlayState* play) {
 }
 
 void EnGirlA_Init(Actor* thisx, PlayState* play) {
-    // #region [Randomizer] [Enhancment]
-    if (IS_RANDO || CVarGetInteger(CVAR_ENHANCEMENT("BetterBombchuShopping"), 0)) {
+    // #region [Enhancment]
+    if (CVarGetInteger(CVAR_ENHANCEMENT("BetterBombchuShopping"), 0)) {
         EnGirlA* this = (EnGirlA*)thisx;
 
         EnGirlA_TryChangeShopItemShip(this, play);
@@ -551,7 +508,7 @@ s32 EnGirlA_CanBuy_Arrows(PlayState* play, EnGirlA* this) {
 }
 
 s32 EnGirlA_CanBuy_Bombs(PlayState* play, EnGirlA* this) {
-    if (!IS_RANDO && !CHECK_QUEST_ITEM(QUEST_GORON_RUBY)) {
+    if (!CHECK_QUEST_ITEM(QUEST_GORON_RUBY)) {
         return CANBUY_RESULT_CANT_GET_NOW;
     }
     if (AMMO(ITEM_BOMB) >= CUR_CAPACITY(UPG_BOMB_BAG)) {
@@ -564,10 +521,6 @@ s32 EnGirlA_CanBuy_Bombs(PlayState* play, EnGirlA* this) {
 }
 
 s32 EnGirlA_CanBuy_DekuNuts(PlayState* play, EnGirlA* this) {
-    if (IS_RANDO && Randomizer_GetSettingValue(RSK_SHUFFLE_DEKU_NUT_BAG) && CUR_CAPACITY(UPG_NUTS) == 0) {
-        return CANBUY_RESULT_CANT_GET_NOW;
-    }
-
     if ((CUR_CAPACITY(UPG_NUTS) != 0) && (AMMO(ITEM_NUT) >= CUR_CAPACITY(UPG_NUTS))) {
         return CANBUY_RESULT_CANT_GET_NOW;
     }
@@ -581,10 +534,6 @@ s32 EnGirlA_CanBuy_DekuNuts(PlayState* play, EnGirlA* this) {
 }
 
 s32 EnGirlA_CanBuy_DekuSticks(PlayState* play, EnGirlA* this) {
-    if (IS_RANDO && Randomizer_GetSettingValue(RSK_SHUFFLE_DEKU_STICK_BAG) && CUR_CAPACITY(UPG_STICKS) == 0) {
-        return CANBUY_RESULT_CANT_GET_NOW;
-    }
-
     if ((CUR_CAPACITY(UPG_STICKS) != 0) && (AMMO(ITEM_STICK) >= CUR_CAPACITY(UPG_STICKS))) {
         return CANBUY_RESULT_CANT_GET_NOW;
     }
@@ -690,8 +639,7 @@ s32 EnGirlA_CanBuy_DekuShield(PlayState* play, EnGirlA* this) {
 }
 
 s32 EnGirlA_CanBuy_GoronTunic(PlayState* play, EnGirlA* this) {
-    if (LINK_AGE_IN_YEARS == YEARS_CHILD &&
-        (!IS_RANDO || Randomizer_GetSettingValue(RSK_SHOPSANITY) == RO_SHOPSANITY_OFF)) {
+    if (LINK_AGE_IN_YEARS == YEARS_CHILD) {
         return CANBUY_RESULT_CANT_GET_NOW;
     }
     if (CHECK_OWNED_EQUIP_ALT(EQUIP_TYPE_TUNIC, EQUIP_INV_TUNIC_GORON)) {
@@ -707,8 +655,7 @@ s32 EnGirlA_CanBuy_GoronTunic(PlayState* play, EnGirlA* this) {
 }
 
 s32 EnGirlA_CanBuy_ZoraTunic(PlayState* play, EnGirlA* this) {
-    if (LINK_AGE_IN_YEARS == YEARS_CHILD &&
-        (!IS_RANDO || Randomizer_GetSettingValue(RSK_SHOPSANITY) == RO_SHOPSANITY_OFF)) {
+    if (LINK_AGE_IN_YEARS == YEARS_CHILD) {
         return CANBUY_RESULT_CANT_GET_NOW;
     }
     if (CHECK_OWNED_EQUIP_ALT(EQUIP_TYPE_TUNIC, EQUIP_INV_TUNIC_ZORA)) {
@@ -845,33 +792,6 @@ s32 EnGirlA_CanBuy_Fairy(PlayState* play, EnGirlA* this) {
     if (Item_CheckObtainability(ITEM_FAIRY) == ITEM_NONE) {
         return CANBUY_RESULT_SUCCESS_FANFARE;
     }
-    return CANBUY_RESULT_SUCCESS;
-}
-
-s32 EnGirlA_CanBuy_Randomizer(PlayState* play, EnGirlA* this) {
-    ShopItemIdentity shopItemIdentity = Randomizer_IdentifyShopItem(play->sceneNum, this->randoSlotIndex);
-    GetItemEntry getItemEntry = Randomizer_GetItemFromKnownCheckWithoutObtainabilityCheck(
-        shopItemIdentity.identity.randomizerCheck, shopItemIdentity.ogItemId);
-    ItemObtainability itemObtainability =
-        Randomizer_GetItemObtainabilityFromRandomizerCheck(shopItemIdentity.identity.randomizerCheck);
-
-    if (itemObtainability == CANT_OBTAIN_NEED_EMPTY_BOTTLE) {
-        return CANBUY_RESULT_NEED_BOTTLE;
-    }
-
-    if (itemObtainability == CANT_OBTAIN_NEED_UPGRADE) {
-        return CANBUY_RESULT_CANT_GET_NOW_5;
-    }
-
-    if (Flags_GetRandomizerInf(shopItemIdentity.identity.randomizerInf) ||
-        itemObtainability == CANT_OBTAIN_ALREADY_HAVE || itemObtainability == CANT_OBTAIN_MISC) {
-        return CANBUY_RESULT_CANT_GET_NOW;
-    }
-
-    if (gSaveContext.rupees < shopItemIdentity.itemPrice) {
-        return CANBUY_RESULT_NEED_RUPEES;
-    }
-
     return CANBUY_RESULT_SUCCESS;
 }
 
@@ -1050,18 +970,6 @@ void EnGirlA_ItemGive_BottledItem(PlayState* play, EnGirlA* this) {
     Rupees_ChangeBy(-this->basePrice);
 }
 
-// This is called when EnGirlA_CanBuy_Randomizer returns CANBUY_RESULT_SUCCESS
-// The giving of the item is handled here, and no fanfare is played
-void EnGirlA_ItemGive_Randomizer(PlayState* play, EnGirlA* this) {
-    Player* player = GET_PLAYER(play);
-    ShopItemIdentity shopItemIdentity = Randomizer_IdentifyShopItem(play->sceneNum, this->randoSlotIndex);
-    GetItemEntry getItemEntry = Randomizer_GetItemFromKnownCheckWithoutObtainabilityCheck(
-        shopItemIdentity.identity.randomizerCheck, shopItemIdentity.ogItemId);
-
-    Flags_SetRandomizerInf(shopItemIdentity.identity.randomizerInf);
-    Rupees_ChangeBy(-this->basePrice);
-}
-
 void EnGirlA_BuyEvent_ShieldDiscount(PlayState* play, EnGirlA* this) {
     GetItemEntry entry = ItemTable_Retrieve(this->getItemId);
     gSaveContext.ship.pendingSale = entry.itemId;
@@ -1096,9 +1004,8 @@ void EnGirlA_BuyEvent_ObtainBombchuPack(PlayState* play, EnGirlA* this) {
     Rupees_ChangeBy(-this->basePrice);
 
     // Normally, buying a bombchu pack sets a flag indicating the pack is now sold out
-    // If they're in logic for rando, skip setting that flag so they can be purchased repeatedly
     // #region [Enhancment]
-    if (IS_RANDO || CVarGetInteger(CVAR_ENHANCEMENT("BetterBombchuShopping"), 0)) {
+    if (CVarGetInteger(CVAR_ENHANCEMENT("BetterBombchuShopping"), 0)) {
         return;
     }
     // #endregion
@@ -1179,11 +1086,6 @@ void EnGirlA_SetItemDescription(PlayState* play, EnGirlA* this) {
         this->actor.textId = tmp->itemDescTextId;
     }
 
-    if (params == SI_RANDOMIZED_ITEM) {
-        ShopItemIdentity shopItemIdentity = Randomizer_IdentifyShopItem(play->sceneNum, this->randoSlotIndex);
-        this->actor.textId = 0x9100 + (shopItemIdentity.identity.randomizerInf - RAND_INF_SHOP_ITEMS_KF_SHOP_ITEM_1);
-    }
-
     this->isInvisible = false;
     this->actor.draw = EnGirlA_Draw;
 }
@@ -1191,27 +1093,19 @@ void EnGirlA_SetItemDescription(PlayState* play, EnGirlA* this) {
 void EnGirlA_SetItemOutOfStock(PlayState* play, EnGirlA* this) {
     this->isInvisible = true;
     this->actor.draw = NULL;
-    if (((this->actor.params >= SI_KEATON_MASK) && (this->actor.params <= SI_GERUDO_MASK)) ||
-        this->actor.params == SI_RANDOMIZED_ITEM) {
+    if ((this->actor.params >= SI_KEATON_MASK) && (this->actor.params <= SI_GERUDO_MASK)) {
         this->actor.textId = 0xBD;
     }
 }
 
 void EnGirlA_UpdateStockedItem(PlayState* play, EnGirlA* this) {
-    // #region [Randomizer] [Enhancment]
-    if (IS_RANDO || CVarGetInteger(CVAR_ENHANCEMENT("BetterBombchuShopping"), 0)) {
+    // #region [Enhancment]
+    if (CVarGetInteger(CVAR_ENHANCEMENT("BetterBombchuShopping"), 0)) {
         ShopItemEntry* itemEntry;
         if (EnGirlA_TryChangeShopItemShip(this, play)) {
             EnGirlA_InitItem(this, play);
             itemEntry = &shopItemEntries[this->actor.params];
-
-            if (this->actor.params == SI_RANDOMIZED_ITEM) {
-                ShopItemIdentity shopItemIdentity = Randomizer_IdentifyShopItem(play->sceneNum, this->randoSlotIndex);
-                this->actor.textId =
-                    0x9100 + (shopItemIdentity.identity.randomizerInf - RAND_INF_SHOP_ITEMS_KF_SHOP_ITEM_1);
-            } else {
-                this->actor.textId = itemEntry->itemDescTextId;
-            }
+            this->actor.textId = itemEntry->itemDescTextId;
         } else {
             this->isInvisible = false;
             this->actor.draw = EnGirlA_Draw;
@@ -1315,8 +1209,8 @@ void EnGirlA_WaitForObject(EnGirlA* this, PlayState* play) {
         if (!EnGirlA_TrySetMaskItemDescription(this, play)) {
             EnGirlA_SetItemDescription(play, this);
         }
-        // #region [Enhancment] [Randomizer]
-        if (IS_RANDO || CVarGetInteger(CVAR_ENHANCEMENT("BetterBombchuShopping"), 0)) {
+        // #region [Enhancment]
+        if (CVarGetInteger(CVAR_ENHANCEMENT("BetterBombchuShopping"), 0)) {
             this->setOutOfStockFunc = EnGirlA_SetItemOutOfStock;
             this->updateStockedItemFunc = EnGirlA_UpdateStockedItem;
             this->getItemId = itemEntry->getItemId;
@@ -1345,27 +1239,6 @@ void EnGirlA_WaitForObject(EnGirlA* this, PlayState* play) {
             this->isSelected = false;
             this->yRotation = 0;
             this->yRotationInit = this->actor.shape.rot.y;
-
-            if (params == SI_RANDOMIZED_ITEM) {
-                ShopItemIdentity shopItemIdentity = Randomizer_IdentifyShopItem(play->sceneNum, this->randoSlotIndex);
-                GetItemEntry getItemEntry = Randomizer_GetItemFromKnownCheckWithoutObtainabilityCheck(
-                    shopItemIdentity.identity.randomizerCheck, shopItemIdentity.ogItemId);
-                this->actor.textId =
-                    0x9100 + (shopItemIdentity.identity.randomizerInf - RAND_INF_SHOP_ITEMS_KF_SHOP_ITEM_1);
-                this->itemBuyPromptTextId =
-                    0x9100 +
-                    ((shopItemIdentity.identity.randomizerInf - RAND_INF_SHOP_ITEMS_KF_SHOP_ITEM_1) + NUM_SHOP_ITEMS);
-                this->getItemId = getItemEntry.getItemId;
-                this->basePrice = shopItemIdentity.itemPrice;
-                this->giDrawId = getItemEntry.gid;
-
-                // Correct the rotation for spiritual stones, but only if mysterious shuffle isn't on, else it's obvious
-                // what's there in shops
-                if (!CVarGetInteger(CVAR_RANDOMIZER_ENHANCEMENT("MysteriousShuffle"), 0) &&
-                    (getItemEntry.getItemId >= RG_KOKIRI_EMERALD && getItemEntry.getItemId <= RG_ZORA_SAPPHIRE)) {
-                    this->actor.shape.rot.y = this->actor.shape.rot.y + 20000;
-                }
-            }
         }
         // #endregion
         else {
@@ -1430,22 +1303,6 @@ void EnGirlA_Draw(Actor* thisx, PlayState* play) {
     Matrix_RotateY(((this->yRotation * 360.0f) / 65536.0f) * (M_PI / 180.0f), MTXMODE_APPLY);
     if (this->hiliteFunc != NULL) {
         this->hiliteFunc(thisx, play, 0);
-    }
-
-    if (this->actor.params == SI_RANDOMIZED_ITEM) {
-        // Set all hilites for randomized items
-        func_80A3C498(&this->actor, play, 0);
-
-        ShopItemIdentity shopItemIdentity = Randomizer_IdentifyShopItem(play->sceneNum, this->randoSlotIndex);
-        GetItemEntry getItemEntry = (CVarGetInteger(CVAR_RANDOMIZER_ENHANCEMENT("MysteriousShuffle"), 0) &&
-                                     this->actor.params == SI_RANDOMIZED_ITEM)
-                                        ? GetItemMystery()
-                                        : Randomizer_GetItemFromKnownCheckWithoutObtainabilityCheck(
-                                              shopItemIdentity.identity.randomizerCheck, shopItemIdentity.ogItemId);
-
-        EnItem00_CustomItemsParticles(&this->actor, play, getItemEntry);
-        GetItemEntry_Draw(play, getItemEntry);
-        return;
     }
 
     GetItem_Draw(play, this->giDrawId);

@@ -2032,8 +2032,7 @@ s32 GiveItemEntryWithoutActor(PlayState* play, GetItemEntry getItemEntry) {
            PLAYER_STATE1_CLIMBING_LEDGE | PLAYER_STATE1_JUMPING | PLAYER_STATE1_FREEFALL | PLAYER_STATE1_FIRST_PERSON |
            PLAYER_STATE1_CLIMBING_LADDER)) &&
         Player_GetExplosiveHeld(player) < 0) {
-        if (((player->heldActor != NULL) && ((getItemEntry.getItemId > GI_NONE) && (getItemEntry.getItemId < GI_MAX)) ||
-             (IS_RANDO && (getItemEntry.getItemId > RG_NONE) && (getItemEntry.getItemId < RG_MAX))) ||
+        if (((player->heldActor != NULL) && ((getItemEntry.getItemId > GI_NONE) && (getItemEntry.getItemId < GI_MAX))) ||
             (!(player->stateFlags1 & (PLAYER_STATE1_CARRYING_ACTOR | PLAYER_STATE1_IN_CUTSCENE)))) {
             if ((getItemEntry.getItemId != GI_NONE)) {
                 player->getItemEntry = getItemEntry;
@@ -2073,15 +2072,13 @@ s32 GiveItemEntryFromActor(Actor* actor, PlayState* play, GetItemEntry getItemEn
            PLAYER_STATE1_CLIMBING_LADDER)) &&
         Player_GetExplosiveHeld(player) < 0) {
         if ((((player->heldActor != NULL) || (actor == player->talkActor)) &&
-             ((!IS_RANDO && ((getItemEntry.getItemId > GI_NONE) && (getItemEntry.getItemId < GI_MAX))) ||
-              (IS_RANDO && ((getItemEntry.getItemId > RG_NONE) && (getItemEntry.getItemId < RG_MAX))))) ||
+             ((getItemEntry.getItemId > GI_NONE) && (getItemEntry.getItemId < GI_MAX))) ||
             (!(player->stateFlags1 & (PLAYER_STATE1_CARRYING_ACTOR | PLAYER_STATE1_IN_CUTSCENE)))) {
             if ((actor->xzDistToPlayer < xzRange) && (fabsf(actor->yDistToPlayer) < yRange)) {
                 s16 yawDiff = actor->yawTowardsPlayer - player->actor.shape.rot.y;
                 s32 absYawDiff = ABS(yawDiff);
 
                 if ((getItemEntry.getItemId != GI_NONE) || (player->getItemDirection < absYawDiff)) {
-                    iceTrapScale = 0.0f;
                     player->getItemEntry = getItemEntry;
                     player->getItemId = getItemEntry.getItemId;
                     player->interactRangeActor = actor;
@@ -2108,7 +2105,6 @@ s32 GiveItemEntryFromActorWithFixedRange(Actor* actor, PlayState* play, GetItemE
     return GiveItemEntryFromActor(actor, play, getItemEntry, 50.0f, 10.0f);
 }
 
-// If you're doing something for randomizer, you're probably looking for GiveItemEntryFromActor
 s32 Actor_OfferGetItem(Actor* actor, PlayState* play, s32 getItemId, f32 xzRange, f32 yRange) {
     Player* player = GET_PLAYER(play);
 
@@ -2118,8 +2114,7 @@ s32 Actor_OfferGetItem(Actor* actor, PlayState* play, s32 getItemId, f32 xzRange
            PLAYER_STATE1_CLIMBING_LADDER)) &&
         Player_GetExplosiveHeld(player) < 0) {
         if ((((player->heldActor != NULL) || (actor == player->talkActor)) &&
-             ((!IS_RANDO && ((getItemId > GI_NONE) && (getItemId < GI_MAX))) ||
-              (IS_RANDO && ((getItemId > RG_NONE) && (getItemId < RG_MAX))))) ||
+             ((getItemId > GI_NONE) && (getItemId < GI_MAX))) ||
             (!(player->stateFlags1 & (PLAYER_STATE1_CARRYING_ACTOR | PLAYER_STATE1_IN_CUTSCENE)))) {
             if ((actor->xzDistToPlayer < xzRange) && (fabsf(actor->yDistToPlayer) < yRange)) {
                 s16 yawDiff = actor->yawTowardsPlayer - player->actor.shape.rot.y;
@@ -2138,7 +2133,6 @@ s32 Actor_OfferGetItem(Actor* actor, PlayState* play, s32 getItemId, f32 xzRange
     return false;
 }
 
-// If you're doing something for randomizer, you're probably looking for GiveItemEntryFromActorWithFixedRange
 void Actor_OfferGetItemNearby(Actor* actor, PlayState* play, s32 getItemId) {
     Actor_OfferGetItem(actor, play, getItemId, 50.0f, 10.0f);
 }
@@ -3340,7 +3334,7 @@ Actor* Actor_Spawn(ActorContext* actorCtx, PlayState* play, s16 actorId, f32 pos
 
     objBankIndex = Object_GetIndex(&gPlayState->objectCtx, dbEntry->objectId);
 
-    if (objBankIndex < 0 && (!gMapLoading || CVarGetInteger(CVAR_ENHANCEMENT("RandomizedEnemies"), 0))) {
+    if (objBankIndex < 0 && !gMapLoading) {
         objBankIndex = 0;
     }
 
@@ -3417,16 +3411,6 @@ Actor* Actor_SpawnAsChild(ActorContext* actorCtx, Actor* parent, PlayState* play
 
     if (spawnedActor == NULL) {
         return NULL;
-    }
-
-    // The following enemies break when the parent actor isn't the same as what would happen in authentic gameplay.
-    // As such, don't assign a parent to them at all when spawned with Enemy Randomizer.
-    // Gohma (z_boss_goma.c) and the falling platform spawning Stalfos in
-    // Forest Temple (z_bg_mori_bigst.c) that normally rely on this behaviour are changed when
-    // Enemy Rando is on so they still work properly even without assigning a parent.
-    if (CVarGetInteger(CVAR_ENHANCEMENT("RandomizedEnemies"), 0) &&
-        (spawnedActor->id == ACTOR_EN_FLOORMAS || spawnedActor->id == ACTOR_EN_PEEHAT)) {
-        return spawnedActor;
     }
 
     parent->child = spawnedActor;
@@ -5045,14 +5029,6 @@ void Flags_UnsetEventInf(s32 flag) {
  */
 s32 Flags_GetRandomizerInf(RandomizerInf flag) {
     // Randomizer flags are currently accessible from any quest (boss rush as an example)
-    /*
-    if (!IS_RANDO) {
-        LUSLOG_ERROR("Tried to get randomizerInf flag \"%d\" outside of rando", flag);
-        assert(false);
-        return 0;
-    }
-    */
-
     return gSaveContext.ship.randomizerInf[flag >> 4] & (1 << (flag & 0xF));
 }
 
@@ -5061,14 +5037,6 @@ s32 Flags_GetRandomizerInf(RandomizerInf flag) {
  */
 void Flags_SetRandomizerInf(RandomizerInf flag) {
     // Randomizer flags are currently accessible from any quest (boss rush as an example)
-    /*
-    if (!IS_RANDO) {
-        LUSLOG_ERROR("Tried to set randomizerInf flag \"%d\" outside of rando", flag);
-        assert(false);
-        return;
-    }
-    */
-
     s32 previouslyOff = !Flags_GetRandomizerInf(flag);
     if (previouslyOff) {
         gSaveContext.ship.randomizerInf[flag >> 4] |= (1 << (flag & 0xF));
@@ -5082,14 +5050,6 @@ void Flags_SetRandomizerInf(RandomizerInf flag) {
  */
 void Flags_UnsetRandomizerInf(RandomizerInf flag) {
     // Randomizer flags are currently accessible from any quest (boss rush as an example)
-    /*
-    if (!IS_RANDO) {
-        LUSLOG_ERROR("Tried to unset randomizerInf flag \"%d\" outside of rando", flag);
-        assert(false);
-        return;
-    }
-    */
-
     s32 previouslyOn = Flags_GetRandomizerInf(flag);
     if (previouslyOn) {
         gSaveContext.ship.randomizerInf[flag >> 4] &= ~(1 << (flag & 0xF));
