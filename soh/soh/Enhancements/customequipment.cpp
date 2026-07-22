@@ -7,18 +7,15 @@
 #include "soh/ShipInit.hpp"
 #include "soh/ResourceManagerHelpers.h"
 #include "soh_assets.h"
-#include "kaleido.h"
 #include "soh/cvar_prefixes.h"
 
 extern SaveContext gSaveContext;
 extern PlayState* gPlayState;
 extern void Overlay_DisplayText(float duration, const char* text);
-void DummyPlayer_Update(Actor* actor, PlayState* play);
 
 static void UpdatePatchCustomEquipmentDlists();
 static void RefreshCustomEquipment();
 static u8 GetEquippedSwordItem();
-static bool IsDummyPlayer(const Player* player);
 
 static const char* ResolveCustomChain(std::initializer_list<const char*> paths) {
     const char* fallback = nullptr;
@@ -58,7 +55,7 @@ static const char* GetBrokenLongswordInSheathDL() {
 static void UpdateCustomEquipmentSetModel(Player* player, u8 ModelGroup) {
     (void)ModelGroup;
 
-    if (player == nullptr || gPlayState == nullptr || player != GET_PLAYER(gPlayState) || IsDummyPlayer(player)) {
+    if (player == nullptr || gPlayState == nullptr || player != GET_PLAYER(gPlayState)) {
         return;
     }
 
@@ -71,7 +68,7 @@ static void UpdateCustomEquipment() {
     }
 
     Player* player = GET_PLAYER(gPlayState);
-    if (player == nullptr || IsDummyPlayer(player)) {
+    if (player == nullptr) {
         return;
     }
 
@@ -89,10 +86,6 @@ static RegisterShipInitFunc initFunc(PatchCustomEquipment);
 
 static void RefreshCustomEquipment() {
     if (!GameInteractor::IsSaveLoaded() || gPlayState == NULL || GET_PLAYER(gPlayState) == nullptr) {
-        return;
-    }
-
-    if (IsDummyPlayer(GET_PLAYER(gPlayState))) {
         return;
     }
 
@@ -115,10 +108,6 @@ static u8 GetEquippedSwordItem() {
         default:
             return ITEM_NONE;
     }
-}
-
-static bool IsDummyPlayer(const Player* player) {
-    return player != nullptr && player->actor.update == DummyPlayer_Update;
 }
 
 void PatchOrUnpatch(const char* resource, const char* gfx, const char* dlist1, const char* dlist2, const char* dlist3,

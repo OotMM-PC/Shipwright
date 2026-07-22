@@ -115,17 +115,6 @@ static const Migration version3Migrations[] = {
     { "gMoveWhileFirstPerson", "gSettings.MoveInFirstPerson" },
     { "gA11yDisableIdleCam", "gSettings.A11yDisableIdleCam" },
     { "gDpadHoldChange", "gSettings.DpadHoldChange" },
-    { "gAddTraps.Ammo", "gEnhancements.ExtraTraps.Ammo" },
-    { "gAddTraps.Bomb", "gEnhancements.ExtraTraps.Bomb" },
-    { "gAddTraps.Burn", "gEnhancements.ExtraTraps.Burn" },
-    { "gAddTraps.Ice", "gEnhancements.ExtraTraps.Ice" },
-    { "gAddTraps.Kill", "gEnhancements.ExtraTraps.Kill" },
-    { "gAddTraps.Knock", "gEnhancements.ExtraTraps.Knockback" },
-    { "gAddTraps.Shock", "gEnhancements.ExtraTraps.Shock" },
-    { "gAddTraps.Speed", "gEnhancements.ExtraTraps.Speed" },
-    { "gAddTraps.Tele", "gEnhancements.ExtraTraps.Teleport" },
-    { "gAddTraps.Void", "gEnhancements.ExtraTraps.Void" },
-    { "gAddTraps.enabled", "gEnhancements.ExtraTraps.Enabled" },
     { "gAdultBunnyHood", "gEnhancements.AdultBunnyHood" },
     { "gAdultMinimumWeightFish", "gEnhancements.MinimumFishWeightAdult" },
     { "gAdultShootingGalleryAmmunition", "gEnhancements.ShootingGalleryAmmoAdult" },
@@ -234,7 +223,6 @@ static const Migration version3Migrations[] = {
     { "gMaskSelect", "gEnhancements.MaskSelect" },
     { "gMinFrameCount", "gEnhancements.MinFrameCount" },
     { "gMinimalUI", "gEnhancements.MinimalUI" },
-    { "gMirroredWorldMode", "gEnhancements.MirroredWorldMode" },
     { "gMweepSpeed", "gEnhancements.MweepSpeed" },
     { "gN64WeirdFrames", "gEnhancements.N64WeirdFrames" },
     { "gNGCKaleidoSwitcher", "gEnhancements.NGCKaleidoSwitcher" },
@@ -258,7 +246,6 @@ static const Migration version3Migrations[] = {
     { "gQuickBongoKill", "gEnhancements.QuickBongoKill" },
     { "gQuickPutaway", "gEnhancements.QuickPutaway" },
     { "gQuitFishingAtDoor", "gEnhancements.QuitFishingAtDoor" },
-    { "gRandomizedEnemies", "gEnhancements.RandomizedEnemies" },
     { "gRandomizedEnemySizes", "gEnhancements.RandomizedEnemySizes" },
     { "gRedGanonBlood", "gEnhancements.RedGanonBlood" },
     { "gRememberSaveLocation", "gEnhancements.RememberSaveLocation" },
@@ -293,7 +280,6 @@ static const Migration version3Migrations[] = {
     { "gVoidDamageMul", "gEnhancements.VoidDamageMult" },
     { "gGameplayStats.ShowIngameTimer", "gGameplayStats.ShowInGameTimer" },
     { "gGameplayStats.TimestampsReverse", "gGameplayStats.ReverseTimestamps" },
-    { "gMirroredWorld", "gEnhancements.MirroredWorld" },
     { "gBetaQuestWorld", "gCheats.BetaQuestWorld" },
     { "gBombTimerMultiplier", "gCheats.BombTimerMultiplier" },
     { "gCheatEasyInputBufferingEnabled", "gCheats.EasyInputBuffer" },
@@ -1517,11 +1503,6 @@ void ConfigVersion1Updater::Update(Ship::Config* conf) {
     if (CVarGetInteger("gDirtPathFix", 0) != 0) {
         CVarSetInteger(CVAR_Z_FIGHTING_MODE, CVarGetInteger("gDirtPathFix", 0));
         CVarClear("gDirtPathFix");
-    }
-    if (CVarGetInteger("gRandomizedEnemies", 0) != 0) {
-        if (CVarGetInteger("gSeededRandomizedEnemies", 0)) {
-            CVarSetInteger("gRandomizedEnemies", 2);
-        }
     }
     CVarClear("gSeededRandomizedEnemies");
 }

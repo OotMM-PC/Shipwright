@@ -5,7 +5,6 @@
 #include "textures/parameter_static/parameter_static.h"
 #include "textures/nes_font_static/nes_font_static.h"
 #include "soh_assets.h"
-#include "soh/Enhancements/randomizer/randomizerTypes.h"
 #include "soh/SaveManager.h"
 #include "soh/frame_interpolation.h"
 #include "ship/utils/color.h"
@@ -210,7 +209,6 @@ static ItemData itemData[] = {
     { CREATE_SPRITE_24(dgQuestIconHeartContainerTex, 101), ITEM_DOUBLE_DEFENSE, { 0x05, -0x04 }, SIZE_COUNTER },
 
     // using 0xB0 and later as they're not real item ids
-    // TODO: improve this (RandomizerGet doesn't work)
 
     // disabled due to lus issue
     /*

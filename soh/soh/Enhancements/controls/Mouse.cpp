@@ -42,12 +42,7 @@ void Mouse_HandleThirdPerson(f32* newCamX, f32* newCamY) {
 void Mouse_HandleFirstPerson(Player* player) {
     f32 xAxisMulti = CVarGetFloat(CVAR_SETTING("FirstPersonCameraSensitivity.X"), 1.0f);
     f32 yAxisMulti = CVarGetFloat(CVAR_SETTING("FirstPersonCameraSensitivity.Y"), 1.0f);
-    s8 invertXAxisMulti = ((CVarGetInteger(CVAR_SETTING("Controls.InvertAimingXAxis"), 0) &&
-                            !CVarGetInteger(CVAR_ENHANCEMENT("MirroredWorld"), 0)) ||
-                           (!CVarGetInteger(CVAR_SETTING("Controls.InvertAimingXAxis"), 0) &&
-                            CVarGetInteger(CVAR_ENHANCEMENT("MirroredWorld"), 0)))
-                              ? -1
-                              : 1;
+    s8 invertXAxisMulti = CVarGetInteger(CVAR_SETTING("Controls.InvertAimingXAxis"), 0) ? -1 : 1;
     s8 invertYAxisMulti = CVarGetInteger(CVAR_SETTING("Controls.InvertAimingYAxis"), 1) ? -1 : 1;
     if (MOUSE_ENABLED) {
         player->actor.focus.rot.y -= static_cast<int16_t>(mouseCoordRel.x * 6.0f * xAxisMulti * invertXAxisMulti);
@@ -69,8 +64,7 @@ void Mouse_HandleShield(f32* sp50, f32* sp54) {
         s32 height = GetWindow()->GetHeight();
         f32 xBound = 7200 / (width / 2.0f);
         f32 yBound = 6000 / (height / 2.0f);
-        *sp50 +=
-            (mouseCoord.x - (width / 2)) * xBound * (CVarGetInteger(CVAR_ENHANCEMENT("MirroredWorld"), 0) ? 1 : -1);
+        *sp50 += (mouseCoord.x - (width / 2)) * xBound * -1;
         *sp54 += (mouseCoord.y - (height / 2)) * yBound;
         *sp50 = CLAMP(*sp50, -7200, 7200);
         *sp54 = CLAMP(*sp54, -6000, 6000);

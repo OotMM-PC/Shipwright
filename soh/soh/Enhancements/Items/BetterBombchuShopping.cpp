@@ -4,8 +4,6 @@ extern "C" {
 #include <variables.h>
 }
 
-// RANDOTODO: Port the rest of the behavior associated with this option here.
-
 void BuildShopDescMessage(uint16_t* textId, bool* loadFromMessageTable) {
     CustomMessage msg =
         CustomMessage("\x08%rBombchu  10 pieces  99 Rupees&%wThis looks like a toy mouse, but&it's actually a "
@@ -30,10 +28,9 @@ void BuildShopPromptMessage(uint16_t* textId, bool* loadFromMessageTable) {
 
 void BetterBombchuShopping_Register() {
     COND_ID_HOOK(OnOpenText, TEXT_BUY_BOMBCHUS_10_DESC,
-                 IS_RANDO || CVarGetInteger(CVAR_ENHANCEMENT("BetterBombchuShopping"), 0), BuildShopDescMessage);
+                 CVarGetInteger(CVAR_ENHANCEMENT("BetterBombchuShopping"), 0), BuildShopDescMessage);
     COND_ID_HOOK(OnOpenText, TEXT_BUY_BOMBCHUS_10_PROMPT,
-                 IS_RANDO || CVarGetInteger(CVAR_ENHANCEMENT("BetterBombchuShopping"), 0), BuildShopPromptMessage);
+                 CVarGetInteger(CVAR_ENHANCEMENT("BetterBombchuShopping"), 0), BuildShopPromptMessage);
 }
 
-static RegisterShipInitFunc initFunc(BetterBombchuShopping_Register,
-                                     { "IS_RANDO", CVAR_ENHANCEMENT("BetterBombchuShopping") });
+static RegisterShipInitFunc initFunc(BetterBombchuShopping_Register, { CVAR_ENHANCEMENT("BetterBombchuShopping") });

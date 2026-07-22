@@ -123,18 +123,6 @@ static const std::map<int32_t, const char*> swordToggleModes = {
     { SWORD_TOGGLE_BOTH_AGES, "Both Ages" },
 };
 
-static const std::map<int32_t, const char*> mirroredWorldModes = {
-    { MIRRORED_WORLD_OFF, "Disabled" },
-    { MIRRORED_WORLD_ALWAYS, "Always" },
-    { MIRRORED_WORLD_RANDOM, "Random" },
-    { MIRRORED_WORLD_RANDOM_SEEDED, "Random (Seeded)" },
-    { MIRRORED_WORLD_DUNGEONS_ALL, "Dungeons" },
-    { MIRRORED_WORLD_DUNGEONS_VANILLA, "Dungeons (Vanilla)" },
-    { MIRRORED_WORLD_DUNGEONS_MQ, "Dungeons (MQ)" },
-    { MIRRORED_WORLD_DUNGEONS_RANDOM, "Dungeons Random" },
-    { MIRRORED_WORLD_DUNGEONS_RANDOM_SEEDED, "Dungeons Random (Seeded)" },
-};
-
 void SohMenu::AddMenuEnhancements() {
     // Add Enhancements Menu
     AddMenuEntry("Enhancements", CVAR_SETTING("Menu.EnhancementsSidebarSection"));
@@ -174,7 +162,7 @@ void SohMenu::AddMenuEnhancements() {
             }
         })
         .Options(CheckboxOptions().DefaultValue(false).Tooltip(
-            "Toggle to change container textures to match their contents in randomizer games.\n"
+            "Toggle to change container textures to match their contents.\n"
             "Categories: Major items, Lesser items, Junk items, Small keys, Boss keys, Skulltula Tokens."));
     AddWidget(path, "Containers of Agony", WIDGET_CVAR_CHECKBOX)
         .CVar(CVAR_ENHANCEMENT("ChestSizeDependsStoneOfAgony"))
@@ -201,14 +189,8 @@ void SohMenu::AddMenuEnhancements() {
             "next to the gate."));
     AddWidget(path, "Shops and Games Always Open", WIDGET_CVAR_CHECKBOX)
         .CVar(CVAR_ENHANCEMENT("OpenAllHours"))
-        .PreFunc([](WidgetInfo& info) {
-            info.options->disabled =
-                IS_RANDO && OTRGlobals::Instance->gRandoContext->GetOption(RSK_LOCK_OVERWORLD_DOORS).Is(RO_GENERIC_ON);
-        })
-        .Options(
-            CheckboxOptions()
-                .Tooltip("Shops and Minigames are open both day and night. Requires a scene reload to take effect.")
-                .DisabledTooltip("This is not compatible with the Locked Overworld Doors Randomizer option."));
+        .Options(CheckboxOptions().Tooltip(
+            "Shops and Minigames are open both day and night. Requires a scene reload to take effect."));
 
     AddWidget(path, "Pause Menu", WIDGET_SEPARATOR_TEXT);
     AddWidget(path, "Allow the Cursor to be on Any Slot", WIDGET_CVAR_COMBOBOX)
@@ -217,8 +199,7 @@ void SohMenu::AddMenuEnhancements() {
             ComboboxOptions()
                 .ComboMap(cursorAnywhereValues)
                 .DefaultIndex(PAUSE_ANY_CURSOR_RANDO_ONLY)
-                .Tooltip("Allows the cursor on the pause menu to be over any slot. Sometimes required in Randomizer "
-                         "to select certain items."));
+                .Tooltip("Allows the cursor on the pause menu to be over any slot."));
     AddWidget(path, "Pause Warp", WIDGET_CVAR_CHECKBOX)
         .CVar(CVAR_ENHANCEMENT("PauseWarp"))
         .Options(CheckboxOptions().Tooltip(
@@ -315,13 +296,6 @@ void SohMenu::AddMenuEnhancements() {
             "Allows the Lon Lon Ranch Obstacle Course reward to be shared across time periods."));
     AddWidget(path, "Play Zelda's Lullaby to Open Sleeping Waterfall", WIDGET_CVAR_COMBOBOX)
         .CVar(CVAR_ENHANCEMENT("TimeSavers.SleepingWaterfall"))
-        .PreFunc([](WidgetInfo& info) {
-            info.options->disabled =
-                IS_RANDO &&
-                OTRGlobals::Instance->gRandoContext->GetOption(RSK_SLEEPING_WATERFALL).Is(RO_WATERFALL_OPEN);
-            info.options->disabledTooltip = "This setting is forcefully enabled because a randomizer savefile with "
-                                            "\"Sleeping Waterfall: Open\" is loaded.";
-        })
         .Options(
             ComboboxOptions()
                 .ComboMap(sleepingWaterfallOptions)
@@ -334,11 +308,6 @@ void SohMenu::AddMenuEnhancements() {
                     "learned it and have an Ocarina."));
     AddWidget(path, "Skip Feeding Jabu-Jabu", WIDGET_CVAR_CHECKBOX)
         .CVar(CVAR_ENHANCEMENT("TimeSavers.SkipJabuJabuFish"))
-        .PreFunc([](WidgetInfo& info) {
-            info.options->disabled = IS_RANDO;
-            info.options->disabledTooltip =
-                "This setting is disabled because a randomizer savefile with \"Jabu-Jabu: Open\" is loaded.";
-        })
         .Options(CheckboxOptions().Tooltip("Allow Link to enter Jabu-Jabu without feeding him a fish."));
 
     // Skips & Speed-ups
@@ -382,34 +351,34 @@ void SohMenu::AddMenuEnhancements() {
         });
     AddWidget(path, "Skip Intro", WIDGET_CVAR_CHECKBOX)
         .CVar(CVAR_ENHANCEMENT("TimeSavers.SkipCutscene.Intro"))
-        .Options(CheckboxOptions().DefaultValue(IS_RANDO));
+        .Options(CheckboxOptions().DefaultValue(false));
     AddWidget(path, "Skip Entrance Cutscenes", WIDGET_CVAR_CHECKBOX)
         .CVar(CVAR_ENHANCEMENT("TimeSavers.SkipCutscene.Entrances"))
-        .Options(CheckboxOptions().DefaultValue(IS_RANDO));
+        .Options(CheckboxOptions().DefaultValue(false));
     AddWidget(path, "Skip Story Cutscenes", WIDGET_CVAR_CHECKBOX)
         .CVar(CVAR_ENHANCEMENT("TimeSavers.SkipCutscene.Story"))
-        .Options(CheckboxOptions().DefaultValue(IS_RANDO));
+        .Options(CheckboxOptions().DefaultValue(false));
     AddWidget(path, "Skip Song Cutscenes", WIDGET_CVAR_CHECKBOX)
         .CVar(CVAR_ENHANCEMENT("TimeSavers.SkipCutscene.LearnSong"))
-        .Options(CheckboxOptions().DefaultValue(IS_RANDO));
+        .Options(CheckboxOptions().DefaultValue(false));
     AddWidget(path, "Skip Boss Introductions", WIDGET_CVAR_CHECKBOX)
         .CVar(CVAR_ENHANCEMENT("TimeSavers.SkipCutscene.BossIntro"))
-        .Options(CheckboxOptions().DefaultValue(IS_RANDO));
+        .Options(CheckboxOptions().DefaultValue(false));
     AddWidget(path, "Quick Boss Deaths", WIDGET_CVAR_CHECKBOX)
         .CVar(CVAR_ENHANCEMENT("TimeSavers.SkipCutscene.QuickBossDeaths"))
-        .Options(CheckboxOptions().DefaultValue(IS_RANDO));
+        .Options(CheckboxOptions().DefaultValue(false));
     AddWidget(path, "Skip One Point Cutscenes (Chests, Door Unlocks, etc.)", WIDGET_CVAR_CHECKBOX)
         .CVar(CVAR_ENHANCEMENT("TimeSavers.SkipCutscene.OnePoint"))
-        .Options(CheckboxOptions().DefaultValue(IS_RANDO));
+        .Options(CheckboxOptions().DefaultValue(false));
     AddWidget(path, "Skip Owl Interactions", WIDGET_CVAR_CHECKBOX)
         .CVar(CVAR_ENHANCEMENT("TimeSavers.SkipOwlInteractions"))
-        .Options(CheckboxOptions().DefaultValue(IS_RANDO));
+        .Options(CheckboxOptions().DefaultValue(false));
     AddWidget(path, "Skip Misc Interactions", WIDGET_CVAR_CHECKBOX)
         .CVar(CVAR_ENHANCEMENT("TimeSavers.SkipMiscInteractions"))
-        .Options(CheckboxOptions().DefaultValue(IS_RANDO));
+        .Options(CheckboxOptions().DefaultValue(false));
     AddWidget(path, "Disable Title Card", WIDGET_CVAR_CHECKBOX)
         .CVar(CVAR_ENHANCEMENT("TimeSavers.DisableTitleCard"))
-        .Options(CheckboxOptions().DefaultValue(IS_RANDO));
+        .Options(CheckboxOptions().DefaultValue(false));
     AddWidget(path, "Exclude Glitch-Aiding Cutscenes", WIDGET_CVAR_CHECKBOX)
         .CVar(CVAR_ENHANCEMENT("TimeSavers.SkipCutscene.GlitchAiding"))
         .Options(
@@ -493,30 +462,16 @@ void SohMenu::AddMenuEnhancements() {
         .Options(CheckboxOptions().Tooltip("Skip the tower escape sequence between Ganondorf and Ganon."));
     AddWidget(path, "Skip Playing Scarecrow's Song", WIDGET_CVAR_CHECKBOX)
         .CVar(CVAR_ENHANCEMENT("InstantScarecrow"))
-        .PreFunc([](WidgetInfo& info) {
-            info.options->disabled =
-                IS_RANDO && OTRGlobals::Instance->gRandoContext->GetOption(RSK_SKIP_SCARECROWS_SONG);
-            info.options->disabledTooltip = "This setting is forcefully enabled because a randomized save "
-                                            "file with the option \"Skip Scarecrow's Song\" is currently loaded.";
-        })
         .Options(CheckboxOptions().Tooltip(
             "Pierre appears when an Ocarina is pulled out. Requires learning the Scarecrow's Song first.\n"
-            "Without the randomizer option \"Skip Scarecrow's Song\" enabled for a seed, this still requires you "
-            "to teach the scarecrow the song as both ages before summoning."));
+            "This still requires you to teach the scarecrow the song as both ages before summoning."));
     AddWidget(path, "Faster Rupee Accumulator", WIDGET_CVAR_CHECKBOX)
         .CVar(CVAR_ENHANCEMENT("FasterRupeeAccumulator"))
         .Options(CheckboxOptions().Tooltip("Causes your Wallet to fill and empty faster when you gain or lose money."));
     AddWidget(path, "No Skulltula Freeze", WIDGET_CVAR_CHECKBOX)
         .CVar(CVAR_ENHANCEMENT("SkulltulaFreeze"))
-        .PreFunc([](WidgetInfo& info) {
-            info.options->disabled = IS_RANDO && GameInteractor::IsSaveLoaded(true);
-            info.options->disabledTooltip =
-                "This setting is disabled because a randomizer savefile is loaded. Please use the "
-                "\"Skip Get Item Animation\" option within the randomizer enhancements instead.";
-        })
         .Options(CheckboxOptions().Tooltip(
-            "Stops the game from freezing the player when picking up Gold Skulltula Tokens. Does not "
-            "apply in randomizer savefiles."));
+            "Stops the game from freezing the player when picking up Gold Skulltula Tokens."));
     AddWidget(path, "Skip Save Confirmation", WIDGET_CVAR_CHECKBOX)
         .CVar(CVAR_ENHANCEMENT("SkipSaveConfirmation"))
         .Options(CheckboxOptions().Tooltip("Skip the \"Game Saved\" confirmation screen."));
@@ -830,7 +785,6 @@ void SohMenu::AddMenuEnhancements() {
                      .ComboMap(bunnyHoodEffectMap)
                      .Tooltip("Wearing the Bunny Hood grants a speed and jump boost like in Majora's Mask.\n"
                               "Can also be limited to only the speed boost.\n"
-                              "The effects of either option are not accounted for in Randomizer logic.\n"
                               "Also disables NPC's reactions to wearing the Bunny Hood."));
     AddWidget(path, "Masks Equippable as Adult", WIDGET_CVAR_CHECKBOX)
         .CVar(CVAR_ENHANCEMENT("AdultMasks"))
@@ -849,12 +803,6 @@ void SohMenu::AddMenuEnhancements() {
         .Options(CheckboxOptions().Tooltip("Turns Bunny Hood Invisible while still maintaining its effects."));
     AddWidget(path, "Mask Select in Inventory", WIDGET_CVAR_CHECKBOX)
         .CVar(CVAR_ENHANCEMENT("MaskSelect"))
-        .PreFunc([](WidgetInfo& info) {
-            info.options->disabled =
-                OTRGlobals::Instance->gRandoContext->GetOption(RSK_MASK_QUEST).IsNot(RO_MASK_QUEST_VANILLA);
-            info.options->disabledTooltip =
-                "This setting is forcefully enabled when Mask Quest is Completed from the start or Shuffled";
-        })
         .Options(CheckboxOptions().Tooltip(
             "After completing the mask trading sub-quest, press A and any direction on the mask "
             "slot to change masks."));
@@ -885,10 +833,6 @@ void SohMenu::AddMenuEnhancements() {
             "Prevent Bombchus from forcing the camera into first-person mode when released."));
     AddWidget(path, "Better Bombchu Shopping", WIDGET_CVAR_CHECKBOX)
         .CVar(CVAR_ENHANCEMENT("BetterBombchuShopping"))
-        .PreFunc([](WidgetInfo& info) {
-            info.options->disabled = IS_RANDO && GameInteractor::IsSaveLoaded(true);
-            info.options->disabledTooltip = "This setting is forcefully enabled when you are playing a randomizer.";
-        })
         .Options(
             CheckboxOptions().Tooltip("Bombchus do not sell out when bought, and a 10 pack of Bombchus costs 99 rupees "
                                       "instead of 100."));
@@ -904,22 +848,10 @@ void SohMenu::AddMenuEnhancements() {
     // TODO: See if a Callback could be registered to avoid the need to reload scenes for the next two options.
     AddWidget(path, "Blue Fire Arrows", WIDGET_CVAR_CHECKBOX)
         .CVar(CVAR_ENHANCEMENT("BlueFireArrows"))
-        .PreFunc([](WidgetInfo& info) {
-            info.options->disabled =
-                OTRGlobals::Instance->gRandoContext->GetOption(RSK_BLUE_FIRE_ARROWS).Is(RO_GENERIC_ON);
-            info.options->disabledTooltip = "This setting is forcefully enabled because a randomized savefile with "
-                                            "\"Blue Fire Arrows\" is currently loaded.";
-        })
         .Options(CheckboxOptions().Tooltip(
             "Allows Ice Arrows to melt Red Ice. May require a room reload if toggled during gameplay."));
     AddWidget(path, "Sunlight Arrows", WIDGET_CVAR_CHECKBOX)
         .CVar(CVAR_ENHANCEMENT("SunlightArrows"))
-        .PreFunc([](WidgetInfo& info) {
-            info.options->disabled =
-                OTRGlobals::Instance->gRandoContext->GetOption(RSK_SUNLIGHT_ARROWS).Is(RO_GENERIC_ON);
-            info.options->disabledTooltip = "This setting is forcefully enabled because a randomized savefile with "
-                                            "\"Sunlight Arrows\" enabled is currently loaded.";
-        })
         .Options(CheckboxOptions().Tooltip(
             "Allows Light Arrows to activate Sun Switches. May require a room reload if toggled during gameplay."));
     AddWidget(path, "Bow as Child/Slingshot as Adult", WIDGET_CVAR_CHECKBOX)
@@ -986,10 +918,6 @@ void SohMenu::AddMenuEnhancements() {
     AddWidget(path, "Gameplay Fixes", WIDGET_SEPARATOR_TEXT);
     AddWidget(path, "Fix the Gravedigging Tour Glitch", WIDGET_CVAR_CHECKBOX)
         .CVar(CVAR_ENHANCEMENT("GravediggingTourFix"))
-        .PreFunc([](WidgetInfo& info) {
-            info.options->disabled = IS_RANDO && GameInteractor::IsSaveLoaded(true);
-            info.options->disabledTooltip = "This setting is always enabled in randomized save files.";
-        })
         .Options(CheckboxOptions().Tooltip(
             "Fixes a bug where the Gravedigging Tour Heart Piece disappears if the area reloads."));
     AddWidget(path, "Fix Dampé Going Backwards", WIDGET_CVAR_CHECKBOX)
@@ -1062,10 +990,6 @@ void SohMenu::AddMenuEnhancements() {
         .Options(CheckboxOptions().Tooltip("Make crouch stabbing always do the same damage as a regular slash."));
     AddWidget(path, "Fix Broken Giant's Knife Bug", WIDGET_CVAR_CHECKBOX)
         .CVar(CVAR_ENHANCEMENT("FixBrokenGiantsKnife"))
-        .PreFunc([](WidgetInfo& info) {
-            info.options->disabled = IS_RANDO && GameInteractor::IsSaveLoaded(true);
-            info.options->disabledTooltip = "This setting is forcefully enabled when you are playing a Randomizer.";
-        })
         .Callback([](WidgetInfo& info) {
             bool hasGiantsKnife = CHECK_OWNED_EQUIP(EQUIP_TYPE_SWORD, EQUIP_INV_SWORD_BIGGORON);
             bool hasBrokenKnife = CHECK_OWNED_EQUIP_ALT(EQUIP_TYPE_SWORD, EQUIP_INV_SWORD_BROKENGIANTKNIFE);
@@ -1295,13 +1219,6 @@ void SohMenu::AddMenuEnhancements() {
         .Options(CheckboxOptions().Tooltip("Disables Random Drops, except from the Goron Pot, Dampe, and Bosses."));
     AddWidget(path, "Enable Bombchu Drops", WIDGET_CVAR_CHECKBOX)
         .CVar(CVAR_ENHANCEMENT("EnableBombchuDrops"))
-        .PreFunc([](WidgetInfo& info) {
-            info.options->disabled =
-                IS_RANDO && GameInteractor::IsSaveLoaded(true) &&
-                OTRGlobals::Instance->gRandoContext->GetOption(RSK_ENABLE_BOMBCHU_DROPS).Is(RO_GENERIC_ON);
-            info.options->disabledTooltip = "This setting is forcefully enabled because a randomized savefile with "
-                                            "\"Enable Bombchu Drops\" is loaded.";
-        })
         .Options(CheckboxOptions().Tooltip("Bombchus will sometimes drop in place of Bombs."));
     AddWidget(path, "Trees Drop Sticks", WIDGET_CVAR_CHECKBOX)
         .CVar(CVAR_ENHANCEMENT("TreesDropSticks"))
@@ -1331,8 +1248,7 @@ void SohMenu::AddMenuEnhancements() {
     AddWidget(path, "Always Win Dampe Digging Game", WIDGET_CVAR_CHECKBOX)
         .CVar(CVAR_ENHANCEMENT("DampeWin"))
         .Options(CheckboxOptions().Tooltip(
-            "Always win the Heart Piece/Purple Rupee on the first dig in Dampe's Grave Digging game. "
-            "In a Randomizer file, this defaults to on if this enhancement has never been changed."));
+            "Always win the Heart Piece/Purple Rupee on the first dig in Dampe's Grave Digging game."));
     AddWidget(path, "All Dogs are Richard", WIDGET_CVAR_CHECKBOX)
         .CVar(CVAR_ENHANCEMENT("AllDogsRichard"))
         .Options(CheckboxOptions().Tooltip("All dogs can be traded in and will count as Richard."));
@@ -1579,22 +1495,6 @@ void SohMenu::AddMenuEnhancements() {
         .Options(
             CheckboxOptions().Tooltip("Allows Link to bounce off walls when linear velocity is high enough, this is "
                                       "relevant when frequently being knocked back by traps, CC, or in Anchor."));
-    AddWidget(path, "Mirrored World", WIDGET_CVAR_COMBOBOX)
-        .CVar(CVAR_ENHANCEMENT("MirroredWorldMode"))
-        .Options(
-            ComboboxOptions()
-                .DefaultIndex(MIRRORED_WORLD_OFF)
-                .ComboMap(mirroredWorldModes)
-                .Tooltip(
-                    "Mirrors the world horizontally:\n\n"
-                    " - Always: Always mirror the world.\n"
-                    " - Random: Randomly decide to mirror the world on each scene change.\n"
-                    " - Random (Seeded): Scenes are mirrored based on the current randomizer seed/file.\n"
-                    " - Dungeons: Mirror the world in Dungeons.\n"
-                    " - Dungeons (Vanilla): Mirror the world in Vanilla Dungeons.\n"
-                    " - Dungeons (MQ): Mirror the world in MQ Dungeons.\n"
-                    " - Dungeons Random: Randomly decide to mirror the world in Dungeons.\n"
-                    " - Dungeons Random (Seeded): Dungeons are mirrored based on the current randomizer seed/file."));
     AddWidget(path, "Ivan the Fairy (Coop Mode)", WIDGET_CVAR_CHECKBOX)
         .CVar(CVAR_ENHANCEMENT("IvanCoopModeEnabled"))
         .Options(CheckboxOptions().Tooltip(
@@ -1623,61 +1523,6 @@ void SohMenu::AddMenuEnhancements() {
         .Options(CheckboxOptions().Tooltip("Changes Heart Piece and Heart Container functionality.\n\n"
                                            " - Each Heart Container or full Heart Piece reduces Link's Hearts by 1.\n"
                                            " - Can be enabled retroactively after a File has already started."));
-    AddWidget(path, "Additional Traps", WIDGET_CVAR_CHECKBOX)
-        .CVar(CVAR_ENHANCEMENT("ExtraTraps.Enabled"))
-        .Options(CheckboxOptions().Tooltip("Enables additional Trap variants."));
-    AddWidget(path, "Trap Options", WIDGET_SEPARATOR_TEXT).PreFunc([](WidgetInfo& info) {
-        info.isHidden = CVarGetInteger(CVAR_ENHANCEMENT("ExtraTraps.Enabled"), 0) == 0;
-    });
-    AddWidget(path, "Tier 1 Traps:", WIDGET_TEXT).PreFunc([](WidgetInfo& info) {
-        info.isHidden = CVarGetInteger(CVAR_ENHANCEMENT("ExtraTraps.Enabled"), 0) == 0;
-    });
-    AddWidget(path, "Freeze Traps", WIDGET_CVAR_CHECKBOX)
-        .CVar(CVAR_ENHANCEMENT("ExtraTraps.Ice"))
-        .PreFunc(
-            [](WidgetInfo& info) { info.isHidden = CVarGetInteger(CVAR_ENHANCEMENT("ExtraTraps.Enabled"), 0) == 0; });
-    AddWidget(path, "Burn Traps", WIDGET_CVAR_CHECKBOX)
-        .CVar(CVAR_ENHANCEMENT("ExtraTraps.Burn"))
-        .PreFunc(
-            [](WidgetInfo& info) { info.isHidden = CVarGetInteger(CVAR_ENHANCEMENT("ExtraTraps.Enabled"), 0) == 0; });
-    AddWidget(path, "Shock Traps", WIDGET_CVAR_CHECKBOX)
-        .CVar(CVAR_ENHANCEMENT("ExtraTraps.Shock"))
-        .PreFunc(
-            [](WidgetInfo& info) { info.isHidden = CVarGetInteger(CVAR_ENHANCEMENT("ExtraTraps.Enabled"), 0) == 0; });
-    AddWidget(path, "Tier 2 Traps:", WIDGET_TEXT).PreFunc([](WidgetInfo& info) {
-        info.isHidden = CVarGetInteger(CVAR_ENHANCEMENT("ExtraTraps.Enabled"), 0) == 0;
-    });
-    AddWidget(path, "Knockback Traps", WIDGET_CVAR_CHECKBOX)
-        .CVar(CVAR_ENHANCEMENT("ExtraTraps.Knockback"))
-        .PreFunc(
-            [](WidgetInfo& info) { info.isHidden = CVarGetInteger(CVAR_ENHANCEMENT("ExtraTraps.Enabled"), 0) == 0; });
-    AddWidget(path, "Speed Traps", WIDGET_CVAR_CHECKBOX)
-        .CVar(CVAR_ENHANCEMENT("ExtraTraps.Speed"))
-        .PreFunc(
-            [](WidgetInfo& info) { info.isHidden = CVarGetInteger(CVAR_ENHANCEMENT("ExtraTraps.Enabled"), 0) == 0; });
-    AddWidget(path, "Bomb Traps", WIDGET_CVAR_CHECKBOX)
-        .CVar(CVAR_ENHANCEMENT("ExtraTraps.Bomb"))
-        .PreFunc(
-            [](WidgetInfo& info) { info.isHidden = CVarGetInteger(CVAR_ENHANCEMENT("ExtraTraps.Enabled"), 0) == 0; });
-    AddWidget(path, "Tier 3 Traps:", WIDGET_TEXT).PreFunc([](WidgetInfo& info) {
-        info.isHidden = CVarGetInteger(CVAR_ENHANCEMENT("ExtraTraps.Enabled"), 0) == 0;
-    });
-    AddWidget(path, "Void Traps", WIDGET_CVAR_CHECKBOX)
-        .CVar(CVAR_ENHANCEMENT("ExtraTraps.Void"))
-        .PreFunc(
-            [](WidgetInfo& info) { info.isHidden = CVarGetInteger(CVAR_ENHANCEMENT("ExtraTraps.Enabled"), 0) == 0; });
-    AddWidget(path, "Ammo Traps", WIDGET_CVAR_CHECKBOX)
-        .CVar(CVAR_ENHANCEMENT("ExtraTraps.Ammo"))
-        .PreFunc(
-            [](WidgetInfo& info) { info.isHidden = CVarGetInteger(CVAR_ENHANCEMENT("ExtraTraps.Enabled"), 0) == 0; });
-    AddWidget(path, "Death Traps", WIDGET_CVAR_CHECKBOX)
-        .CVar(CVAR_ENHANCEMENT("ExtraTraps.Kill"))
-        .PreFunc(
-            [](WidgetInfo& info) { info.isHidden = CVarGetInteger(CVAR_ENHANCEMENT("ExtraTraps.Enabled"), 0) == 0; });
-    AddWidget(path, "Teleport Traps", WIDGET_CVAR_CHECKBOX)
-        .CVar(CVAR_ENHANCEMENT("ExtraTraps.Teleport"))
-        .PreFunc(
-            [](WidgetInfo& info) { info.isHidden = CVarGetInteger(CVAR_ENHANCEMENT("ExtraTraps.Enabled"), 0) == 0; });
 
     // Cheats
     path.sidebarName = "Cheats";

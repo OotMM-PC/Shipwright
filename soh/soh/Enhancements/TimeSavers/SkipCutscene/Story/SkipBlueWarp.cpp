@@ -1,6 +1,5 @@
 #include "soh/Enhancements/game-interactor/GameInteractor.h"
 #include "soh/Enhancements/game-interactor/GameInteractor_Hooks.h"
-#include "soh/Enhancements/randomizer/SeedContext.h"
 #include "soh/ShipInit.hpp"
 
 extern "C" {
@@ -12,11 +11,6 @@ extern "C" {
 }
 
 extern "C" PlayState* gPlayState;
-static bool sEnteredBlueWarp = false;
-
-extern void TimeSaverQueueItem(RandomizerGet randoGet);
-
-// Todo: Move item queueing here
 
 /**
  * This ensures the Kokiri blocking the forest exit checks if you are eligible to leave the forest
@@ -44,8 +38,7 @@ void SkipBlueWarp_OnActorUpdate(void* actorPtr) {
 }
 
 void RegisterSkipBlueWarp() {
-    COND_ID_HOOK(OnActorUpdate, ACTOR_EN_KO,
-                 CVarGetInteger(CVAR_ENHANCEMENT("TimeSavers.SkipCutscene.Story"), IS_RANDO),
+    COND_ID_HOOK(OnActorUpdate, ACTOR_EN_KO, CVarGetInteger(CVAR_ENHANCEMENT("TimeSavers.SkipCutscene.Story"), 0),
                  SkipBlueWarp_OnActorUpdate);
 
     /**
@@ -54,28 +47,11 @@ void RegisterSkipBlueWarp() {
      * don't have it yet.
      */
     COND_VB_SHOULD(VB_DEKU_JR_CONSIDER_FOREST_TEMPLE_FINISHED,
-                   CVarGetInteger(CVAR_ENHANCEMENT("TimeSavers.SkipCutscene.Story"), IS_RANDO), {
+                   CVarGetInteger(CVAR_ENHANCEMENT("TimeSavers.SkipCutscene.Story"), 0), {
                        if (gSaveContext.entranceIndex == ENTR_KOKIRI_FOREST_DEKU_TREE_BLUE_WARP &&
                            gSaveContext.cutsceneIndex == 0xFFF1) {
                            *should = Flags_GetEventChkInf(EVENTCHKINF_USED_FOREST_TEMPLE_BLUE_WARP);
                        }
-                   });
-
-    /**
-     * While we could rely on the Item_Give that's normally called, it's not very clear to the player that they
-     * received the item when skipping the blue warp cutscene, so we'll prevent that and queue it up to be given
-     * to the player instead.
-     */
-    COND_VB_SHOULD(VB_GIVE_ITEM_FROM_BLUE_WARP,
-                   CVarGetInteger(CVAR_ENHANCEMENT("TimeSavers.SkipCutscene.Story"), IS_RANDO), {
-                       if (IS_VANILLA) {
-                           if (gPlayState->sceneNum == SCENE_SHADOW_TEMPLE_BOSS) {
-                               TimeSaverQueueItem(RG_SHADOW_MEDALLION);
-                           } else if (gPlayState->sceneNum == SCENE_SPIRIT_TEMPLE_BOSS) {
-                               TimeSaverQueueItem(RG_SPIRIT_MEDALLION);
-                           }
-                       }
-                       *should = false;
                    });
 }
 
@@ -91,14 +67,7 @@ void RegisterShouldPlayBlueWarp() {
             return;
         }
 
-        bool overrideBlueWarpDestinations =
-            IS_RANDO && (RAND_GET_OPTION(RSK_SHUFFLE_DUNGEON_ENTRANCES) || RAND_GET_OPTION(RSK_SHUFFLE_BOSS_ENTRANCES));
-
-        // Force blue warp skip on when ER needs to place Link somewhere else.
-        // This is preferred over having story cutscenes play in the overworld and then reloading Link somewhere else
-        // after.
-        if (CVarGetInteger(CVAR_ENHANCEMENT("TimeSavers.SkipCutscene.Story"), IS_RANDO) ||
-            overrideBlueWarpDestinations) {
+        if (CVarGetInteger(CVAR_ENHANCEMENT("TimeSavers.SkipCutscene.Story"), 0)) {
             bool isBlueWarpCutscene = false;
             // Deku Tree Blue warp
             if (gSaveContext.entranceIndex == ENTR_KOKIRI_FOREST_0 && gSaveContext.cutsceneIndex == 0xFFF1) {
@@ -120,11 +89,7 @@ void RegisterShouldPlayBlueWarp() {
                 // Normally set in the blue warp cutscene
                 Flags_SetEventChkInf(EVENTCHKINF_SPOKE_TO_DEKU_TREE_SPROUT);
 
-                if (IS_RANDO) {
-                    gSaveContext.entranceIndex = ENTR_SACRED_FOREST_MEADOW_FOREST_TEMPLE_BLUE_WARP;
-                } else {
-                    gSaveContext.entranceIndex = ENTR_KOKIRI_FOREST_12;
-                }
+                gSaveContext.entranceIndex = ENTR_KOKIRI_FOREST_12;
 
                 isBlueWarpCutscene = true;
                 // Fire Temple Blue warp
@@ -167,24 +132,9 @@ void RegisterShouldPlayBlueWarp() {
                 *should = false;
                 gSaveContext.cutsceneIndex = 0;
             }
-
-            // This is outside the above condition because we want to handle both first and following visits to the blue
-            // warp. Jabu's blue warp doesn't call VB_PLAY_BLUE_WARP_CS without Ruto
-            if (sEnteredBlueWarp && overrideBlueWarpDestinations) {
-                Entrance_OverrideBlueWarp();
-            }
         }
-
-        sEnteredBlueWarp = false;
     });
-
-    /**
-     * Using this hook to simply observe that Link has entered a bluewarp
-     * This way we know to allow entrance rando overrides to be processed on the next tranisition hook
-     */
-    REGISTER_VB_SHOULD(VB_PLAY_BLUE_WARP_CS, { sEnteredBlueWarp = true; });
 }
 
-static RegisterShipInitFunc initHooks(RegisterSkipBlueWarp,
-                                      { CVAR_ENHANCEMENT("TimeSavers.SkipCutscene.Story"), "IS_RANDO" });
+static RegisterShipInitFunc initHooks(RegisterSkipBlueWarp, { CVAR_ENHANCEMENT("TimeSavers.SkipCutscene.Story") });
 static RegisterShipInitFunc initUnconditionalHooks(RegisterShouldPlayBlueWarp);
