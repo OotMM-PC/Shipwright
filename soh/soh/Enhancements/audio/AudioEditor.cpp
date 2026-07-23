@@ -82,7 +82,6 @@ size_t AuthenticCountBySequenceType(SeqType type) {
 static const std::map<int32_t, const char*> audioRandomizerModes = {
     { RANDOMIZE_OFF, "Manual" },
     { RANDOMIZE_ON_NEW_SCENE, "On New Scene" },
-    { RANDOMIZE_ON_RANDO_GEN_ONLY, "On Rando Gen Only" },
     { RANDOMIZE_ON_FILE_LOAD, "On File Load" },
     { RANDOMIZE_ON_FILE_LOAD_SEEDED, "On File Load (Seeded)" },
 };
@@ -117,7 +116,7 @@ void RandomizeGroup(SeqType type, bool manual = true) {
 
     if (!manual) {
         int randomizeMode = CVarGetInteger(CVAR_AUDIO("RandomizeAudioGenModes"), 0);
-        if (randomizeMode == RANDOMIZE_ON_FILE_LOAD_SEEDED || randomizeMode == RANDOMIZE_ON_RANDO_GEN_ONLY) {
+        if (randomizeMode == RANDOMIZE_ON_FILE_LOAD_SEEDED) {
 
             uint32_t finalSeed = type + static_cast<uint32_t>(gSaveContext.ship.stats.fileCreatedAt);
             ShipUtils::RandInit(finalSeed, &localRngState);
@@ -509,15 +508,6 @@ void AudioEditorRegisterOnSceneInitHook() {
     });
 }
 
-void AudioEditorRegisterOnGenerationCompletionHook() {
-    GameInteractor::Instance->RegisterGameHook<GameInteractor::OnGenerationCompletion>([]() {
-        if (CVarGetInteger(CVAR_AUDIO("RandomizeAudioGenModes"), 0) == RANDOMIZE_ON_RANDO_GEN_ONLY) {
-
-            AudioEditor_AutoRandomizeAll();
-        }
-    });
-}
-
 void AudioEditorRegisterOnLoadGameHook() {
     GameInteractor::Instance->RegisterGameHook<GameInteractor::OnLoadGame>([](int32_t fileNum) {
         if (CVarGetInteger(CVAR_AUDIO("RandomizeAudioGenModes"), 0) == RANDOMIZE_ON_FILE_LOAD ||
@@ -530,7 +520,6 @@ void AudioEditorRegisterOnLoadGameHook() {
 
 void AudioEditor::InitElement() {
     AudioEditorRegisterOnSceneInitHook();
-    AudioEditorRegisterOnGenerationCompletionHook();
     AudioEditorRegisterOnLoadGameHook();
 }
 
@@ -935,7 +924,6 @@ void RegisterAudioWidgets() {
                     "- Manual: Manually randomize music or sound effects by pressing the 'Randomize all Groups' "
                     "button\n"
                     "- On New Scene : Randomizes when you enter a new scene.\n"
-                    "- On Rando Gen Only: Randomizes only when you generate a new randomizer.\n"
                     "- On File Load: Randomizes on File Load.\n"
                     "- On File Load (Seeded): Randomizes on file load based on the current randomizer seed/file."));
     SohGui::mSohMenu->AddSearchWidget({ randomAudioGenModes, "Enhancements", "Audio Editor", "Audio Options" });

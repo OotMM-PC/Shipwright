@@ -23,12 +23,10 @@
 #include <soh/Enhancements/custom-message/CustomMessageTypes.h>
 #include "soh/Enhancements/item-tables/ItemTableTypes.h"
 #include "soh/Enhancements/game-interactor/GameInteractor.h"
-#include "soh/Enhancements/randomizer/randomizer_entrance.h"
 #include <overlays/actors/ovl_En_Partner/z_en_partner.h>
 #include "soh/Enhancements/cosmetics/cosmeticsTypes.h"
 #include "soh/Enhancements/enhancementTypes.h"
 #include "soh/Enhancements/game-interactor/GameInteractor_Hooks.h"
-#include "soh/Enhancements/randomizer/randomizer_grotto.h"
 #include "soh/frame_interpolation.h"
 #include "soh/OTRGlobals.h"
 #include "soh/ResourceManagerHelpers.h"
@@ -394,8 +392,8 @@ void Player_SetPendingFlag(Player* this, PlayState* play) {
         case FLAG_EVENT_INF:
             Flags_SetEventInf(this->pendingFlag.flagID);
             break;
-        case FLAG_RANDOMIZER_INF:
-            Flags_SetRandomizerInf(this->pendingFlag.flagID);
+        case FLAG_SHIP_INF:
+            Flags_SetShipInf(this->pendingFlag.flagID);
             break;
         case FLAG_NONE:
         default:
@@ -5143,11 +5141,6 @@ s32 Player_HandleExitsAndVoids(PlayState* play, Player* this, CollisionPoly* pol
             } else {
                 play->nextEntranceIndex = play->setupExitList[exitIndex - 1];
 
-                // Main override for entrance rando and entrance skips
-                if (IS_RANDO) {
-                    play->nextEntranceIndex = Entrance_OverrideNextIndex(play->nextEntranceIndex);
-                }
-
                 if (play->nextEntranceIndex == ENTR_RETURN_GROTTO) {
                     gSaveContext.respawnFlag = 2;
                     play->nextEntranceIndex = gSaveContext.respawn[RESPAWN_MODE_RETURN].entranceIndex;
@@ -5155,16 +5148,10 @@ s32 Player_HandleExitsAndVoids(PlayState* play, Player* this, CollisionPoly* pol
                     gSaveContext.nextTransitionType = TRANS_TYPE_FADE_WHITE;
                 } else if (play->nextEntranceIndex >= ENTR_RETURN_YOUSEI_IZUMI_YOKO) {
                     // handle dynamic exits
-                    if (IS_RANDO) {
-                        play->nextEntranceIndex = Entrance_OverrideDynamicExit(
-                            sReturnEntranceGroupIndices[play->nextEntranceIndex - ENTR_RETURN_YOUSEI_IZUMI_YOKO] +
-                            play->curSpawn);
-                    } else {
-                        play->nextEntranceIndex =
-                            sReturnEntranceGroupData[sReturnEntranceGroupIndices[play->nextEntranceIndex -
-                                                                                 ENTR_RETURN_YOUSEI_IZUMI_YOKO] +
-                                                     play->curSpawn];
-                    }
+                    play->nextEntranceIndex =
+                        sReturnEntranceGroupData[sReturnEntranceGroupIndices[play->nextEntranceIndex -
+                                                                             ENTR_RETURN_YOUSEI_IZUMI_YOKO] +
+                                                 play->curSpawn];
 
                     Scene_SetTransitionForNextEntrance(play);
                 } else {
@@ -7334,9 +7321,7 @@ s32 Player_ActionHandler_2(Player* this, PlayState* play) {
                 // Only skip cutscenes for drops when they're items/consumables from bushes/rocks/enemies.
                 uint8_t isDropToSkip =
                     (interactedActor->id == ACTOR_EN_ITEM00 && interactedActor->params != ITEM00_HEART_PIECE &&
-                     interactedActor->params != ITEM00_SMALL_KEY &&
-                     interactedActor->params != ITEM00_SOH_GIVE_ITEM_ENTRY &&
-                     interactedActor->params != ITEM00_SOH_GIVE_ITEM_ENTRY_GI) ||
+                     interactedActor->params != ITEM00_SMALL_KEY) ||
                     interactedActor->id == ACTOR_EN_KAREBABA || interactedActor->id == ACTOR_EN_DEKUBABA;
 
                 // Skip cutscenes from picking up consumables with "Fast Pickup Text" enabled, even when the player
@@ -14838,10 +14823,6 @@ void Player_Action_8084F88C(Player* this, PlayState* play) {
                 play->nextEntranceIndex = ENTR_ICE_CAVERN_ENTRANCE;
             } else if (this->av1.actionVar1 < 0) {
                 Play_TriggerRespawn(play);
-                // In ER, handle DMT and other special void outs to respawn from last entrance from grotto
-                if (IS_RANDO && Randomizer_GetSettingValue(RSK_SHUFFLE_ENTRANCES)) {
-                    Grotto_ForceRegularVoidOut();
-                }
             } else if (GameInteractor_Should(VB_TRIGGER_VOIDOUT, true, this)) {
                 Play_TriggerVoidOut(play);
             }

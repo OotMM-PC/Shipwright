@@ -5,7 +5,6 @@
 #include "soh/OTRGlobals.h"
 #include "soh/ResourceManagerHelpers.h"
 #include "soh/Enhancements/game-interactor/GameInteractor_Hooks.h"
-#include "soh/Enhancements/randomizer/item_category_adj.h"
 
 #define FLAGS 0
 
@@ -567,16 +566,12 @@ void EnBox_Update(Actor* thisx, PlayState* play) {
 void EnBox_UpdateTexture(EnBox* this, PlayState* play) {
     bool csmc = CVarGetInteger(CVAR_ENHANCEMENT("ChestSizeAndTextureMatchContents"), 0);
     int requiresStoneAgony = CVarGetInteger(CVAR_ENHANCEMENT("ChestSizeDependsStoneOfAgony"), 0);
-    GetItemCategory getItemCategory;
     GetItemEntry chestItem = this->getItemEntry;
+    GetItemCategory getItemCategory = chestItem.getItemCategory;
 
     int isVanilla = !csmc || (requiresStoneAgony && !CHECK_QUEST_ITEM(QUEST_STONE_OF_AGONY)) ||
                     (play->sceneNum == SCENE_TREASURE_BOX_SHOP &&
                      this->dyna.actor.room != 6); // Exclude treasure game chests except for the final room
-
-    if (!isVanilla) {
-        getItemCategory = Randomizer_AdjustItemCategory(chestItem);
-    }
 
     switch (this->type) {
         case ENBOX_TYPE_SMALL:

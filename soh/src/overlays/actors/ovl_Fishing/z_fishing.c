@@ -2904,8 +2904,6 @@ void Fishing_HandleAquariumDialog(Fishing* this, PlayState* play) {
 
 f32 Fishing_GetMinimumRequiredScore() {
     int32_t weight;
-    // RANDOTODO: update the enhancement sliders to not allow
-    // values above rando fish weight values when rando'd
     if (sLinkAge == 1) {
         weight = CVarGetInteger(CVAR_ENHANCEMENT("CustomizeFishing"), 0)
                      ? CVarGetInteger(CVAR_ENHANCEMENT("MinimumFishWeightChild"), 10)
@@ -5114,7 +5112,7 @@ void Fishing_HandleOwnerDialog(Fishing* this, PlayState* play) {
                 this->actor.parent = NULL;
 
                 // if we should give the check in rando
-                if (!GameInteractor_Should(VB_GIVE_RANDO_FISHING_PRIZE, false, &fishData)) {
+                if (!GameInteractor_Should(VB_GIVE_FISHING_PRIZE, false, &fishData)) {
                     Actor_OfferGetItem(&this->actor, play, getItemId, 2000.0f, 1000.0f);
                     this->stateAndTimer = 23;
                 }
@@ -5167,7 +5165,7 @@ void Fishing_HandleOwnerDialog(Fishing* this, PlayState* play) {
             if (Actor_HasParent(&this->actor, play)) {
                 this->stateAndTimer = 24;
             } else {
-                if (!GameInteractor_Should(VB_GIVE_RANDO_GLITCH_FISHING_PRIZE, false, this)) {
+                if (!GameInteractor_Should(VB_GIVE_GLITCH_FISHING_PRIZE, false, this)) {
                     Actor_OfferGetItem(&this->actor, play, GI_SCALE_GOLDEN, 2000.0f, 1000.0f);
                 }
             }

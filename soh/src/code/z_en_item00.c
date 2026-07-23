@@ -350,11 +350,8 @@ void EnItem00_Init(Actor* thisx, PlayState* play) {
     f32 yOffset = 980.0f;
     f32 shadowScale = 6.0f;
     s32 getItemId = GI_NONE;
-    this->itemEntry = (GetItemEntry)GET_ITEM_NONE;
     s16 spawnParam8000 = this->actor.params & 0x8000;
     s32 pad1;
-
-    this->ogParams = this->actor.params;
 
     this->collectibleFlag = (this->actor.params & 0x3F00) >> 8;
 
@@ -475,14 +472,6 @@ void EnItem00_Init(Actor* thisx, PlayState* play) {
             yOffset = 320.0f;
             Actor_SetScale(&this->actor, 0.03f);
             this->scale = 0.03f;
-            break;
-        case ITEM00_SOH_GIVE_ITEM_ENTRY:
-        case ITEM00_SOH_GIVE_ITEM_ENTRY_GI:
-        case ITEM00_SOH_DUMMY:
-            this->unk_158 = 0;
-            Actor_SetScale(&this->actor, 0.03f);
-            this->scale = 0.03f;
-            yOffset = 430.0f;
             break;
     }
 
@@ -769,10 +758,8 @@ void EnItem00_Update(Actor* thisx, PlayState* play) {
     if ((this->actor.params == ITEM00_HEART && this->unk_15A >= 0) ||
         (this->actor.params >= ITEM00_ARROWS_SMALL && this->actor.params <= ITEM00_SMALL_KEY) ||
         this->actor.params == ITEM00_BOMBS_A || this->actor.params == ITEM00_ARROWS_SINGLE ||
-        this->actor.params == ITEM00_BOMBS_SPECIAL ||
-        (this->actor.params >= ITEM00_BOMBCHU && this->actor.params <= ITEM00_SOH_GIVE_ITEM_ENTRY_GI)) {
-        if (CVarGetInteger(CVAR_ENHANCEMENT("NewDrops"), 0) ||
-            (this->actor.params >= ITEM00_SOH_DUMMY && this->actor.params <= ITEM00_SOH_GIVE_ITEM_ENTRY_GI)) {
+        this->actor.params == ITEM00_BOMBS_SPECIAL || this->actor.params == ITEM00_BOMBCHU) {
+        if (CVarGetInteger(CVAR_ENHANCEMENT("NewDrops"), 0)) {
             this->actor.shape.rot.y += 960;
         } else {
             this->actor.shape.rot.y = 0;
@@ -1437,7 +1424,7 @@ void EnItem00_DrawHeartPiece(EnItem00* this, PlayState* play) {
     CLOSE_DISPS(play->state.gfxCtx);
 }
 
-// #region [Randomizer] [Enchancment]
+// #region Enhancements
 /**
  * Sometimes convert the given drop ID into a bombchu.
  * Returns the new drop type ID.

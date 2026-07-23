@@ -807,6 +807,7 @@ void DoorWarp1_AdultWarpOut(DoorWarp1* this, PlayState* play) {
             }
         } else if (play->sceneNum == SCENE_SPIRIT_TEMPLE_BOSS) {
             if (GameInteractor_Should(VB_PLAY_BLUE_WARP_CS, !CHECK_QUEST_ITEM(QUEST_MEDALLION_SPIRIT))) {
+                Flags_SetShipInf(SHIP_FLAG_BOSS_RUSH_SPIRIT_TEMPLE_COMPLETE);
                 if (GameInteractor_Should(VB_GIVE_ITEM_FROM_BLUE_WARP, true, ITEM_MEDALLION_SPIRIT)) {
                     Item_Give(play, ITEM_MEDALLION_SPIRIT);
                 }
@@ -823,6 +824,7 @@ void DoorWarp1_AdultWarpOut(DoorWarp1* this, PlayState* play) {
             }
         } else if (play->sceneNum == SCENE_SHADOW_TEMPLE_BOSS) {
             if (GameInteractor_Should(VB_PLAY_BLUE_WARP_CS, !CHECK_QUEST_ITEM(QUEST_MEDALLION_SHADOW))) {
+                Flags_SetShipInf(SHIP_FLAG_BOSS_RUSH_SHADOW_TEMPLE_COMPLETE);
                 if (GameInteractor_Should(VB_GIVE_ITEM_FROM_BLUE_WARP, true, ITEM_MEDALLION_SHADOW)) {
                     Item_Give(play, ITEM_MEDALLION_SHADOW);
                 }

@@ -1,11 +1,16 @@
 #include <soh/OTRGlobals.h>
+#include <soh/ShipInit.hpp>
+#include <soh/Enhancements/custom-message/CustomMessageManager.h>
+#include <soh/Enhancements/custom-message/CustomMessageTypes.h>
+#include <soh/Enhancements/game-interactor/GameInteractor.h>
+#include <libultraship/bridge/consolevariablebridge.h>
 
 extern "C" {
 #include <variables.h>
 extern PlayState* gPlayState;
 }
 
-// RANDOTODO: Port the rest of the behavior for this enhancement here.
+// TODO: Port the remaining Market Sneak behavior.
 
 void BuildNightGuardMessage(uint16_t* textId, bool* loadFromMessageTable) {
     // Other guards should not have their text overridden

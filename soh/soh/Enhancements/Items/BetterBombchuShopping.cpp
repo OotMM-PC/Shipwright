@@ -1,4 +1,9 @@
 #include <soh/OTRGlobals.h>
+#include <soh/ShipInit.hpp>
+#include <soh/Enhancements/custom-message/CustomMessageManager.h>
+#include <soh/Enhancements/custom-message/CustomMessageTypes.h>
+#include <soh/Enhancements/game-interactor/GameInteractor.h>
+#include <libultraship/bridge/consolevariablebridge.h>
 
 extern "C" {
 #include <variables.h>

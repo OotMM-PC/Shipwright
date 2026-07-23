@@ -121,7 +121,6 @@ void KaleidoSetup_Init(PlayState* play) {
     pauseCtx->ocarinaSongIdx = -1;
     pauseCtx->cursorSpecialPos = 0;
 
-    pauseCtx->randoQuestMode = 0;
 
     View_Init(&pauseCtx->view, play->state.gfxCtx);
 }

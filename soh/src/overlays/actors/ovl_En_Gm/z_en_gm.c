@@ -247,7 +247,7 @@ void EnGm_ProcessChoiceIndex(EnGm* this, PlayState* play) {
     if (Message_GetState(&play->msgCtx) == TEXT_STATE_CHOICE && Message_ShouldAdvance(play)) {
         switch (play->msgCtx.choiceIndex) {
             case 0: // yes
-                if (GameInteractor_Should(VB_CHECK_RANDO_PRICE_OF_MEDIGORON, gSaveContext.rupees < 200, this)) {
+                if (GameInteractor_Should(VB_CHECK_PRICE_OF_MEDIGORON, gSaveContext.rupees < 200, this)) {
                     Message_ContinueTextbox(play, 0xC8);
                     this->actionFunc = func_80A3DD7C;
                 } else {

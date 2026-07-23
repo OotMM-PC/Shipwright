@@ -925,10 +925,7 @@ typedef struct {
     /* 0x0266 */ u8     worldMapPoints[20]; // 0 = hidden; 1 = displayed; 2 = highlighted
     /* 0x027A */ u8     tradeQuestLocation;
     /* 0x027C */ SkelAnime playerSkelAnime;
-    // #region SOH [Randomizer]
-    /* 0x02C0 */ u8     randoQuestMode; // 0 = Off (normal quest menu); 1 = On (Misc Collectibles menu)
-    // #endregion
-} PauseContext; // size = 0x2C1
+} PauseContext; // size = 0x2C0
 
 typedef enum {
     /* 00 */ GAMEOVER_INACTIVE,
@@ -1604,9 +1601,6 @@ typedef struct FileChooseContext {
     uint8_t bossRushOffset;
     int16_t bossRushUIAlpha;
     uint16_t bossRushArrowOffset;
-    uint8_t randomizerIndex;
-    int16_t randomizerUIAlpha;
-    uint16_t randomizerArrowOffset;
 } FileChooseContext; // size = 0x1CAE0
 
 // Macros for `EntranceInfo.field`
@@ -2324,7 +2318,7 @@ typedef struct {
 } SkyboxTableEntry;
 
 typedef enum {
-    /* 0x00 */ PAUSE_ANY_CURSOR_RANDO_ONLY,
+    /* 0x00 */ PAUSE_ANY_CURSOR_OFF,
     /* 0x01 */ PAUSE_ANY_CURSOR_ALWAYS_ON,
     /* 0x02 */ PAUSE_ANY_CURSOR_ALWAYS_OFF,
 } PauseCursorAnySlotOptions;

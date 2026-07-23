@@ -101,7 +101,6 @@ std::map<CosmeticGroup, const char*> groupLabels = {
 static const std::map<int32_t, const char*> cosmeticsRandomizerModes = {
     { RANDOMIZE_OFF, "Manual" },
     { RANDOMIZE_ON_NEW_SCENE, "On New Scene" },
-    { RANDOMIZE_ON_RANDO_GEN_ONLY, "On Rando Gen Only" },
     { RANDOMIZE_ON_FILE_LOAD, "On File Load" },
     { RANDOMIZE_ON_FILE_LOAD_SEEDED, "On File Load (Seeded)" },
 };
@@ -2102,7 +2101,7 @@ void RandomizeColor(CosmeticOption& cosmeticOption, bool manual = true) {
 
     if (!manual) {
         int randomizeMode = CVarGetInteger(CVAR_COSMETIC("RandomizeCosmeticsGenModes"), 0);
-        if (randomizeMode == RANDOMIZE_ON_FILE_LOAD_SEEDED || randomizeMode == RANDOMIZE_ON_RANDO_GEN_ONLY) {
+        if (randomizeMode == RANDOMIZE_ON_FILE_LOAD_SEEDED) {
 
             uint32_t finalSeed = cosmeticOption.defaultColor.r + cosmeticOption.defaultColor.g +
                                  cosmeticOption.defaultColor.b + cosmeticOption.defaultColor.a +
@@ -2401,7 +2400,6 @@ void CosmeticsEditorWindow::DrawElement() {
             .Tooltip("Set when the cosmetics is automaticly randomized:\n"
                      "- Manual: Manually randomize cosmetics by pressing the 'Randomize all' button\n"
                      "- On New Scene : Randomizes when you enter a new scene.\n"
-                     "- On Rando Gen Only: Randomizes only when you generate a new randomizer.\n"
                      "- On File Load: Randomizes on File Load.\n"
                      "- On File Load (Seeded): Randomizes on file load based on the current randomizer seed/file."));
     UIWidgets::CVarCheckbox(
@@ -2675,10 +2673,6 @@ void CosmeticsEditor_ResetGroup(CosmeticGroup group) {
 }
 
 void RegisterCosmeticHooks() {
-    COND_HOOK(OnGenerationCompletion,
-              CVarGetInteger(CVAR_COSMETIC("RandomizeCosmeticsGenModes"), RANDOMIZE_OFF) == RANDOMIZE_ON_RANDO_GEN_ONLY,
-              []() { CosmeticsEditor_AutoRandomizeAll(); });
-
     COND_HOOK(OnLoadGame, CVarGetInteger(CVAR_COSMETIC("RandomizeCosmeticsGenModes"), RANDOMIZE_OFF) == RANDOMIZE_OFF,
               [](s32 fileNum) { ApplyOrResetCustomGfxPatches(); });
 

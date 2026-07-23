@@ -300,7 +300,7 @@ typedef enum {
     // ```
     // #### `args`
     // - `*EnJs`
-    VB_CHECK_RANDO_PRICE_OF_CARPET_SALESMAN,
+    VB_CHECK_PRICE_OF_CARPET_SALESMAN,
 
     // #### `result`
     // ```c
@@ -308,7 +308,7 @@ typedef enum {
     // ```
     // #### `args`
     // - `*EnGm`
-    VB_CHECK_RANDO_PRICE_OF_MEDIGORON,
+    VB_CHECK_PRICE_OF_MEDIGORON,
 
     // #### `result`
     // ```c
@@ -1097,7 +1097,7 @@ typedef enum {
     // ```
     // #### `args`
     // - `*VBFishingData`
-    VB_GIVE_RANDO_FISHING_PRIZE,
+    VB_GIVE_FISHING_PRIZE,
 
     // #### `result`
     // ```c
@@ -1105,7 +1105,7 @@ typedef enum {
     // ```
     // #### `args`
     // - '*Fishing'
-    VB_GIVE_RANDO_GLITCH_FISHING_PRIZE,
+    VB_GIVE_GLITCH_FISHING_PRIZE,
 
     // #### `result`
     // ```c
@@ -1576,7 +1576,7 @@ typedef enum {
     // !CHECK_QUEST_ITEM(QUEST_MEDALLION_SHADOW)
     // ```
     // #### `args`
-    // - `int32_t` (EVENTCHKINF / RAND_INF_DUNGEONS_DONE)
+    // - `int32_t` (EVENTCHKINF)
     VB_PLAY_BLUE_WARP_CS,
 
     // #### `result`

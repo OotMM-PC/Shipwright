@@ -5024,37 +5024,23 @@ void Flags_UnsetEventInf(s32 flag) {
     }
 }
 
-/**
- * Tests if "randomizerInf" flag is set.
- */
-s32 Flags_GetRandomizerInf(RandomizerInf flag) {
-    // Randomizer flags are currently accessible from any quest (boss rush as an example)
-    return gSaveContext.ship.randomizerInf[flag >> 4] & (1 << (flag & 0xF));
+s32 Flags_GetShipInf(ShipFlag flag) {
+    return gSaveContext.ship.shipInf[flag >> 4] & (1 << (flag & 0xF));
 }
 
-/**
- * Sets "randomizerInf" flag.
- */
-void Flags_SetRandomizerInf(RandomizerInf flag) {
-    // Randomizer flags are currently accessible from any quest (boss rush as an example)
-    s32 previouslyOff = !Flags_GetRandomizerInf(flag);
+void Flags_SetShipInf(ShipFlag flag) {
+    s32 previouslyOff = !Flags_GetShipInf(flag);
     if (previouslyOff) {
-        gSaveContext.ship.randomizerInf[flag >> 4] |= (1 << (flag & 0xF));
-        LUSLOG_INFO("RandomizerInf Flag Set - %#x", flag);
-        GameInteractor_ExecuteOnFlagSet(FLAG_RANDOMIZER_INF, flag);
+        gSaveContext.ship.shipInf[flag >> 4] |= (1 << (flag & 0xF));
+        GameInteractor_ExecuteOnFlagSet(FLAG_SHIP_INF, flag);
     }
 }
 
-/**
- * Unsets "randomizerInf" flag.
- */
-void Flags_UnsetRandomizerInf(RandomizerInf flag) {
-    // Randomizer flags are currently accessible from any quest (boss rush as an example)
-    s32 previouslyOn = Flags_GetRandomizerInf(flag);
+void Flags_UnsetShipInf(ShipFlag flag) {
+    s32 previouslyOn = Flags_GetShipInf(flag);
     if (previouslyOn) {
-        gSaveContext.ship.randomizerInf[flag >> 4] &= ~(1 << (flag & 0xF));
-        LUSLOG_INFO("RandomizerInf Flag Unset - %#x", flag);
-        GameInteractor_ExecuteOnFlagUnset(FLAG_RANDOMIZER_INF, flag);
+        gSaveContext.ship.shipInf[flag >> 4] &= ~(1 << (flag & 0xF));
+        GameInteractor_ExecuteOnFlagUnset(FLAG_SHIP_INF, flag);
     }
 }
 

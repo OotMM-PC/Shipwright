@@ -4,9 +4,8 @@
 #include <libultraship/libultra.h>
 #include "z64math.h"
 #include "z64audio.h"
-#include "soh/Enhancements/randomizer/randomizerTypes.h"
+#include "ship_inf.h"
 #include "soh/Enhancements/gameplaystats.h"
-#include "soh/Enhancements/randomizer/randomizer_entrance.h"
 #include "soh/Enhancements/boss-rush/BossRush.h"
 
 #define FULL_HEART_HEALTH 0x10
@@ -66,13 +65,12 @@ typedef struct {
 } SceneTimestamp;
 
 typedef enum { // Pre-existing IDs for save sections in base code
-    SECTION_ID_BASE,
-    SECTION_ID_RANDOMIZER,
-    SECTION_ID_STATS,
-    SECTION_ID_ENTRANCES,
-    SECTION_ID_SCENES,
-    SECTION_ID_TRACKER_DATA,
-    SECTION_ID_MAX
+    SECTION_ID_BASE = 0,
+    SECTION_ID_STATS = 2,
+    SECTION_ID_ENTRANCES = 3,
+    SECTION_ID_SCENES = 4,
+    SECTION_ID_TRACKER_DATA = 5,
+    SECTION_ID_MAX = 6
 } SaveFuncIDs;
 
 typedef struct {
@@ -191,21 +189,7 @@ typedef enum TimerId {
     /* 2 */ TIMER_ID_MAX
 } TimerId;
 
-typedef struct {
-    RandomizerCheck check;
-    RandomizerCheck hintedCheck;
-    RandomizerGet rGet;
-    RandomizerCheckArea area;
-    HintType type;
-    char hintText[200];
-} HintLocationRando;
-
 #pragma region SoH
-
-typedef struct ShipRandomizerSaveContextData {
-    u8 triforcePiecesCollected;
-    u8 bombchuUpgradeLevel;
-} ShipRandomizerSaveContextData;
 
 typedef struct ShipBossRushSaveContextData {
     u32 isPaused;
@@ -213,7 +197,6 @@ typedef struct ShipBossRushSaveContextData {
 } ShipBossRushSaveContextData;
 
 typedef union ShipQuestSpecificSaveContextData {
-    ShipRandomizerSaveContextData randomizer;
     ShipBossRushSaveContextData bossRush;
 } ShipQuestSpecificSaveContextData;
 
@@ -231,8 +214,7 @@ typedef struct ShipSaveContextData {
     ShipQuestSaveContextData quest;
     u8 maskMemory;
     u8 filenameLanguage;
-    //TODO: Move non-rando specific flags to a new sohInf and move the remaining randomizerInf to ShipRandomizerSaveContextData
-    u16 randomizerInf[(RAND_INF_MAX + 15) / 16];
+    u16 shipInf[(SHIP_FLAG_MAX + 15) / 16];
 } ShipSaveContextData;
 
 #pragma endregion
@@ -356,13 +338,11 @@ typedef struct {
 typedef enum {
     /* 00 */ QUEST_NORMAL,
     /* 01 */ QUEST_MASTER,
-    /* 02 */ QUEST_RANDOMIZER,
-    /* 03 */ QUEST_BOSSRUSH,
+    /* 02 */ QUEST_BOSSRUSH,
 } Quest;
 
 #define IS_VANILLA (gSaveContext.ship.quest.id == QUEST_NORMAL)
 #define IS_MASTER_QUEST (gSaveContext.ship.quest.id == QUEST_MASTER)
-#define IS_RANDO (gSaveContext.ship.quest.id == QUEST_RANDOMIZER)
 #define IS_BOSS_RUSH (gSaveContext.ship.quest.id == QUEST_BOSSRUSH)
 
 typedef enum {

@@ -26,10 +26,6 @@
 #include "Enhancements/controls/SohInputEditorWindow.h"
 #include "Enhancements/audio/AudioCollection.h"
 #include "Enhancements/debugconsole.h"
-#include "Enhancements/randomizer/randomizer.h"
-#include "Enhancements/randomizer/randomizer_entrance_tracker.h"
-#include "Enhancements/randomizer/randomizer_check_tracker.h"
-#include "Enhancements/randomizer/static_data.h"
 #include "Enhancements/gameplaystats.h"
 #include "frame_interpolation.h"
 #include "SohGui/SohMenu.h"
@@ -65,6 +61,7 @@
 
 #include <functions.h>
 #include "Enhancements/item-tables/ItemTableManager.h"
+#include "Enhancements/item-tables/extendedVanillaItemTable.h"
 #include "soh/SohGui/ImGuiUtils.h"
 #include "ActorDB.h"
 #include "SaveManager.h"
@@ -72,7 +69,6 @@
 #include "soh/Network/Sail/Sail.h"
 #include "Enhancements/mods.h"
 #include "Enhancements/game-interactor/GameInteractor.h"
-#include "Enhancements/randomizer/draw.h"
 #include <libultraship/libultraship.h>
 #include <libultraship/controller/controldeck/ControlDeck.h>
 #include <fast/resource/ResourceType.h>
@@ -881,12 +877,6 @@ void OTRGlobals::Initialize() {
                                     "Background", static_cast<uint32_t>(SOH::ResourceType::SOH_Background), 0);
 
     gSaveStateMgr = std::make_shared<SaveStateMgr>();
-    gRandoContext->InitStaticData();
-    gRandoContext = Rando::Context::CreateInstance();
-    Rando::Settings::GetInstance()->AssignContext(gRandoContext);
-    Rando::StaticData::InitItemTable(); // RANDOTODO make this not rely on context's logic so it can be initialised in
-                                        // InitStaticData
-    gRandomizer = std::make_shared<Randomizer>();
 
     hasMasterQuest = hasOriginal = false;
 
@@ -1361,36 +1351,36 @@ extern "C" GetItemID RetrieveGetItemIDFromItemID(ItemID itemID) {
     return GI_MAX;
 }
 
-std::unordered_map<ItemID, RandomizerGet> ItemIDtoRandomizerGetMap{
-    { ITEM_SONG_MINUET, RG_MINUET_OF_FOREST },
-    { ITEM_SONG_BOLERO, RG_BOLERO_OF_FIRE },
-    { ITEM_SONG_SERENADE, RG_SERENADE_OF_WATER },
-    { ITEM_SONG_REQUIEM, RG_REQUIEM_OF_SPIRIT },
-    { ITEM_SONG_NOCTURNE, RG_NOCTURNE_OF_SHADOW },
-    { ITEM_SONG_PRELUDE, RG_PRELUDE_OF_LIGHT },
-    { ITEM_SONG_LULLABY, RG_ZELDAS_LULLABY },
-    { ITEM_SONG_EPONA, RG_EPONAS_SONG },
-    { ITEM_SONG_SARIA, RG_SARIAS_SONG },
-    { ITEM_SONG_SUN, RG_SUNS_SONG },
-    { ITEM_SONG_TIME, RG_SONG_OF_TIME },
-    { ITEM_SONG_STORMS, RG_SONG_OF_STORMS },
-    { ITEM_MEDALLION_FOREST, RG_FOREST_MEDALLION },
-    { ITEM_MEDALLION_FIRE, RG_FIRE_MEDALLION },
-    { ITEM_MEDALLION_WATER, RG_WATER_MEDALLION },
-    { ITEM_MEDALLION_SPIRIT, RG_SPIRIT_MEDALLION },
-    { ITEM_MEDALLION_SHADOW, RG_SHADOW_MEDALLION },
-    { ITEM_MEDALLION_LIGHT, RG_LIGHT_MEDALLION },
-    { ITEM_KOKIRI_EMERALD, RG_KOKIRI_EMERALD },
-    { ITEM_GORON_RUBY, RG_GORON_RUBY },
-    { ITEM_ZORA_SAPPHIRE, RG_ZORA_SAPPHIRE },
-    { ITEM_SWORD_MASTER, RG_MASTER_SWORD },
+std::unordered_map<ItemID, ExtendedVanillaItem> ItemIDtoExtendedVanillaItemMap{
+    { ITEM_SONG_MINUET, EXT_MINUET_OF_FOREST },
+    { ITEM_SONG_BOLERO, EXT_BOLERO_OF_FIRE },
+    { ITEM_SONG_SERENADE, EXT_SERENADE_OF_WATER },
+    { ITEM_SONG_REQUIEM, EXT_REQUIEM_OF_SPIRIT },
+    { ITEM_SONG_NOCTURNE, EXT_NOCTURNE_OF_SHADOW },
+    { ITEM_SONG_PRELUDE, EXT_PRELUDE_OF_LIGHT },
+    { ITEM_SONG_LULLABY, EXT_ZELDAS_LULLABY },
+    { ITEM_SONG_EPONA, EXT_EPONAS_SONG },
+    { ITEM_SONG_SARIA, EXT_SARIAS_SONG },
+    { ITEM_SONG_SUN, EXT_SUNS_SONG },
+    { ITEM_SONG_TIME, EXT_SONG_OF_TIME },
+    { ITEM_SONG_STORMS, EXT_SONG_OF_STORMS },
+    { ITEM_MEDALLION_FOREST, EXT_FOREST_MEDALLION },
+    { ITEM_MEDALLION_FIRE, EXT_FIRE_MEDALLION },
+    { ITEM_MEDALLION_WATER, EXT_WATER_MEDALLION },
+    { ITEM_MEDALLION_SPIRIT, EXT_SPIRIT_MEDALLION },
+    { ITEM_MEDALLION_SHADOW, EXT_SHADOW_MEDALLION },
+    { ITEM_MEDALLION_LIGHT, EXT_LIGHT_MEDALLION },
+    { ITEM_KOKIRI_EMERALD, EXT_KOKIRI_EMERALD },
+    { ITEM_GORON_RUBY, EXT_GORON_RUBY },
+    { ITEM_ZORA_SAPPHIRE, EXT_ZORA_SAPPHIRE },
+    { ITEM_SWORD_MASTER, EXT_MASTER_SWORD },
 };
 
-extern "C" RandomizerGet RetrieveRandomizerGetFromItemID(ItemID itemID) {
-    if (ItemIDtoRandomizerGetMap.contains(itemID)) {
-        return ItemIDtoRandomizerGetMap.at(itemID);
+extern "C" ExtendedVanillaItem RetrieveExtendedVanillaItemFromItemID(ItemID itemID) {
+    if (ItemIDtoExtendedVanillaItemMap.contains(itemID)) {
+        return ItemIDtoExtendedVanillaItemMap.at(itemID);
     }
-    return RG_MAX;
+    return EXT_MAX;
 }
 
 extern "C" void OTRExtScanner() {
@@ -1492,14 +1482,11 @@ extern "C" void InitOTR(int argc, char* argv[]) {
     OTRAudio_Init();
     OTRExtScanner();
     VanillaItemTable_Init();
+    ExtendedVanillaItemTable_Init();
     DebugConsole_Init();
 
     InitMods();
     ActorDB::AddBuiltInCustomActors();
-    // #region SOH [Randomizer] TODO: Remove these and refactor spoiler file handling for randomizer
-    CVarClear(CVAR_GENERAL("RandomizerNewFileDropped"));
-    CVarClear(CVAR_GENERAL("RandomizerDroppedFile"));
-    // #endregion
 
     Ship::Context::GetInstance()->GetFileDropMgr()->RegisterDropHandler(SoH_HandleConfigDrop);
 
@@ -1524,8 +1511,6 @@ extern "C" void InitOTR(int argc, char* argv[]) {
         Sail::Instance->Enable();
     }
     ShipInit::InitAll();
-    Rando::StaticData::InitHashMaps();
-    OTRGlobals::Instance->gRandoContext->AddExcludedOptions();
 }
 
 extern "C" void SaveManager_ThreadPoolWait() {
@@ -1808,14 +1793,6 @@ extern "C" uint16_t OTRGetPixelDepth(float x, float y) {
     }
 
     return wnd->GetPixelDepth(x, y);
-}
-
-extern "C" Sprite* GetSeedTexture(uint8_t index) {
-    return OTRGlobals::Instance->gRandoContext->GetSeedTexture(index);
-}
-
-extern "C" uint8_t GetSeedIconIndex(uint8_t index) {
-    return OTRGlobals::Instance->gRandoContext->hashIconIndexes[index];
 }
 
 std::map<std::string, SoundFontSample*> cachedCustomSFs;
@@ -2236,7 +2213,7 @@ extern "C" uint32_t OTRGetGameRenderHeight() {
     return height;
 }
 
-f32 floorf(f32 x); // RANDOTODO False positive error "allowing all exceptions is incompatible with previous function"
+f32 floorf(f32 x); // Avoids a conflicting exception specification from the platform header.
 f32 ceilf(f32 x);  // This gets annoying
 
 extern "C" int16_t OTRGetRectDimensionFromLeftEdge(float v) {
@@ -2331,106 +2308,13 @@ extern "C" size_t GetEquipNowMessage(char* buffer, char* src, const size_t maxBu
     return 0;
 }
 
-extern "C" void Randomizer_ParseSpoiler(const char* fileLoc) {
-    OTRGlobals::Instance->gRandoContext->ParseSpoiler(fileLoc);
-}
-
-extern "C" bool Randomizer_IsTrialRequired(s32 trialFlag) {
-    return OTRGlobals::Instance->gRandomizer->IsTrialRequired(trialFlag);
-}
-
-extern "C" u32 SpoilerFileExists(const char* spoilerFileName) {
-    return OTRGlobals::Instance->gRandomizer->SpoilerFileExists(spoilerFileName);
-}
-
-extern "C" u8 Randomizer_GetSettingValue(RandomizerSettingKey randoSettingKey) {
-    return OTRGlobals::Instance->gRandoContext->GetOption(randoSettingKey).Get();
-}
-
-extern "C" RandomizerCheck Randomizer_GetCheckFromActor(s16 actorId, s16 sceneNum, s16 actorParams) {
-    return OTRGlobals::Instance->gRandomizer->GetCheckFromActor(actorId, sceneNum, actorParams);
-}
-
-extern "C" ShopItemIdentity Randomizer_IdentifyShopItem(s32 sceneNum, u8 slotIndex) {
-    return OTRGlobals::Instance->gRandomizer->IdentifyShopItem(sceneNum, slotIndex);
-}
-
 extern "C" GetItemEntry ItemTable_Retrieve(int16_t getItemID) {
     GetItemEntry giEntry = ItemTableManager::Instance->RetrieveItemEntry(MOD_NONE, getItemID);
     return giEntry;
 }
 
 extern "C" GetItemEntry ItemTable_RetrieveEntry(s16 tableID, s16 getItemID) {
-    if (tableID == MOD_RANDOMIZER) {
-        return Rando::StaticData::RetrieveItem(static_cast<RandomizerGet>(getItemID)).GetGIEntry_Copy();
-    }
     return ItemTableManager::Instance->RetrieveItemEntry(tableID, getItemID);
-}
-
-extern "C" GetItemEntry Randomizer_GetItemFromActor(s16 actorId, s16 sceneNum, s16 actorParams, GetItemID ogId) {
-    return OTRGlobals::Instance->gRandomizer->GetItemFromActor(actorId, sceneNum, actorParams, ogId);
-}
-
-extern "C" GetItemEntry Randomizer_GetItemFromActorWithoutObtainabilityCheck(s16 actorId, s16 sceneNum, s16 actorParams,
-                                                                             GetItemID ogId) {
-    return OTRGlobals::Instance->gRandomizer->GetItemFromActor(actorId, sceneNum, actorParams, ogId, false);
-}
-
-extern "C" GetItemEntry Randomizer_GetItemFromKnownCheck(RandomizerCheck randomizerCheck, GetItemID ogId) {
-    return OTRGlobals::Instance->gRandomizer->GetItemFromKnownCheck(randomizerCheck, ogId);
-}
-
-extern "C" GetItemEntry Randomizer_GetItemFromKnownCheckWithoutObtainabilityCheck(RandomizerCheck randomizerCheck,
-                                                                                  GetItemID ogId) {
-    return OTRGlobals::Instance->gRandomizer->GetItemFromKnownCheck(randomizerCheck, ogId, false);
-}
-
-extern "C" RandomizerInf Randomizer_GetRandomizerInfFromCheck(RandomizerCheck randomizerCheck) {
-    return OTRGlobals::Instance->gRandomizer->GetRandomizerInfFromCheck(randomizerCheck);
-}
-
-extern "C" ItemObtainability Randomizer_GetItemObtainabilityFromRandomizerCheck(RandomizerCheck randomizerCheck) {
-    return OTRGlobals::Instance->gRandomizer->GetItemObtainabilityFromRandomizerCheck(randomizerCheck);
-}
-
-extern "C" bool Randomizer_IsCheckShuffled(RandomizerCheck rc) {
-    return CheckTracker::IsCheckShuffled(rc);
-}
-
-extern "C" GetItemEntry GetItemMystery() {
-    return GET_ITEM_MYSTERY;
-}
-
-extern "C" uint8_t Randomizer_IsSeedGenerated() {
-    return OTRGlobals::Instance->gRandoContext->IsSeedGenerated() ? 1 : 0;
-}
-
-extern "C" void Randomizer_SetSeedGenerated(bool seedGenerated) {
-    OTRGlobals::Instance->gRandoContext->SetSeedGenerated(seedGenerated);
-}
-
-extern "C" uint8_t Randomizer_IsSpoilerLoaded() {
-    return OTRGlobals::Instance->gRandoContext->IsSpoilerLoaded() ? 1 : 0;
-}
-
-extern "C" void Randomizer_SetSpoilerLoaded(bool spoilerLoaded) {
-    OTRGlobals::Instance->gRandoContext->SetSpoilerLoaded(spoilerLoaded);
-}
-
-extern "C" uint8_t Randomizer_GenerateRandomizer() {
-    return GenerateRandomizer() ? 1 : 0;
-}
-
-extern "C" void Randomizer_ShowRandomizerMenu() {
-    SohGui::ShowRandomizerSettingsMenu();
-}
-
-extern "C" void EntranceTracker_SetCurrentGrottoID(s16 entranceIndex) {
-    EntranceTracker::SetCurrentGrottoIDForTracker(entranceIndex);
-}
-
-extern "C" void EntranceTracker_SetLastEntranceOverride(s16 entranceIndex) {
-    EntranceTracker::SetLastEntranceOverrideForTracker(entranceIndex);
 }
 
 extern "C" void Gfx_RegisterBlendedTexture(const char* name, u8* mask, u8* replacement) {
@@ -2492,8 +2376,6 @@ bool SoH_HandleConfigDrop(char* filePath) {
 
         CVarClearBlock(CVAR_PREFIX_ENHANCEMENT);
         CVarClearBlock(CVAR_PREFIX_CHEAT);
-        CVarClearBlock(CVAR_PREFIX_RANDOMIZER_SETTING);
-        CVarClearBlock(CVAR_PREFIX_RANDOMIZER_ENHANCEMENT);
         CVarClearBlock(CVAR_PREFIX_DEVELOPER_TOOLS);
 
         // Flatten everything under CVars into a single array
@@ -2526,7 +2408,6 @@ bool SoH_HandleConfigDrop(char* filePath) {
             Ship::Context::GetInstance()->GetWindow()->GetGui()->GetGuiWindow("Console"))
             ->ClearBindings();
 
-        Rando::Settings::GetInstance()->UpdateAllOptions();
         gui->SaveConsoleVariablesNextFrame();
         ShipInit::Init("*");
 
@@ -2545,10 +2426,6 @@ bool SoH_HandleConfigDrop(char* filePath) {
         return false;
     }
     return false;
-}
-
-extern "C" void CheckTracker_RecalculateAvailableChecks() {
-    CheckTracker::RecalculateAvailableChecks();
 }
 
 extern "C" uint32_t Ship_GetInterpolationFPS() {

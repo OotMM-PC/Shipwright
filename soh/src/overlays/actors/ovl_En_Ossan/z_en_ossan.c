@@ -13,7 +13,6 @@
 #include "objects/object_mastergolon/object_mastergolon.h"
 #include "objects/object_masterzoora/object_masterzoora.h"
 #include "objects/object_masterkokirihead/object_masterkokirihead.h"
-#include "soh/Enhancements/randomizer/randomizer_entrance.h"
 #include "soh/Enhancements/cosmetics/cosmeticsTypes.h"
 #include "soh/Enhancements/game-interactor/GameInteractor_Hooks.h"
 #include <assert.h>
@@ -922,12 +921,7 @@ void EnOssan_State_StartConversation(EnOssan* this, PlayState* play, Player* pla
                 EnOssan_TryPaybackMask(this, play);
                 return;
             case OSSAN_HAPPY_STATE_ANGRY:
-                // In ER, handle happy mask throwing link out with not enough rupees
-                if (IS_RANDO && Randomizer_GetSettingValue(RSK_SHUFFLE_ENTRANCES)) {
-                    play->nextEntranceIndex = Entrance_OverrideNextIndex(ENTR_MARKET_DAY_OUTSIDE_HAPPY_MASK_SHOP);
-                } else {
-                    play->nextEntranceIndex = ENTR_MARKET_DAY_OUTSIDE_HAPPY_MASK_SHOP;
-                }
+                play->nextEntranceIndex = ENTR_MARKET_DAY_OUTSIDE_HAPPY_MASK_SHOP;
                 play->transitionTrigger = TRANS_TRIGGER_START;
                 play->transitionType = TRANS_TYPE_CIRCLE(TCA_STARBURST, TCC_WHITE, TCS_FAST);
                 return;

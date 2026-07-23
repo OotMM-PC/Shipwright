@@ -795,9 +795,6 @@ void func_80082850(PlayState* play, s16 maxAlpha) {
     }
 }
 
-void Interface_RandoRestoreSwordless(void) {
-}
-
 void func_80083108(PlayState* play) {
     MessageContext* msgCtx = &play->msgCtx;
     Player* player = GET_PLAYER(play);
@@ -891,8 +888,6 @@ void func_80083108(PlayState* play) {
             } else if (gSaveContext.equips.buttonItems[0] == ITEM_FISHING_POLE) {
                 gSaveContext.equips.buttonItems[0] = gSaveContext.buttonStatus[0];
                 gSaveContext.unk_13EA = 0;
-
-                Interface_RandoRestoreSwordless();
 
                 if (gSaveContext.equips.buttonItems[0] != ITEM_NONE) {
                     Interface_LoadItemIcon1(play, 0);
@@ -1001,7 +996,6 @@ void func_80083108(PlayState* play) {
                             (gSaveContext.equips.buttonItems[0] != ITEM_SWORD_KNIFE)) {
                             gSaveContext.equips.buttonItems[0] = gSaveContext.buttonStatus[0];
 
-                            Interface_RandoRestoreSwordless();
                         } else {
                             gSaveContext.buttonStatus[0] = gSaveContext.equips.buttonItems[0];
                         }
@@ -1044,8 +1038,6 @@ void func_80083108(PlayState* play) {
                         if ((gSaveContext.equips.buttonItems[0] != ITEM_NONE) || (gSaveContext.infTable[29] == 0)) {
                             gSaveContext.equips.buttonItems[0] = gSaveContext.buttonStatus[0];
 
-                            Interface_RandoRestoreSwordless();
-
                             sp28 = 1;
 
                             if (gSaveContext.equips.buttonItems[0] != ITEM_NONE) {
@@ -1069,8 +1061,6 @@ void func_80083108(PlayState* play) {
                         (gSaveContext.equips.buttonItems[0] == ITEM_NONE)) {
                         if ((gSaveContext.equips.buttonItems[0] != ITEM_NONE) || (gSaveContext.infTable[29] == 0)) {
                             gSaveContext.equips.buttonItems[0] = gSaveContext.buttonStatus[0];
-
-                            Interface_RandoRestoreSwordless();
 
                             sp28 = 1;
 
@@ -1560,13 +1550,11 @@ void func_80084BF4(PlayState* play, u16 flag) {
                 (gSaveContext.equips.buttonItems[0] == ITEM_BOMBCHU) ||
                 (gSaveContext.equips.buttonItems[0] == ITEM_FISHING_POLE)) {
                 gSaveContext.equips.buttonItems[0] = gSaveContext.buttonStatus[0];
-                Interface_RandoRestoreSwordless();
                 Interface_LoadItemIcon1(play, 0);
             }
         } else if (gSaveContext.equips.buttonItems[0] == ITEM_NONE) {
             if ((gSaveContext.equips.buttonItems[0] != ITEM_NONE) || (gSaveContext.infTable[29] == 0)) {
                 gSaveContext.equips.buttonItems[0] = gSaveContext.buttonStatus[0];
-                Interface_RandoRestoreSwordless();
                 Interface_LoadItemIcon1(play, 0);
             }
         }
@@ -1646,16 +1634,14 @@ u8 Return_Item(u8 itemID, ModIndex modId, ItemID returnItem) {
         return Return_Item_Entry(ItemTable_RetrieveEntry(modId, getItemID), returnItem);
     }
 
-    RandomizerGet randomizerGet = RetrieveRandomizerGetFromItemID(itemID);
-    if (randomizerGet != RG_MAX) {
-        // Vanilla ItemID with an associated RandomizerGet (These are items in extendedVanillaGetItemTable)
-        return Return_Item_Entry(ItemTable_RetrieveEntry(MOD_RANDOMIZER, randomizerGet), returnItem);
+    ExtendedVanillaItem extendedVanillaItem = RetrieveExtendedVanillaItemFromItemID(itemID);
+    if (extendedVanillaItem != EXT_MAX) {
+        // Vanilla ItemID with an associated ExtendedVanillaItem (These are items in extendedVanillaGetItemTable)
+        return Return_Item_Entry(ItemTable_RetrieveEntry(MOD_EXTENDED_VANILLA, extendedVanillaItem), returnItem);
     }
 
-    // All randomizer items should go through Randomizer_Item_Give, so this should never be reached
-    // but leaving this here just in case, as it was in the original behavior
     assert(false);
-    return Return_Item_Entry(ItemTable_RetrieveEntry(MOD_RANDOMIZER, itemID), returnItem);
+    return Return_Item_Entry(ItemTable_RetrieveEntry(MOD_EXTENDED_VANILLA, itemID), returnItem);
 }
 
 /**
@@ -5593,7 +5579,6 @@ void Interface_Draw(PlayState* play) {
                 (gSaveContext.equips.buttonItems[0] != ITEM_SWORD_KNIFE)) {
                 if (gSaveContext.buttonStatus[0] != BTN_ENABLED) {
                     gSaveContext.equips.buttonItems[0] = gSaveContext.buttonStatus[0];
-                    Interface_RandoRestoreSwordless();
                 } else {
                     gSaveContext.equips.buttonItems[0] = ITEM_NONE;
                 }
@@ -6392,14 +6377,14 @@ void Interface_Update(PlayState* play) {
             gSaveContext.ship.pendingSaleMod = MOD_NONE;
             if (tempSaleMod == MOD_NONE) {
                 GetItemID getItemID = RetrieveGetItemIDFromItemID(tempSaleItem);
-                RandomizerGet randomizerGet = RetrieveRandomizerGetFromItemID(tempSaleItem);
+                ExtendedVanillaItem extendedVanillaItem = RetrieveExtendedVanillaItemFromItemID(tempSaleItem);
                 if (getItemID != GI_MAX) {
                     tempSaleItem = getItemID;
                 } else {
-                    if (randomizerGet != RG_MAX) {
-                        tempSaleItem = randomizerGet;
+                    if (extendedVanillaItem != EXT_MAX) {
+                        tempSaleItem = extendedVanillaItem;
                     }
-                    tempSaleMod = MOD_RANDOMIZER;
+                    tempSaleMod = MOD_EXTENDED_VANILLA;
                 }
             }
             GameInteractor_ExecuteOnSaleEndHooks(ItemTable_RetrieveEntry(tempSaleMod, tempSaleItem));

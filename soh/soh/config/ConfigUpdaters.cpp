@@ -1551,10 +1551,6 @@ void ConfigVersion4Updater::Update(Ship::Config* conf) {
 }
 
 void ConfigVersion5Updater::Update(Ship::Config* conf) {
-    // After removal of Vanilla, make sure it doesn't crash because of an out of range on the combobox
-    if (CVarGetInteger("gRandoSettings.LogicRules", 0) == 2) {
-        CVarSetInteger("gRandoSettings.LogicRules", 0);
-    }
 }
 
 void ConfigVersion6Updater::Update(Ship::Config* conf) {

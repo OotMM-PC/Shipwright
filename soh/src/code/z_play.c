@@ -322,11 +322,11 @@ u8 CheckDungeonCount() {
         dungeonCount++;
     }
 
-    if (Flags_GetRandomizerInf(RAND_INF_DUNGEONS_DONE_SPIRIT_TEMPLE)) {
+    if (Flags_GetShipInf(SHIP_FLAG_BOSS_RUSH_SPIRIT_TEMPLE_COMPLETE)) {
         dungeonCount++;
     }
 
-    if (Flags_GetRandomizerInf(RAND_INF_DUNGEONS_DONE_SHADOW_TEMPLE)) {
+    if (Flags_GetShipInf(SHIP_FLAG_BOSS_RUSH_SHADOW_TEMPLE_COMPLETE)) {
         dungeonCount++;
     }
 
@@ -334,39 +334,11 @@ u8 CheckDungeonCount() {
 }
 
 u8 CheckBridgeRewardCount() {
-    u8 bridgeRewardCount = 0;
-
-    switch (Randomizer_GetSettingValue(RSK_BRIDGE_OPTIONS)) {
-        case RO_BRIDGE_WILDCARD_REWARD:
-            if (Flags_GetRandomizerInf(RAND_INF_GREG_FOUND)) {
-                bridgeRewardCount += 1;
-            }
-            break;
-        case RO_BRIDGE_GREG_REWARD:
-            if (Flags_GetRandomizerInf(RAND_INF_GREG_FOUND)) {
-                bridgeRewardCount += 1;
-            }
-            break;
-    }
-    return bridgeRewardCount;
+    return 0;
 }
 
 u8 CheckLACSRewardCount() {
-    u8 lacsRewardCount = 0;
-
-    switch (Randomizer_GetSettingValue(RSK_LACS_OPTIONS)) {
-        case RO_LACS_WILDCARD_REWARD:
-            if (Flags_GetRandomizerInf(RAND_INF_GREG_FOUND)) {
-                lacsRewardCount += 1;
-            }
-            break;
-        case RO_LACS_GREG_REWARD:
-            if (Flags_GetRandomizerInf(RAND_INF_GREG_FOUND)) {
-                lacsRewardCount += 1;
-            }
-            break;
-    }
-    return lacsRewardCount;
+    return 0;
 }
 
 void Play_Init(GameState* thisx) {
@@ -2214,7 +2186,6 @@ void Play_PerformSave(PlayState* play) {
             (gSaveContext.equips.buttonItems[0] == ITEM_NONE && !Flags_GetInfTable(INFTABLE_SWORDLESS))) {
 
             gSaveContext.equips.buttonItems[0] = gSaveContext.buttonStatus[0];
-            Interface_RandoRestoreSwordless();
         }
 
         Save_SaveFile();

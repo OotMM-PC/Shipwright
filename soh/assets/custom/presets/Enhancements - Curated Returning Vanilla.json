@@ -52,8 +52,7 @@
                 "TwoHandedIdle": 1,
                 "VisualAgony": 1,
                 "WidescreenActorCulling": 1
-            },
-            "gRandoEnhancements": null
+            }
         }
     },
     "presetName": "Enhancements - Curated Returning Vanilla",

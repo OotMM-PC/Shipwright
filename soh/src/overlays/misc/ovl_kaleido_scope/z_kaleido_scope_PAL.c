@@ -20,7 +20,6 @@
 #include "soh/OTRGlobals.h"
 #include "soh/ResourceManagerHelpers.h"
 #include "soh/SaveManager.h"
-#include "soh/Enhancements/kaleido.h"
 #include <soh_assets.h>
 
 static void* sEquipmentFRATexs[] = {
@@ -4846,9 +4845,6 @@ void KaleidoScope_Update(PlayState* play) {
             for (int buttonIndex = 0; buttonIndex < ARRAY_COUNT(gSaveContext.buttonStatus); buttonIndex++) {
                 gSaveContext.buttonStatus[buttonIndex] = sButtonStatusSave[buttonIndex];
             }
-
-            // Used to clear swordless temp B after unpause so minigame/epona handling restarts
-            Interface_RandoRestoreSwordless();
 
             interfaceCtx->unk_1FA = interfaceCtx->unk_1FC = 0;
             osSyncPrintf(VT_FGCOL(YELLOW));

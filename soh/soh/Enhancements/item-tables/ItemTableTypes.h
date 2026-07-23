@@ -31,6 +31,37 @@ typedef enum GetItemCategory {
     /* 0x06 */ ITEM_CATEGORY_MAJOR,
 } GetItemCategory;
 
+typedef enum ModIndex {
+    MOD_NONE,
+    MOD_EXTENDED_VANILLA
+} ModIndex;
+
+typedef enum ExtendedVanillaItem {
+    EXT_ZELDAS_LULLABY,
+    EXT_EPONAS_SONG,
+    EXT_SARIAS_SONG,
+    EXT_SUNS_SONG,
+    EXT_SONG_OF_TIME,
+    EXT_SONG_OF_STORMS,
+    EXT_MINUET_OF_FOREST,
+    EXT_BOLERO_OF_FIRE,
+    EXT_SERENADE_OF_WATER,
+    EXT_REQUIEM_OF_SPIRIT,
+    EXT_NOCTURNE_OF_SHADOW,
+    EXT_PRELUDE_OF_LIGHT,
+    EXT_FOREST_MEDALLION,
+    EXT_FIRE_MEDALLION,
+    EXT_WATER_MEDALLION,
+    EXT_SPIRIT_MEDALLION,
+    EXT_SHADOW_MEDALLION,
+    EXT_LIGHT_MEDALLION,
+    EXT_KOKIRI_EMERALD,
+    EXT_GORON_RUBY,
+    EXT_ZORA_SAPPHIRE,
+    EXT_MASTER_SWORD,
+    EXT_MAX
+} ExtendedVanillaItem;
+
 #define GET_ITEM(itemId, objectId, drawId, textId, field, chestAnim, itemCategory, modIndex, getItemId)                \
     {                                                                                                                  \
         itemId, field, (int16_t)((chestAnim != CHEST_ANIM_SHORT ? 1 : -1) * (drawId + 1)), textId, objectId, modIndex, \
@@ -58,7 +89,7 @@ typedef struct GetItemEntry {
     /* 0x02 */ int16_t gi;     // defines the draw id and chest opening animation
     /* 0x03 */ uint16_t textId;
     /* 0x04 */ uint16_t objectId;
-    /* 0x06 */ uint16_t modIndex; // Primarily used for determining whether to use Item_Give or Randomizer_Item_Give
+    /* 0x06 */ uint16_t modIndex;
     /* 0x07 */ uint16_t tableId;  // GetItemEntry table this entry is in (usually the same as modIndex, but not always)
     /* 0x08 */ int16_t getItemId;
     /* 0x0A */ uint16_t gid; // Stores the GID value unmodified for future reference.

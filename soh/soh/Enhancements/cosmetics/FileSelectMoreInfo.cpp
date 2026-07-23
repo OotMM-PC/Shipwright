@@ -104,8 +104,6 @@ typedef struct ItemData {
     { 0x29 + ICON_SIZE * i, 0x31 }
 #define OCARINA_BUTTON_ICON_POS(i) \
     { 0xA8 + ICON_SIZE * i, 0x00 }
-#define RANDO_ONLY_ITEM_ICON_POS(i) \
-    { 0xA8 + ICON_SIZE * i, 0x2A }
 // clang-format on
 
 static ItemData itemData[] = {
@@ -218,9 +216,6 @@ static ItemData itemData[] = {
     { CREATE_SPRITE_OCARINA_BUTTON(dgMsgCharA7ButtonCLeftTex, 118), 0xB3, OCARINA_BUTTON_ICON_POS(3), SIZE_NORMAL },
     { CREATE_SPRITE_OCARINA_BUTTON(dgMsgCharA8ButtonCRightTex, 119), 0xB4, OCARINA_BUTTON_ICON_POS(4), SIZE_NORMAL },
     */
-
-    { CREATE_SPRITE_RUPEE(0xC8, 0xFF, 0x64), ITEM_RUPEE_GREEN, RANDO_ONLY_ITEM_ICON_POS(0), SIZE_NORMAL },
-    { CREATE_SPRITE_32(dgItemIconFishingPoleTex, 120), ITEM_FISHING_POLE, RANDO_ONLY_ITEM_ICON_POS(1), SIZE_NORMAL },
 };
 
 static u8 ColorProduct(u8 c1, u8 c2) {
@@ -305,15 +300,6 @@ static bool HasItem(s16 fileIndex, u8 item) {
 
     if (item == ITEM_DOUBLE_DEFENSE) {
         return Save_GetSaveMetaInfo(fileIndex)->isDoubleDefenseAcquired;
-    }
-
-    // greg
-    if (item == ITEM_RUPEE_GREEN) {
-        return Save_GetSaveMetaInfo(fileIndex)->gregFound;
-    }
-
-    if (item == ITEM_FISHING_POLE) {
-        return Save_GetSaveMetaInfo(fileIndex)->hasFishingRod;
     }
 
     return false;
@@ -472,15 +458,6 @@ static bool ShouldRenderItem(s16 fileIndex, u8 item) {
         return false;
     }
 
-    // greg
-    if (item == ITEM_RUPEE_GREEN) {
-        return Save_GetSaveMetaInfo(fileIndex)->randoSave;
-    }
-
-    if (item == ITEM_FISHING_POLE) {
-        return Save_GetSaveMetaInfo(fileIndex)->fishingPoleShuffled;
-    }
-
     return true;
 }
 
@@ -514,15 +491,13 @@ static void DrawItems(FileChooseContext* thisx, s16 fileIndex, u8 alpha) {
 
 typedef enum CounterID {
     /* 0x00 */ COUNTER_HEALTH,
-    /* 0x01 */ COUNTER_WALLET_NONE,
-    /* 0x02 */ COUNTER_WALLET_CHILD,
-    /* 0x03 */ COUNTER_WALLET_ADULT,
-    /* 0x04 */ COUNTER_WALLET_GIANT,
-    /* 0x05 */ COUNTER_WALLET_TYCOON,
-    /* 0x06 */ COUNTER_SKULLTULLAS,
-    /* 0x07 */ COUNTER_DEATHS,
-    /* 0x08 */ COUNTER_TRIFORCE_PIECES,
-    /* 0x09 */ COUNTER_MAX,
+    /* 0x01 */ COUNTER_WALLET_CHILD,
+    /* 0x02 */ COUNTER_WALLET_ADULT,
+    /* 0x03 */ COUNTER_WALLET_GIANT,
+    /* 0x04 */ COUNTER_WALLET_TYCOON,
+    /* 0x05 */ COUNTER_SKULLTULLAS,
+    /* 0x06 */ COUNTER_DEATHS,
+    /* 0x07 */ COUNTER_MAX,
 } CounterID;
 
 typedef struct CounterData {
@@ -535,14 +510,12 @@ typedef struct CounterData {
 
 static CounterData counterData[COUNTER_MAX] = {
     { CREATE_SPRITE_24(dgQuestIconHeartContainerTex, 101), COUNTER_HEALTH, { 0x05, 0x00 }, SIZE_COUNTER },
-    { CREATE_SPRITE_RUPEE(0x32, 0x40, 0x19), COUNTER_WALLET_NONE, { 0x05, 0x15 }, SIZE_COUNTER },
     { CREATE_SPRITE_RUPEE(0xC8, 0xFF, 0x64), COUNTER_WALLET_CHILD, { 0x05, 0x15 }, SIZE_COUNTER },
     { CREATE_SPRITE_RUPEE(0x82, 0x82, 0xFF), COUNTER_WALLET_ADULT, { 0x05, 0x15 }, SIZE_COUNTER },
     { CREATE_SPRITE_RUPEE(0xFF, 0x64, 0x64), COUNTER_WALLET_GIANT, { 0x05, 0x15 }, SIZE_COUNTER },
     { CREATE_SPRITE_RUPEE(0xFF, 0x5A, 0xFF), COUNTER_WALLET_TYCOON, { 0x05, 0x15 }, SIZE_COUNTER },
     { CREATE_SPRITE_24(dgQuestIconGoldSkulltulaTex, 103), COUNTER_SKULLTULLAS, { 0x05, 0x2A }, SIZE_COUNTER },
     { CREATE_SPRITE_SKULL, COUNTER_DEATHS, { 0x48, 0x2A }, SIZE_COUNTER },
-    { CREATE_SPRITE_32(dgTriforcePiece, 121), COUNTER_TRIFORCE_PIECES, { 0x27, 0x10 }, SIZE_COUNTER },
 };
 
 static Sprite counterDigitSprites[10] = {
@@ -553,36 +526,24 @@ static Sprite counterDigitSprites[10] = {
 };
 
 static bool ShouldRenderCounter(s16 fileIndex, CounterID counterId) {
-    if (counterId == COUNTER_WALLET_NONE) {
-        return !Save_GetSaveMetaInfo(fileIndex)->hasWallet;
-    }
-
     if (counterId == COUNTER_WALLET_CHILD) {
-        return Save_GetSaveMetaInfo(fileIndex)->hasWallet &&
-               ((Save_GetSaveMetaInfo(fileIndex)->upgrades & gUpgradeMasks[UPG_WALLET]) >>
+        return ((Save_GetSaveMetaInfo(fileIndex)->upgrades & gUpgradeMasks[UPG_WALLET]) >>
                 gUpgradeShifts[UPG_WALLET]) == 0;
     }
 
     if (counterId == COUNTER_WALLET_ADULT) {
-        return Save_GetSaveMetaInfo(fileIndex)->hasWallet &&
-               ((Save_GetSaveMetaInfo(fileIndex)->upgrades & gUpgradeMasks[UPG_WALLET]) >>
+        return ((Save_GetSaveMetaInfo(fileIndex)->upgrades & gUpgradeMasks[UPG_WALLET]) >>
                 gUpgradeShifts[UPG_WALLET]) == 1;
     }
 
     if (counterId == COUNTER_WALLET_GIANT) {
-        return Save_GetSaveMetaInfo(fileIndex)->hasWallet &&
-               ((Save_GetSaveMetaInfo(fileIndex)->upgrades & gUpgradeMasks[UPG_WALLET]) >>
+        return ((Save_GetSaveMetaInfo(fileIndex)->upgrades & gUpgradeMasks[UPG_WALLET]) >>
                 gUpgradeShifts[UPG_WALLET]) == 2;
     }
 
     if (counterId == COUNTER_WALLET_TYCOON) {
-        return Save_GetSaveMetaInfo(fileIndex)->hasWallet &&
-               ((Save_GetSaveMetaInfo(fileIndex)->upgrades & gUpgradeMasks[UPG_WALLET]) >>
+        return ((Save_GetSaveMetaInfo(fileIndex)->upgrades & gUpgradeMasks[UPG_WALLET]) >>
                 gUpgradeShifts[UPG_WALLET]) == 3;
-    }
-
-    if (counterId == COUNTER_TRIFORCE_PIECES) {
-        return Save_GetSaveMetaInfo(fileIndex)->maxTriforcePieces != 0;
     }
 
     return true;
@@ -604,10 +565,6 @@ static u16 GetCurrentCounterValue(s16 fileIndex, CounterID counter) {
 
     if (counter == COUNTER_DEATHS) {
         return Save_GetSaveMetaInfo(fileIndex)->deaths;
-    }
-
-    if (counter == COUNTER_TRIFORCE_PIECES) {
-        return Save_GetSaveMetaInfo(fileIndex)->triforcePieces;
     }
 
     return 0;
@@ -640,10 +597,6 @@ static u16 GetMaxCounterValue(s16 fileIndex, CounterID counter) {
 
     if (counter == COUNTER_DEATHS) {
         return 999;
-    }
-
-    if (counter == COUNTER_TRIFORCE_PIECES) {
-        return Save_GetSaveMetaInfo(fileIndex)->maxTriforcePieces;
     }
 
     return 0;

@@ -5,6 +5,15 @@
 #include "global.h"
 #include "vt.h"
 
+typedef struct {
+    char tex[512];
+    uint16_t width;
+    uint16_t height;
+    uint8_t im_fmt;
+    uint8_t im_siz;
+    uint8_t id;
+} Sprite;
+
 // Init mode: Initial setup as the file select is starting up, fades and slides in various menu elements
 // Config mode: Handles the bulk of the file select, various configuration tasks like picking a file, copy/erase, and the options menu
 // Select mode: Displays the selected file with various details about it, and allows the player to confirm and open it
@@ -65,11 +74,6 @@ typedef enum {
     CM_BOSS_RUSH_MENU,
     CM_START_BOSS_RUSH_MENU,
     CM_BOSS_RUSH_TO_QUEST,
-    CM_ROTATE_TO_RANDOMIZER_SETTINGS_MENU,
-    CM_RANDOMIZER_SETTINGS_MENU,
-    CM_START_RANDOMIZER_SETTINGS_MENU,
-    CM_RANDOMIZER_SETTINGS_MENU_TO_QUEST,
-    CM_NAME_ENTRY_TO_RANDOMIZER_SETTINGS_MENU,
 } ConfigMode;
 
 typedef enum {

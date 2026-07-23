@@ -6,7 +6,6 @@
 
 #include "z_en_geldb.h"
 #include "objects/object_geldb/object_geldb.h"
-#include "soh/Enhancements/randomizer/randomizer_entrance.h"
 #include "soh/Enhancements/game-interactor/GameInteractor_Hooks.h"
 #include "soh/ResourceManagerHelpers.h"
 
@@ -1579,10 +1578,6 @@ void EnGeldB_Draw(Actor* thisx, PlayState* play) {
                         play->nextEntranceIndex = ENTR_GERUDOS_FORTRESS_18;
                     } else {
                         play->nextEntranceIndex = ENTR_GERUDOS_FORTRESS_17;
-                    }
-
-                    if (IS_RANDO) {
-                        Entrance_OverrideGerudoGuardCapture();
                     }
 
                     play->transitionType = TRANS_TYPE_CIRCLE(TCA_STARBURST, TCC_BLACK, TCS_FAST);

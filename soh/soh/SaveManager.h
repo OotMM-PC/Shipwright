@@ -14,8 +14,6 @@ typedef struct {
     u16 health;
     u32 requiresMasterQuest;
     u32 requiresOriginal;
-    u8 seedHash[5];
-    u8 randoSave;
     char buildVersion[50];
     s16 buildVersionMajor;
     s16 buildVersionMinor;
@@ -30,12 +28,6 @@ typedef struct {
     s16 gsTokens;
     u8 isDoubleDefenseAcquired;
     s32 filenameLanguage;
-    bool gregFound;
-    bool hasWallet;
-    u8 triforcePieces;
-    u8 maxTriforcePieces;
-    bool hasFishingRod;
-    bool fishingPoleShuffled;
 } SaveFileMetaInfo;
 
 typedef enum {
@@ -107,7 +99,6 @@ class SaveManager {
 
     void CopyZeldaFile(int from, int to);
     void DeleteZeldaFile(int fileNum);
-    bool IsRandoFile();
 
     // Use a name of "" to save to an array. You must be in a SaveArray callback.
     template <typename T> void SaveData(const std::string& name, const T& data) {
@@ -170,9 +161,6 @@ class SaveManager {
     static void InitFileNormal();
     static void InitFileDebug();
     static void InitFileMaxed();
-
-    static void LoadRandomizer();
-    static void SaveRandomizer(SaveContext* saveContext, int sectionID, bool fullSave);
 
     static void LoadBaseVersion1();
     static void LoadBaseVersion2();

@@ -8,7 +8,6 @@
 #include "z64bgcheck.h"
 #include "soh/Enhancements/item-tables/ItemTableTypes.h"
 #include "z64actor_enum.h"
-#include "soh/Enhancements/randomizer/randomizerTypes.h"
 
 #define ACTOR_NUMBER_MAX 2000
 #define INVISIBLE_ACTOR_MAX 20
@@ -357,10 +356,7 @@ typedef enum {
     /* 0x18 */ ITEM00_TUNIC_GORON,
     /* 0x19 */ ITEM00_BOMBS_SPECIAL,
     /* 0x1A */ ITEM00_BOMBCHU,
-    /* 0x1B */ ITEM00_SOH_DUMMY,
-    /* 0x1C */ ITEM00_SOH_GIVE_ITEM_ENTRY,
-    /* 0x1D */ ITEM00_SOH_GIVE_ITEM_ENTRY_GI,
-    /* 0x1E */ ITEM00_MAX,
+    /* 0x1B */ ITEM00_MAX,
     /* 0xFF */ ITEM00_NONE = 0xFF
 } Item00Type;
 
@@ -379,13 +375,7 @@ typedef struct EnItem00 {
     /* 0x15A */ s16 unk_15A;
     /* 0x15C */ f32 scale;
     /* 0x160 */ ColliderCylinder collider;
-    // #region SOH [Randomizer]
-    RandomizerCheck randoCheck;
-    RandomizerInf randoInf;
-    /*       */ s16 ogParams;
-    /*       */ GetItemEntry itemEntry;
-    // #endregion
-} EnItem00; // size = 0x1AC
+} EnItem00; // size = 0x18C
 
 // Only A_OBJ_SIGNPOST_OBLONG and A_OBJ_SIGNPOST_ARROW are used in room files.
 typedef enum {

@@ -567,9 +567,9 @@ void Flags_UnsetInfTable(s32 flag);
 s32 Flags_GetEventInf(s32 flag);
 void Flags_SetEventInf(s32 flag);
 void Flags_UnsetEventInf(s32 flag);
-s32 Flags_GetRandomizerInf(RandomizerInf flag);
-void Flags_SetRandomizerInf(RandomizerInf flag);
-void Flags_UnsetRandomizerInf(RandomizerInf flag);
+s32 Flags_GetShipInf(ShipFlag flag);
+void Flags_SetShipInf(ShipFlag flag);
+void Flags_UnsetShipInf(ShipFlag flag);
 u16 func_80037C30(PlayState* play, s16 arg1);
 s32 func_80037D98(PlayState* play, Actor* actor, s16 arg2, s32* arg3);
 s32 func_80038290(PlayState* play, Actor* actor, Vec3s* arg2, Vec3s* arg3, Vec3f arg4);
@@ -1071,7 +1071,6 @@ void Interface_LoadItemIcon2(PlayState* play, u16 button);
 void func_80084BF4(PlayState* play, u16 flag);
 uint16_t Interface_DrawTextLine(GraphicsContext* gfx, char text[], int16_t x, int16_t y, uint16_t colorR, uint16_t colorG, uint16_t colorB, uint16_t colorA, float textScale, uint8_t textShadow);
 u8 Item_Give(PlayState* play, u8 item);
-u16 Randomizer_Item_Give(PlayState* play, GetItemEntry giEntry);
 u8 Item_CheckObtainability(u8 item);
 void Inventory_DeleteItem(u16 item, u16 invSlot);
 s32 Inventory_ReplaceItem(PlayState* play, u16 oldItem, u16 newItem);
@@ -2106,7 +2105,6 @@ void PreviewSequence(u16 seqId);
 void func_800F5B58(void);
 void func_800F5BF0(u8 natureAmbienceId);
 void Audio_PlayFanfare(u16);
-void Audio_PlayFanfare_Rando(GetItemEntry getItem);
 void func_800F5C2C(void);
 void func_800F5E18(u8 playerIdx, u16 seqId, u8 fadeTimer, s8 arg3, s8 arg4);
 void Audio_SetSequenceMode(u8 seqMode);
@@ -2459,7 +2457,6 @@ void Font_LoadOrderedFontNTSC(Font* font);
 // #endregion
 
 // #region SOH [General]
-void Interface_RandoRestoreSwordless(void);
 s32 Ship_CalcShouldDrawAndUpdate(PlayState* play, Actor* actor, Vec3f* projectedPos, f32 projectedW, bool* shouldDraw,
                                  bool* shouldUpdate);
 

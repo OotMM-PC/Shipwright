@@ -47,12 +47,6 @@ struct ShipInit {
  * static RegisterShipInitFunc foo(bar, { "baz" });
  * ```
  *
- * #### Execute function `bar` on boot and when `IS_RANDO` might have changed
- *
- * ```cpp
- * static RegisterShipInitFunc foo(bar, { "IS_RANDO" });
- * ```
- *
  * ### Additional Information:
  *
  * To get a better sense of when your function will be executed

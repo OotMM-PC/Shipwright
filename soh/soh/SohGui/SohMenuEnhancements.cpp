@@ -5,9 +5,11 @@
 #include <soh/OTRGlobals.h>
 #include <soh/Enhancements/cosmetics/authenticGfxPatches.h>
 #include <soh/Enhancements/TimeDisplay/TimeDisplay.h>
+#include <soh/ShipInit.hpp>
 
 extern "C" {
 #include "functions.h"
+#include "macros.h"
 #include "variables.h"
 extern PlayState* gPlayState;
 }
@@ -106,9 +108,9 @@ static const std::map<int32_t, const char*> dampeDropRates = {
 };
 
 static const std::map<int32_t, const char*> cursorAnywhereValues = {
-    { PAUSE_ANY_CURSOR_RANDO_ONLY, "Only in Rando" },
+    { PAUSE_ANY_CURSOR_OFF, "Never" },
     { PAUSE_ANY_CURSOR_ALWAYS_ON, "Always" },
-    { PAUSE_ANY_CURSOR_ALWAYS_OFF, "Never" },
+    { PAUSE_ANY_CURSOR_ALWAYS_OFF, "Never (Legacy)" },
 };
 
 static const std::map<int32_t, const char*> zFightingOptions = {
@@ -198,7 +200,7 @@ void SohMenu::AddMenuEnhancements() {
         .Options(
             ComboboxOptions()
                 .ComboMap(cursorAnywhereValues)
-                .DefaultIndex(PAUSE_ANY_CURSOR_RANDO_ONLY)
+                .DefaultIndex(PAUSE_ANY_CURSOR_OFF)
                 .Tooltip("Allows the cursor on the pause menu to be over any slot."));
     AddWidget(path, "Pause Warp", WIDGET_CVAR_CHECKBOX)
         .CVar(CVAR_ENHANCEMENT("PauseWarp"))

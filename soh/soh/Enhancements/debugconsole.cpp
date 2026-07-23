@@ -1305,34 +1305,6 @@ static bool CuccoStormHandler(std::shared_ptr<Ship::Console> Console, const std:
     }
 }
 
-static bool GenerateRandoHandler(std::shared_ptr<Ship::Console> Console, const std::vector<std::string>& args,
-                                 std::string* output) {
-    if (args.size() == 1) {
-        if (GenerateRandomizer()) {
-            return 0;
-        }
-    }
-
-    try {
-        uint32_t value = std::stoi(args[1], NULL, 10);
-        std::string seed = "";
-        if (args.size() == 3) {
-            int testing = std::stoi(args[1], nullptr, 10);
-            seed = "seed_testing_count";
-        }
-
-        if (GenerateRandomizer(seed + std::to_string(value))) {
-            return 0;
-        }
-    } catch (std::invalid_argument const& ex) {
-        ERROR_MESSAGE("[SOH] seed|count value must be a number.");
-        return 1;
-    }
-
-    ERROR_MESSAGE("[SOH] Rando generation already in progress");
-    return 1;
-}
-
 static constexpr std::array<std::pair<const char*, CosmeticGroup>, COSMETICS_GROUP_MAX> cosmetic_groups = { {
     { "link", COSMETICS_GROUP_LINK },
     { "mirror_shield", COSMETICS_GROUP_MIRRORSHIELD },
@@ -1681,13 +1653,6 @@ void DebugConsole_Init(void) {
     CMD_REGISTER("burn", { BurnHandler, "Burns Link." });
 
     CMD_REGISTER("cucco_storm", { CuccoStormHandler, "Cucco Storm" });
-
-    CMD_REGISTER("gen_rando", { GenerateRandoHandler,
-                                "Generate a randomizer seed",
-                                {
-                                    { "seed|count", Ship::ArgumentType::NUMBER, true },
-                                    { "testing", Ship::ArgumentType::NUMBER, true },
-                                } });
 
     CMD_REGISTER("cosmetics", { CosmeticsHandler,
                                 "Change cosmetics.",
