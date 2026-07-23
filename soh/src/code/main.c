@@ -46,13 +46,15 @@ void Main_LogSystemHeap(void) {
 
 #ifdef _WIN32
 int SDL_main(int argc, char* argv[]) {
-    AllocConsole();
-    (void)freopen("CONIN$", "r", stdin);
-    (void)freopen("CONOUT$", "w", stdout);
-    (void)freopen("CONOUT$", "w", stderr);
+    if (GetEnvironmentVariableA("OOTMM_PARENT_HWND", NULL, 0) == 0) {
+        AllocConsole();
+        (void)freopen("CONIN$", "r", stdin);
+        (void)freopen("CONOUT$", "w", stdout);
+        (void)freopen("CONOUT$", "w", stderr);
 #ifndef _DEBUG
-    ShowWindow(GetConsoleWindow(), SW_HIDE);
+        ShowWindow(GetConsoleWindow(), SW_HIDE);
 #endif
+    }
     // Allow non-ascii characters for Windows
     setlocale(LC_ALL, ".UTF8");
 
