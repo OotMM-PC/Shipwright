@@ -10,6 +10,7 @@
 #include "assets/objects/gameplay_keep/gameplay_keep.h"
 #include <soh/Enhancements/bootcommands.h>
 #include <soh/GameVersions.h>
+#include <soh/OotmmSession.h>
 #include <soh/SaveManager.h>
 #include "soh/ResourceManagerHelpers.h"
 #include "soh/Enhancements/game-interactor/GameInteractor_Hooks.h"
@@ -170,4 +171,5 @@ void Title_Init(GameState* thisx) {
     this->visibleDuration = 0x3C;
 
     GameInteractor_ExecuteOnZTitleInit(this);
+    OotmmSession_TryBootDirectly(&this->state);
 }

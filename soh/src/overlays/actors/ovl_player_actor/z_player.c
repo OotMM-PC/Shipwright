@@ -29,6 +29,7 @@
 #include "soh/Enhancements/game-interactor/GameInteractor_Hooks.h"
 #include "soh/frame_interpolation.h"
 #include "soh/OTRGlobals.h"
+#include "soh/OotmmSession.h"
 #include "soh/ResourceManagerHelpers.h"
 
 #include <string.h>
@@ -5143,6 +5144,7 @@ s32 Player_HandleExitsAndVoids(PlayState* play, Player* this, CollisionPoly* pol
 
                 if (play->nextEntranceIndex == ENTR_RETURN_GROTTO) {
                     gSaveContext.respawnFlag = 2;
+                    OotmmSession_PrepareGrottoReturn();
                     play->nextEntranceIndex = gSaveContext.respawn[RESPAWN_MODE_RETURN].entranceIndex;
                     play->transitionType = TRANS_TYPE_FADE_WHITE;
                     gSaveContext.nextTransitionType = TRANS_TYPE_FADE_WHITE;
@@ -5167,6 +5169,7 @@ s32 Player_HandleExitsAndVoids(PlayState* play, Player* this, CollisionPoly* pol
                     gSaveContext.retainWeatherMode = 1;
                     Scene_SetTransitionForNextEntrance(play);
                 }
+                OotmmSession_NotePlayerExitTransition();
                 play->transitionTrigger = TRANS_TRIGGER_START;
             }
 
