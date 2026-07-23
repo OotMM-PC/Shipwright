@@ -308,6 +308,42 @@ void SpriteDraw(FileChooseContext* this, Sprite* sprite, int left, int top, int 
 
 static s16 sLastFileChooseButtonIndex;
 
+static void FileChoose_BeginNameEntry(FileChooseContext* this) {
+    static u8 emptyName[] = { 0x3E, 0x3E, 0x3E, 0x3E, 0x3E, 0x3E, 0x3E, 0x3E };
+    static u8 emptyNameNES[] = { 0xDF, 0xDF, 0xDF, 0xDF, 0xDF, 0xDF, 0xDF, 0xDF };
+    static u8 linkName[] = { 0x15, 0x2C, 0x31, 0x2E, 0x3E, 0x3E, 0x3E, 0x3E };
+    static u8 linkNameNES[] = { 0xB6, 0xCD, 0xD2, 0xCF, 0xDF, 0xDF, 0xDF, 0xDF };
+    static u8 linkNameJP[] = { 0x81, 0x87, 0x61, 0xDF, 0xDF, 0xDF, 0xDF, 0xDF };
+    void* defaultName;
+
+    this->configMode = CM_ROTATE_TO_NAME_ENTRY;
+    this->logoAlpha = 0;
+    this->kbdButton = FS_KBD_BTN_NONE;
+    this->charPage = FS_CHAR_PAGE_ENG;
+    this->kbdX = 0;
+    this->kbdY = 0;
+    this->charIndex = 0;
+    this->charBgAlpha = 0;
+    this->newFileNameCharCount = CVarGetInteger(CVAR_ENHANCEMENT("LinkDefaultName"), 0) ? 4 : 0;
+    this->nameEntryBoxPosX = 120;
+    this->nameEntryBoxAlpha = 0;
+
+    if (ResourceMgr_GetGameRegion(0) == GAME_REGION_PAL && gSaveContext.language != LANGUAGE_JPN) {
+        defaultName = CVarGetInteger(CVAR_ENHANCEMENT("LinkDefaultName"), 0) ? &linkName : &emptyName;
+    } else if (gSaveContext.language == LANGUAGE_JPN) {
+        if (CVarGetInteger(CVAR_ENHANCEMENT("LinkDefaultName"), 0) != 0) {
+            defaultName = &linkNameJP;
+            this->newFileNameCharCount = 3;
+        } else {
+            defaultName = &emptyNameNES;
+        }
+        this->charPage = FS_CHAR_PAGE_HIRA;
+    } else {
+        defaultName = CVarGetInteger(CVAR_ENHANCEMENT("LinkDefaultName"), 0) ? &linkNameNES : &emptyNameNES;
+    }
+    memcpy(Save_GetSaveMetaInfo(this->buttonIndex)->playerName, defaultName, 8);
+}
+
 /**
  * Update the cursor and wait for the player to select a button to change menus accordingly.
  * If an empty file is selected, enter the name entry config mode.
@@ -326,9 +362,10 @@ void FileChoose_UpdateMainMenu(GameState* thisx) {
             if (!Save_GetSaveMetaInfo(this->buttonIndex)->valid) {
                 Audio_PlaySoundGeneral(NA_SE_SY_FSEL_DECIDE_L, &gSfxDefaultPos, 4, &gSfxDefaultFreqAndVolScale,
                                        &gSfxDefaultFreqAndVolScale, &gSfxDefaultReverb);
+                this->questType[this->buttonIndex] = MIN_QUEST;
+                gSaveContext.ship.quest.id = this->questType[this->buttonIndex];
                 this->prevConfigMode = this->configMode;
-                this->configMode = CM_ROTATE_TO_QUEST_MENU;
-                this->logoAlpha = 0;
+                FileChoose_BeginNameEntry(this);
             } else if (!FileChoose_IsSaveCompatible(Save_GetSaveMetaInfo(this->buttonIndex))) {
                 Audio_PlaySoundGeneral(NA_SE_SY_FSEL_ERROR, &gSfxDefaultPos, 4, &gSfxDefaultFreqAndVolScale,
                                        &gSfxDefaultFreqAndVolScale, &gSfxDefaultReverb);
@@ -508,17 +545,11 @@ void FileChoose_StartBossRushMenu(GameState* thisx) {
 }
 
 void FileChoose_UpdateQuestMenu(GameState* thisx) {
-    static u8 emptyName[] = { 0x3E, 0x3E, 0x3E, 0x3E, 0x3E, 0x3E, 0x3E, 0x3E };
-    static u8 emptyNameNES[] = { 0xDF, 0xDF, 0xDF, 0xDF, 0xDF, 0xDF, 0xDF, 0xDF };
-    static u8 linkName[] = { 0x15, 0x2C, 0x31, 0x2E, 0x3E, 0x3E, 0x3E, 0x3E };
-    static u8 linkNameNES[] = { 0xB6, 0xCD, 0xD2, 0xCF, 0xDF, 0xDF, 0xDF, 0xDF };
-    static u8 linkNameJP[] = { 0x81, 0x87, 0x61, 0xDF, 0xDF, 0xDF, 0xDF, 0xDF };
     FileChoose_UpdateStickDirectionPromptAnim(thisx);
     FileChooseContext* this = (FileChooseContext*)thisx;
     Input* input = &this->state.input[0];
     s8 i = 0;
     bool dpad = CVarGetInteger(CVAR_SETTING("DpadInText"), 0);
-    void* defaultName;
 
     if (ABS(this->stickRelX) > 30 || (dpad && CHECK_BTN_ANY(input->press.button, BTN_DLEFT | BTN_DRIGHT))) {
         if (this->stickRelX > 30 || (dpad && CHECK_BTN_ANY(input->press.button, BTN_DRIGHT))) {
@@ -562,32 +593,7 @@ void FileChoose_UpdateQuestMenu(GameState* thisx) {
                                    &gSfxDefaultFreqAndVolScale, &gSfxDefaultReverb);
             osSyncPrintf("Selected Dungeon Quest: %d\n", IS_MASTER_QUEST);
             this->prevConfigMode = this->configMode;
-            this->configMode = CM_ROTATE_TO_NAME_ENTRY;
-            this->logoAlpha = 0;
-            this->kbdButton = FS_KBD_BTN_NONE;
-            this->charPage = FS_CHAR_PAGE_ENG;
-            this->kbdX = 0;
-            this->kbdY = 0;
-            this->charIndex = 0;
-            this->charBgAlpha = 0;
-            this->newFileNameCharCount = CVarGetInteger(CVAR_ENHANCEMENT("LinkDefaultName"), 0) ? 4 : 0;
-            this->nameEntryBoxPosX = 120;
-            this->nameEntryBoxAlpha = 0;
-            if (ResourceMgr_GetGameRegion(0) == GAME_REGION_PAL && gSaveContext.language != LANGUAGE_JPN) {
-                defaultName = CVarGetInteger(CVAR_ENHANCEMENT("LinkDefaultName"), 0) ? &linkName : &emptyName;
-            } else if (gSaveContext.language == LANGUAGE_JPN) { // Japanese
-                if (CVarGetInteger(CVAR_ENHANCEMENT("LinkDefaultName"), 0) != 0) {
-                    // Set player name to "リンク" ("Link" in Katakana, 3 characters long) when playing in Japanese.
-                    defaultName = &linkNameJP;
-                    this->newFileNameCharCount = 3;
-                } else {
-                    defaultName = &emptyNameNES;
-                }
-                this->charPage = FS_CHAR_PAGE_HIRA; // Default to Hiragana Keyboard
-            } else {                                // GAME_REGION_NTSC
-                defaultName = CVarGetInteger(CVAR_ENHANCEMENT("LinkDefaultName"), 0) ? &linkNameNES : &emptyNameNES;
-            }
-            memcpy(Save_GetSaveMetaInfo(this->buttonIndex)->playerName, defaultName, 8);
+            FileChoose_BeginNameEntry(this);
             return;
         }
     }
@@ -631,8 +637,8 @@ void FileChoose_RotateToNameEntry(GameState* thisx) {
 
     this->windowRot += VREG(16);
 
-    if (this->windowRot >= 628.0f) {
-        this->windowRot = 628.0f;
+    if (this->windowRot >= 314.0f) {
+        this->windowRot = 314.0f;
         this->configMode = CM_START_NAME_ENTRY;
     }
 }
@@ -653,24 +659,16 @@ void FileChoose_RotateToOptions(GameState* thisx) {
 }
 
 /**
- * Rotate the window from the options menu to the main menu.
+ * Rotate a submenu window back to the main menu.
  * Update function for `CM_NAME_ENTRY_TO_MAIN` and `CM_OPTIONS_TO_MAIN`
  */
 void FileChoose_RotateToMain(GameState* thisx) {
     FileChooseContext* this = (FileChooseContext*)thisx;
-    if (this->configMode == CM_QUEST_TO_MAIN || this->configMode == CM_OPTIONS_TO_MAIN) {
+    if (this->configMode == CM_QUEST_TO_MAIN || this->configMode == CM_NAME_ENTRY_TO_MAIN ||
+        this->configMode == CM_OPTIONS_TO_MAIN) {
         this->windowRot -= VREG(16);
 
         if (this->windowRot <= 0.0f) {
-            this->windowRot = 0.0f;
-            this->configMode = CM_MAIN_MENU;
-        }
-    }
-
-    if (this->configMode == CM_NAME_ENTRY_TO_MAIN && this->prevConfigMode == CM_MAIN_MENU) {
-        this->windowRot += VREG(16);
-
-        if (this->windowRot >= 942.0f) {
             this->windowRot = 0.0f;
             this->configMode = CM_MAIN_MENU;
         }
@@ -1416,7 +1414,6 @@ void FileChoose_DrawWindowContents(GameState* thisx) {
 
     switch (this->configMode) {
         case CM_QUEST_MENU:
-        case CM_ROTATE_TO_NAME_ENTRY:
         case CM_START_QUEST_MENU:
         case CM_QUEST_TO_MAIN:
         case CM_NAME_ENTRY_TO_QUEST_MENU:
@@ -1767,6 +1764,7 @@ void FileChoose_ConfigModeDraw(GameState* thisx) {
 
         if (this->windowRot != 0) {
             if ((this->configMode >= CM_MAIN_TO_OPTIONS && this->configMode <= CM_OPTIONS_TO_MAIN) ||
+                this->configMode == CM_ROTATE_TO_NAME_ENTRY || this->configMode == CM_NAME_ENTRY_TO_MAIN ||
                 this->configMode == CM_ROTATE_TO_QUEST_MENU || this->configMode == CM_QUEST_TO_MAIN) {
                 Matrix_RotateX(this->windowRot / 100.0f, MTXMODE_APPLY);
             } else {
@@ -1800,7 +1798,7 @@ void FileChoose_ConfigModeDraw(GameState* thisx) {
 
         Matrix_Translate(0.0f, 0.0f, -93.6f, MTXMODE_NEW);
         Matrix_Scale(0.78f, 0.78f, 0.78f, MTXMODE_APPLY);
-        Matrix_RotateX((this->windowRot - 628.0f) / 100.0f, MTXMODE_APPLY);
+        Matrix_RotateX((this->windowRot - 314.0f) / 100.0f, MTXMODE_APPLY);
         gSPMatrix(POLY_OPA_DISP++, MATRIX_NEWMTX(this->state.gfxCtx), G_MTX_NOPUSH | G_MTX_LOAD | G_MTX_MODELVIEW);
 
         gSPVertex(POLY_OPA_DISP++, &this->windowVtx[0], 32, 0);
@@ -1855,8 +1853,8 @@ void FileChoose_ConfigModeDraw(GameState* thisx) {
 
     // draw quest menu
     if (this->configMode == CM_QUEST_MENU || (this->configMode == CM_ROTATE_TO_QUEST_MENU) ||
-        this->configMode == CM_ROTATE_TO_NAME_ENTRY || this->configMode == CM_QUEST_TO_MAIN ||
-        this->configMode == CM_NAME_ENTRY_TO_QUEST_MENU || this->configMode == CM_ROTATE_TO_BOSS_RUSH_MENU) {
+        this->configMode == CM_QUEST_TO_MAIN || this->configMode == CM_NAME_ENTRY_TO_QUEST_MENU ||
+        this->configMode == CM_ROTATE_TO_BOSS_RUSH_MENU) {
         // window
         gDPPipeSync(POLY_OPA_DISP++);
         gDPSetCombineMode(POLY_OPA_DISP++, G_CC_MODULATEIA_PRIM, G_CC_MODULATEIA_PRIM);
