@@ -405,6 +405,28 @@ void OTRGlobals::RunExtract(int argc, char* argv[]) {
     bool generatedIsMQ = false;
     std::atomic<size_t> extractCount = 0, totalExtract = 0;
 
+    const bool ootmmSetupOnly = getenv("OOTMM_SETUP_ONLY") != nullptr;
+    const bool ootmmNeedMq = getenv("OOTMM_SETUP_NEED_MQ") != nullptr;
+    auto ootmmMissingMode = [&]() -> std::optional<RomSearchMode> {
+        const bool haveVanilla =
+            std::filesystem::exists(Ship::Context::LocateFileAcrossAppDirs("oot.o2r", appShortName));
+        const bool haveMq =
+            std::filesystem::exists(Ship::Context::LocateFileAcrossAppDirs("oot-mq.o2r", appShortName));
+        if (!haveVanilla) {
+            return (ootmmNeedMq && !haveMq) ? RomSearchMode::Both : RomSearchMode::Vanilla;
+        }
+        if (ootmmNeedMq && !haveMq) {
+            return RomSearchMode::MQ;
+        }
+        return std::nullopt;
+    };
+    auto ootmmMissingText = [](RomSearchMode mode) {
+        return mode == RomSearchMode::MQ
+                   ? "This seed uses Master Quest dungeons.\nSelect an Ocarina of Time Master Quest ROM to "
+                     "extract its assets."
+                   : "Select your Ocarina of Time ROM to extract the game's assets.";
+    };
+
     std::string installPath = Ship::Context::GetAppBundlePath();
     std::string dataPath = Ship::Context::GetAppDirectoryPath(appShortName);
     std::string file;
@@ -604,6 +626,17 @@ void OTRGlobals::RunExtract(int argc, char* argv[]) {
             case ES_EXTRACT: {
                 switch (promptStep) {
                     case PS_FILE_CHECK: {
+                        if (ootmmSetupOnly) {
+                            const std::optional<RomSearchMode> missing = ootmmMissingMode();
+                            if (missing.has_value()) {
+                                SohGui::RegisterPopup(
+                                    "OoTMM Setup", ootmmMissingText(*missing), "OK", "Cancel",
+                                    [&]() { promptStep = PS_FIRST; }, [&]() { exit(0); });
+                            } else {
+                                extractStep = ES_VERIFY;
+                            }
+                            continue;
+                        }
                         const bool ootO2RExists =
                             std::filesystem::exists(
                                 Ship::Context::LocateFileAcrossAppDirs("oot-mq.o2r", appShortName)) ||
@@ -636,7 +669,11 @@ void OTRGlobals::RunExtract(int argc, char* argv[]) {
                         continue;
                     }
                     case PS_FIRST: {
-                        if (!extract.ManuallySearchForRomMatchingType(RomSearchMode::Both)) {
+                        RomSearchMode searchMode = RomSearchMode::Both;
+                        if (ootmmSetupOnly) {
+                            searchMode = ootmmMissingMode().value_or(RomSearchMode::Both);
+                        }
+                        if (!extract.ManuallySearchForRomMatchingType(searchMode)) {
                             promptStep = PS_FILE_CHECK;
                             continue;
                         }
@@ -651,6 +688,31 @@ void OTRGlobals::RunExtract(int argc, char* argv[]) {
                         continue;
                     }
                     case PS_SECOND: {
+                        if (ootmmSetupOnly) {
+                            const std::optional<RomSearchMode> missing = ootmmMissingMode();
+                            if (!missing.has_value()) {
+                                extractStep = ES_VERIFY;
+                                continue;
+                            }
+                            SohGui::RegisterPopup(
+                                "OoTMM Setup", ootmmMissingText(*missing), "OK", "Cancel",
+                                [&]() {
+                                    const std::optional<RomSearchMode> mode = ootmmMissingMode();
+                                    if (mode.has_value() && extract.ManuallySearchForRomMatchingType(*mode)) {
+                                        extractionTask = threadPool->submit_task([&]() -> void {
+                                            extract.CallZapd(installPath,
+                                                             Ship::Context::GetAppDirectoryPath(appShortName),
+                                                             &extractCount, &totalExtract);
+                                            extractCount = 0;
+                                            totalExtract = 0;
+                                        });
+                                    } else {
+                                        extractStep = ES_VERIFY;
+                                    }
+                                },
+                                [&]() { extractStep = ES_VERIFY; });
+                            continue;
+                        }
                         SohGui::RegisterPopup(
                             "Extraction Complete", "ROM Extracted. Extract another?", "Yes", "No",
                             [&]() {
@@ -748,6 +810,10 @@ void OTRGlobals::RunExtract(int argc, char* argv[]) {
         gui->EndDraw();
         sohFast3dWindow->EndFrame();
         ImGui::PopStyleColor(2);
+    }
+
+    if (ootmmSetupOnly) {
+        _Exit(0);
     }
 
 #ifdef __SWITCH__
