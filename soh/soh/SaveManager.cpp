@@ -3,6 +3,7 @@
 #include "Enhancements/game-interactor/GameInteractor.h"
 #include "soh/util.h"
 #include "ResourceManagerHelpers.h"
+#include "OotmmSession.h"
 
 #include "z64.h"
 #include "cvar_prefixes.h"
@@ -22,6 +23,14 @@
 
 extern "C" SaveContext gSaveContext;
 using namespace std::string_literals;
+
+namespace {
+
+std::filesystem::path SaveDirectory() {
+    return Ship::Context::GetPathRelativeToAppDirectory(OotmmSession_GetSaveSubdirectory());
+}
+
+} // namespace
 
 void SaveManager::WriteSaveFile(const std::filesystem::path& savePath, const uintptr_t addr, void* dramAddr,
                                 const size_t size) {
@@ -46,13 +55,11 @@ void SaveManager::ReadSaveFile(std::filesystem::path savePath, uintptr_t addr, v
 }
 
 std::filesystem::path SaveManager::GetFileName(int fileNum) {
-    const std::filesystem::path sSavePath(Ship::Context::GetPathRelativeToAppDirectory("Save"));
-    return sSavePath / ("file" + std::to_string(fileNum + 1) + ".sav");
+    return SaveDirectory() / ("file" + std::to_string(fileNum + 1) + ".sav");
 }
 
 std::filesystem::path SaveManager::GetFileTempName(int fileNum) {
-    const std::filesystem::path sSavePath(Ship::Context::GetPathRelativeToAppDirectory("Save"));
-    return sSavePath / ("file" + std::to_string(fileNum + 1) + ".temp");
+    return SaveDirectory() / ("file" + std::to_string(fileNum + 1) + ".temp");
 }
 
 SaveManager::SaveManager() {
@@ -100,14 +107,14 @@ SaveManager::SaveManager() {
 void SaveManager::Init() {
     // Wait on saves that snuck through the Wait in OnExitGame
     ThreadPoolWait();
-    const std::filesystem::path sSavePath(Ship::Context::GetPathRelativeToAppDirectory("Save"));
+    const std::filesystem::path sSavePath = SaveDirectory();
     const std::filesystem::path sGlobalPath = sSavePath / std::string("global.sav");
     auto sOldSavePath = Ship::Context::GetPathRelativeToAppDirectory("oot_save.sav");
     auto sOldBackupSavePath = Ship::Context::GetPathRelativeToAppDirectory("oot_save.bak");
 
     // If the save directory does not exist, create it
     if (!std::filesystem::exists(sSavePath)) {
-        std::filesystem::create_directory(sSavePath);
+        std::filesystem::create_directories(sSavePath);
     }
 
     // If there is a lingering unversioned save, convert it
@@ -826,7 +833,7 @@ void SaveManager::SaveGlobal() {
     globalBlock["zTargetSetting"] = gSaveContext.zTargetSetting;
     globalBlock["language"] = gSaveContext.language;
 
-    const std::filesystem::path sSavePath(Ship::Context::GetPathRelativeToAppDirectory("Save"));
+    const std::filesystem::path sSavePath = SaveDirectory();
     const std::filesystem::path sGlobalPath = sSavePath / std::string("global.sav");
 
     std::ofstream output(sGlobalPath);
@@ -890,9 +897,10 @@ void SaveManager::LoadFile(int fileNum) {
         GameInteractor::Instance->ExecuteHooks<GameInteractor::OnLoadFile>(fileNum);
     } catch (const std::exception& e) {
         input.close();
-        std::string newFileName =
-            Ship::Context::GetPathRelativeToAppDirectory("Save") +
-            ("/file" + std::to_string(fileNum + 1) + "-" + std::to_string(GetUnixTimestamp()) + ".bak");
+        const std::string newFileName =
+            (SaveDirectory() / ("file" + std::to_string(fileNum + 1) + "-" +
+                                std::to_string(GetUnixTimestamp()) + ".bak"))
+                .string();
 #if defined(__SWITCH__) || defined(__WIIU__)
         copy_file(fileName.c_str(), newFileName.c_str());
         std::filesystem::remove(fileName);

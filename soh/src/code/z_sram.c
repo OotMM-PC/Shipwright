@@ -7,6 +7,7 @@
 #include "soh/OTRGlobals.h"
 #include "soh/SaveManager.h"
 #include "soh/ResourceManagerHelpers.h"
+#include "soh/OotmmSession.h"
 
 #define NUM_DUNGEONS 8
 #define NUM_COWS 10
@@ -185,7 +186,8 @@ void Sram_OpenSave() {
     }
 
     // if zelda cutscene has been watched but lullaby was not obtained, restore cutscene and take away letter
-    if ((Flags_GetEventChkInf(EVENTCHKINF_OBTAINED_ZELDAS_LETTER)) && !CHECK_QUEST_ITEM(QUEST_SONG_LULLABY)) {
+    if ((Flags_GetEventChkInf(EVENTCHKINF_OBTAINED_ZELDAS_LETTER)) && !CHECK_QUEST_ITEM(QUEST_SONG_LULLABY) &&
+        !OotmmSession_IsActive()) {
         i = gSaveContext.eventChkInf[4] & ~1;
         gSaveContext.eventChkInf[4] = i;
 
@@ -198,7 +200,8 @@ void Sram_OpenSave() {
         }
     }
 
-    if (LINK_AGE_IN_YEARS == YEARS_ADULT && !CHECK_OWNED_EQUIP(EQUIP_TYPE_SWORD, EQUIP_INV_SWORD_MASTER)) {
+    if (LINK_AGE_IN_YEARS == YEARS_ADULT && !CHECK_OWNED_EQUIP(EQUIP_TYPE_SWORD, EQUIP_INV_SWORD_MASTER) &&
+        !OotmmSession_IsActive()) {
         gSaveContext.inventory.equipment |= OWNED_EQUIP_FLAG(EQUIP_TYPE_SWORD, EQUIP_INV_SWORD_MASTER);
         gSaveContext.equips.buttonItems[0] = ITEM_SWORD_MASTER;
         gSaveContext.equips.equipment &= ~(0xF << (EQUIP_TYPE_SWORD * 4));
@@ -228,7 +231,8 @@ void Sram_InitSave(FileChooseContext* fileChooseCtx) {
     u16* ptr;
     u16 checksum;
 
-    if (fileChooseCtx->buttonIndex != 0 || !CVarGetInteger(CVAR_DEVELOPER_TOOLS("DebugEnabled"), 0)) {
+    if (OotmmSession_IsActive() || fileChooseCtx->buttonIndex != 0 ||
+        !CVarGetInteger(CVAR_DEVELOPER_TOOLS("DebugEnabled"), 0)) {
         Sram_InitNewSave();
     } else {
         Sram_InitDebugSave();
@@ -258,6 +262,8 @@ void Sram_InitSave(FileChooseContext* fileChooseCtx) {
     u8 currentQuest = fileChooseCtx->questType[fileChooseCtx->buttonIndex];
 
     gSaveContext.ship.quest.id = currentQuest;
+
+    OotmmSession_InitializeNewSave();
 
     Save_SaveFile();
     SaveManager_ThreadPoolWait();
