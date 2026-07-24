@@ -4,6 +4,7 @@
 #include "soh/Enhancements/cosmetics/cosmeticsTypes.h"
 #include "soh/Enhancements/game-interactor/GameInteractor.h"
 #include "soh/Enhancements/game-interactor/GameInteractor_Hooks.h"
+#include "soh/OotmmOcarinaButtons.h"
 
 extern const char* digitTextures[];
 
@@ -477,7 +478,8 @@ void KaleidoScope_DrawQuestStatus(PlayState* play, GraphicsContext* gfxCtx) {
         } else if (CVarGetInteger(CVAR_COSMETIC("DefaultColorScheme"), COLORSCHEME_N64) == COLORSCHEME_GAMECUBE) {
             aButtonColor = (Color_RGB8){ 80, 255, 150 };
         }
-        if (!GameInteractor_Should(VB_HAVE_OCARINA_NOTE_D4, true)) {
+        if (!GameInteractor_Should(VB_HAVE_OCARINA_NOTE_D4, true) ||
+            !Ootmm_IsOcarinaButtonAvailable(OCARINA_NOTE_D4)) {
             aButtonColor = (Color_RGB8){ 191, 191, 191 };
         }
 
@@ -489,7 +491,8 @@ void KaleidoScope_DrawQuestStatus(PlayState* play, GraphicsContext* gfxCtx) {
         if (CVarGetInteger(CVAR_COSMETIC("HUD.CUpButton.Changed"), 0)) {
             cUpButtonColor = CVarGetColor24(CVAR_COSMETIC("HUD.CUpButton.Value"), cUpButtonColor);
         }
-        if (!GameInteractor_Should(VB_HAVE_OCARINA_NOTE_D5, true)) {
+        if (!GameInteractor_Should(VB_HAVE_OCARINA_NOTE_D5, true) ||
+            !Ootmm_IsOcarinaButtonAvailable(OCARINA_NOTE_D5)) {
             cUpButtonColor = (Color_RGB8){ 191, 191, 191 };
         }
 
@@ -497,7 +500,8 @@ void KaleidoScope_DrawQuestStatus(PlayState* play, GraphicsContext* gfxCtx) {
         if (CVarGetInteger(CVAR_COSMETIC("HUD.CDownButton.Changed"), 0)) {
             cDownButtonColor = CVarGetColor24(CVAR_COSMETIC("HUD.CDownButton.Value"), cDownButtonColor);
         }
-        if (!GameInteractor_Should(VB_HAVE_OCARINA_NOTE_F4, true)) {
+        if (!GameInteractor_Should(VB_HAVE_OCARINA_NOTE_F4, true) ||
+            !Ootmm_IsOcarinaButtonAvailable(OCARINA_NOTE_F4)) {
             cDownButtonColor = (Color_RGB8){ 191, 191, 191 };
         }
 
@@ -505,7 +509,8 @@ void KaleidoScope_DrawQuestStatus(PlayState* play, GraphicsContext* gfxCtx) {
         if (CVarGetInteger(CVAR_COSMETIC("HUD.CLeftButton.Changed"), 0)) {
             cLeftButtonColor = CVarGetColor24(CVAR_COSMETIC("HUD.CLeftButton.Value"), cLeftButtonColor);
         }
-        if (!GameInteractor_Should(VB_HAVE_OCARINA_NOTE_B4, true)) {
+        if (!GameInteractor_Should(VB_HAVE_OCARINA_NOTE_B4, true) ||
+            !Ootmm_IsOcarinaButtonAvailable(OCARINA_NOTE_B4)) {
             cLeftButtonColor = (Color_RGB8){ 191, 191, 191 };
         }
 
@@ -513,7 +518,8 @@ void KaleidoScope_DrawQuestStatus(PlayState* play, GraphicsContext* gfxCtx) {
         if (CVarGetInteger(CVAR_COSMETIC("HUD.CRightButton.Changed"), 0)) {
             cRightButtonColor = CVarGetColor24(CVAR_COSMETIC("HUD.CRightButton.Value"), cRightButtonColor);
         }
-        if (!GameInteractor_Should(VB_HAVE_OCARINA_NOTE_A4, true)) {
+        if (!GameInteractor_Should(VB_HAVE_OCARINA_NOTE_A4, true) ||
+            !Ootmm_IsOcarinaButtonAvailable(OCARINA_NOTE_A4)) {
             cRightButtonColor = (Color_RGB8){ 191, 191, 191 };
         }
 

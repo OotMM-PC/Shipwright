@@ -5,6 +5,7 @@
 #include "soh/Enhancements/audio/AudioEditor.h"
 #include "soh/Enhancements/game-interactor/GameInteractor.h"
 #include "soh/Enhancements/game-interactor/GameInteractor_Hooks.h"
+#include "soh/OotmmOcarinaButtons.h"
 
 // TODO: can these macros be shared between files? code_800F9280 seems to use
 // versions without any casts...
@@ -1284,6 +1285,9 @@ void Audio_OcaUpdateBtnMap(bool customControls) {
         sOcarinaA4BtnMap |= BTN_CUSTOM_RSTICK_RIGHT;
         sOcarinaF4BtnMap |= BTN_CUSTOM_RSTICK_DOWN;
     }
+
+    Ootmm_GateOcarinaButtonMaps(&sOcarinaD4BtnMap, &sOcarinaD5BtnMap, &sOcarinaB4BtnMap,
+                                &sOcarinaA4BtnMap, &sOcarinaF4BtnMap);
 
     sOcarinaAllowedBtnMask =
         (sOcarinaD5BtnMap | sOcarinaB4BtnMap | sOcarinaA4BtnMap | sOcarinaF4BtnMap | sOcarinaD4BtnMap);
