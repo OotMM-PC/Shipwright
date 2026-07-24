@@ -21,6 +21,7 @@
 #include <assert.h>
 #include "z64save.h"
 #include "soh/SaveManager.h"
+#include "soh/OotmmSession.h"
 #include "soh/OTRGlobals.h"
 #include "soh/ResourceManagerHelpers.h"
 #include "soh/ShipUtils.h"
@@ -2135,6 +2136,10 @@ void FileChoose_LoadGame(GameState* thisx) {
     u16 swordEquipValue;
     s32 pad;
 
+    if (OotmmSession_TryStartLoadSpawnHandoff()) {
+        return;
+    }
+
     Audio_PlaySoundGeneral(NA_SE_SY_FSEL_DECIDE_L, &gSfxDefaultPos, 4, &gSfxDefaultFreqAndVolScale,
                            &gSfxDefaultFreqAndVolScale, &gSfxDefaultReverb);
     gSaveContext.fileNum = this->buttonIndex;
@@ -2147,12 +2152,18 @@ void FileChoose_LoadGame(GameState* thisx) {
         } else {
             Sram_OpenSave();
         }
+        if (OotmmSession_TryStartLoadSpawnHandoff()) {
+            return;
+        }
         SET_NEXT_GAMESTATE(&this->state, Select_Init, SelectContext);
     } else {
         if (this->buttonIndex == 0xFE) {
             Sram_InitBossRushSave();
         } else {
             Sram_OpenSave();
+        }
+        if (OotmmSession_TryStartLoadSpawnHandoff()) {
+            return;
         }
         SET_NEXT_GAMESTATE(&this->state, Play_Init, PlayState);
     }

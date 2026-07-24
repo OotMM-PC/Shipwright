@@ -128,6 +128,11 @@ void Sram_OpenSave() {
             break;
 
         default:
+            if (OotmmSession_IsActive()) {
+                OotmmSession_FixLoadSpawn();
+                break;
+            }
+
             // Use the saved entrance value with remember save location, except when in grottos/fairy fountains
             if (CVarGetInteger(CVAR_ENHANCEMENT("RememberSaveLocation"), 0) &&
                 gSaveContext.savedSceneNum != SCENE_FAIRYS_FOUNTAIN && gSaveContext.savedSceneNum != SCENE_GROTTOS) {

@@ -13,6 +13,8 @@ extern "C" {
 int32_t OotmmSession_IsActive(void);
 int32_t OotmmSession_TryBootDirectly(void* gameState);
 void OotmmSession_InitializeNewSave(void);
+void OotmmSession_FixLoadSpawn(void);
+int32_t OotmmSession_TryStartLoadSpawnHandoff(void);
 void OotmmSession_NotePlayerExitTransition(void);
 void OotmmSession_PrepareGrottoReturn(void);
 
