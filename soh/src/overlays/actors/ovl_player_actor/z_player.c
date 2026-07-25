@@ -7319,7 +7319,8 @@ s32 Player_ActionHandler_2(Player* this, PlayState* play) {
                 // Show the cutscene for picking up an item. In vanilla, this happens in bombchu bowling alley (because
                 // getting bombchus need to show the cutscene) and whenever the player doesn't have the item yet.
                 uint8_t showItemCutscene = play->sceneNum == SCENE_BOMBCHU_BOWLING_ALLEY ||
-                                           Item_CheckObtainability(giEntry.itemId) == ITEM_NONE;
+                                           Item_CheckObtainability(giEntry.itemId) == ITEM_NONE ||
+                                           giEntry.getItemFrom == ITEM_FROM_OOTMM_PRESENTATION;
 
                 // Only skip cutscenes for drops when they're items/consumables from bushes/rocks/enemies.
                 uint8_t isDropToSkip =
@@ -14109,8 +14110,10 @@ s32 func_8084DFF4(PlayState* play, Player* this) {
             gSaveContext.bgsFlag = true;
             gSaveContext.swordHealth = 8;
         }
-        Item_Give(play, giEntry.itemId);
-        Player_SetPendingFlag(this, play);
+        if (giEntry.getItemFrom != ITEM_FROM_OOTMM_PRESENTATION) {
+            Item_Give(play, giEntry.itemId);
+            Player_SetPendingFlag(this, play);
+        }
 
         // Use this if we do have a getItemEntry
         if (giEntry.modIndex == MOD_NONE) {

@@ -19,6 +19,7 @@ typedef enum GetItemFrom {
     ITEM_FROM_SKULLTULA,
     ITEM_FROM_FREESTANDING,
     ITEM_FROM_CHEST,
+    ITEM_FROM_OOTMM_PRESENTATION,
 } GetItemFrom;
 
 typedef enum GetItemCategory {

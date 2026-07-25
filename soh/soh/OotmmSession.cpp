@@ -1,4 +1,6 @@
 #include "OotmmSession.h"
+#include "OotmmItemPresentation.h"
+#include "OotmmItemProbe.h"
 
 #include "Enhancements/enhancementTypes.h"
 #include "Enhancements/game-interactor/GameInteractor.h"
@@ -722,6 +724,8 @@ void BootIntoGame(GameState* gameState) {
 void OotmmSession_Init() {
     if (sGameState.LoadFromEnvironment()) {
         ApplyEnhancements();
+        OotmmItemPresentation_Init();
+        OotmmItemProbe_Init();
         GameInteractor::Instance->RegisterGameHook<GameInteractor::OnLoadGame>(
             [](int32_t) {
                 RestoreLoadSpawn();

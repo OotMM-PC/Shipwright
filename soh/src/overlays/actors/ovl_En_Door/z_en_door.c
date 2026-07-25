@@ -12,6 +12,7 @@
 #include "objects/object_haka_door/object_haka_door.h"
 #include "soh/ResourceManagerHelpers.h"
 #include "soh/Enhancements/game-interactor/GameInteractor_Hooks.h"
+#include "soh/OotmmRustyKeys.h"
 
 #define FLAGS ACTOR_FLAG_UPDATE_CULLING_DISABLED
 
@@ -211,7 +212,7 @@ void EnDoor_Idle(EnDoor* this, PlayState* play) {
             Audio_PlayActorSound2(&this->actor, NA_SE_EV_CHAIN_KEY_UNLOCK);
             GameInteractor_ExecuteOnDungeonKeyUsedHooks(gSaveContext.mapIndex);
         }
-    } else if (!Player_InCsMode(play)) {
+    } else if (!Player_InCsMode(play) && !OotmmRustyDoorLocked(play, &this->actor)) {
         if (fabsf(playerPosRelToDoor.y) < 20.0f && fabsf(playerPosRelToDoor.x) < 20.0f &&
             fabsf(playerPosRelToDoor.z) < 50.0f) {
             phi_v0 = player->actor.shape.rot.y - this->actor.shape.rot.y;
@@ -353,7 +354,15 @@ void EnDoor_Draw(Actor* thisx, PlayState* play) {
                 gSPDisplayList(POLY_OPA_DISP++, gDoorLeftDL);
             }
         }
-        if (this->lockTimer != 0) {
+        if (OotmmRustyDoorLocked(play, &this->actor)) {
+            s32 yaw = Math_Vec3f_Yaw(&play->view.eye, &this->actor.world.pos);
+            if (ABS((s16)(this->actor.shape.rot.y - yaw)) < 0x4000) {
+                Matrix_RotateY(M_PI, MTXMODE_APPLY);
+            }
+            gDPSetPrimColor(POLY_OPA_DISP++, 0, 0, 255, 140, 64, 255);
+            gDPSetEnvColor(POLY_OPA_DISP++, 140, 55, 15, 255);
+            Actor_DrawDoorLock(play, 10, DOORLOCK_NORMAL);
+        } else if (this->lockTimer != 0) {
             if (CVarGetInteger(CVAR_ENHANCEMENT("ShowDoorLocksOnBothSides"), 0)) {
                 Matrix_Push();
             }

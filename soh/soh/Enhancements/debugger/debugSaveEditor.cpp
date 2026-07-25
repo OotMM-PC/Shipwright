@@ -6,7 +6,9 @@
 #include "soh/SohGui/SohGui.hpp"
 #include "soh/SaveManager.h"
 #include "soh/OotmmIpc.h"
+#include "soh/OotmmItemProbe.h"
 #include "soh/OotmmSession.h"
+#include "libultraship/bridge/OotmmItemRender.h"
 
 #include <spdlog/fmt/fmt.h>
 #include <algorithm>
@@ -1841,13 +1843,85 @@ const char* OotmmItemGameLabel(const std::string& itemId) {
 
 void DrawOotmmItemsTab() {
     static ImGuiTextFilter filter;
+    static std::string selectedPresentation;
+    static int recipientPlayer = 0;
+    const auto& state = OotmmSession_GetState();
     const auto& catalog = OotmmSession_GetState().GetCustomItemCatalog();
     const auto& inventory = OotmmIpc_GetInventory();
     const bool connected = OotmmIpc_IsConnected();
+    const int playerCount = static_cast<int>(std::max(state.GetPlayerCount(), 1u));
+    if (recipientPlayer == 0) {
+        recipientPlayer = static_cast<int>(state.GetPlayerId());
+    }
+    recipientPlayer = std::clamp(recipientPlayer, 1, playerCount);
 
     ImGui::Text("Launcher: %s", connected ? "Connected" : "Disconnected");
     ImGui::SameLine();
     ImGui::TextDisabled("Revision %llu", static_cast<unsigned long long>(inventory.GetRevision()));
+
+    std::vector<const Ship::OotmmSeedItem*> presentationItems;
+    for (const auto& item : state.GetSeedItems()) {
+        presentationItems.push_back(&item);
+    }
+    static const std::vector<Ship::OotmmSeedItem> debugOnlyItems = [] {
+        std::vector<Ship::OotmmSeedItem> items;
+        for (const auto& item : Ship::OotmmItemRenderCatalog::DebugOnlyItems()) {
+            items.push_back({ std::string(item.Id), std::string(item.Name), std::string(item.Game) });
+        }
+        return items;
+    }();
+    for (const auto& item : debugOnlyItems) {
+        if (std::none_of(presentationItems.begin(), presentationItems.end(),
+                         [&](const auto* existing) { return existing->Id == item.Id; })) {
+            presentationItems.push_back(&item);
+        }
+    }
+    std::sort(presentationItems.begin(), presentationItems.end(), [](const auto* left, const auto* right) {
+        return left->Name < right->Name;
+    });
+    if (presentationItems.empty()) {
+        selectedPresentation.clear();
+    } else if (
+        std::none_of(presentationItems.begin(), presentationItems.end(), [&](const auto* item) {
+            return item->Id == selectedPresentation;
+        })) {
+        selectedPresentation = presentationItems.front()->Id;
+    }
+
+    const auto selected = std::find_if(presentationItems.begin(), presentationItems.end(), [&](const auto* item) {
+        return item->Id == selectedPresentation;
+    });
+    const char* preview = selected != presentationItems.end() ? (*selected)->Name.c_str() : "No items";
+    ImGui::SetNextItemWidth(ImGui::GetFontSize() * 22.0f);
+    if (ImGui::BeginCombo("Fake item prompt", preview)) {
+        for (const auto* item : presentationItems) {
+            const bool isSelected = item->Id == selectedPresentation;
+            if (ImGui::Selectable((item->Name + "##" + item->Id).c_str(), isSelected)) {
+                selectedPresentation = item->Id;
+            }
+            if (isSelected) {
+                ImGui::SetItemDefaultFocus();
+            }
+        }
+        ImGui::EndCombo();
+    }
+    ImGui::SameLine();
+    ImGui::SetNextItemWidth(ImGui::GetFontSize() * 5.0f);
+    ImGui::InputInt("Player", &recipientPlayer);
+    recipientPlayer = std::clamp(recipientPlayer, 1, playerCount);
+    ImGui::SameLine();
+    ImGui::BeginDisabled(!connected || selectedPresentation.empty());
+    if (ImGui::Button("Send")) {
+        OotmmIpc_RequestDebugItemPresentation(selectedPresentation, static_cast<uint32_t>(recipientPlayer));
+    }
+    ImGui::EndDisabled();
+    ImGui::SameLine();
+    ImGui::BeginDisabled(OotmmItemProbe_Running());
+    if (ImGui::Button("Probe all models")) {
+        OotmmItemProbe_Start();
+    }
+    ImGui::EndDisabled();
+
     filter.Draw("Filter", ImGui::GetFontSize() * 18.0f);
 
     std::map<std::string, std::vector<const Ship::OotmmItemDefinition*>> categories;
