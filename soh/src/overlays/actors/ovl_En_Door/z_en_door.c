@@ -13,6 +13,7 @@
 #include "soh/ResourceManagerHelpers.h"
 #include "soh/Enhancements/game-interactor/GameInteractor_Hooks.h"
 #include "soh/OotmmRustyKeys.h"
+#include "soh/OotmmSmallKeyDoors.h"
 
 #define FLAGS ACTOR_FLAG_UPDATE_CULLING_DISABLED
 
@@ -166,7 +167,8 @@ void EnDoor_SetupType(EnDoor* this, PlayState* play) {
         }
         this->actor.world.rot.y = 0x0000;
         if (doorType == DOOR_LOCKED) {
-            if (GameInteractor_Should(VB_DOOR_BE_LOCKED, !Flags_GetSwitch(play, this->actor.params & 0x3F), this)) {
+            if (!OotmmSmallKeyDoorIsOpen(play, &this->actor) &&
+                GameInteractor_Should(VB_DOOR_BE_LOCKED, !Flags_GetSwitch(play, this->actor.params & 0x3F), this)) {
                 this->lockTimer = 10;
             }
         } else if (doorType == DOOR_AJAR) {

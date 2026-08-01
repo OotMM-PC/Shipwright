@@ -23,6 +23,12 @@
 #include <soh/Enhancements/custom-message/CustomMessageTypes.h>
 #include "soh/Enhancements/item-tables/ItemTableTypes.h"
 #include "soh/Enhancements/game-interactor/GameInteractor.h"
+#include "soh/OotmmCustomItems.h"
+#include "soh/OotmmCustomItemsPlayer.h"
+#include "soh/OotmmSongs.h"
+#include "soh/OotmmSongsPlayer.h"
+#include "soh/OotmmSpinUpgrade.h"
+#include "soh/Enhancements/audio/AudioCollection.h"
 #include <overlays/actors/ovl_En_Partner/z_en_partner.h>
 #include "soh/Enhancements/cosmetics/cosmeticsTypes.h"
 #include "soh/Enhancements/enhancementTypes.h"
@@ -252,6 +258,7 @@ void func_80853080(Player* this, PlayState* play);
 s32 Player_InflictDamage(PlayState* play, s32 damage);
 s32 Player_InflictDamageModified(PlayState* play, s32 damage, u8 modified);
 void Player_StartTalking(PlayState* play, Actor* actor);
+s32 Player_UpdateKamaroDance(PlayState* play, Player* this, Input* input);
 
 void Player_Action_80840450(Player* this, PlayState* play);
 void Player_Action_808407CC(Player* this, PlayState* play);
@@ -1304,6 +1311,11 @@ static s32 (*sItemActionUpdateFuncs[])(Player* this, PlayState* play) = {
     func_8083485C,                 // PLAYER_IA_MASK_GERUDO
     func_8083485C,                 // PLAYER_IA_MASK_TRUTH
     func_8083485C,                 // PLAYER_IA_LENS_OF_TRUTH
+    func_8083485C,                 // PLAYER_IA_MASK_OOTMM_BLAST
+    func_8083485C,                 // PLAYER_IA_MASK_OOTMM_STONE
+    func_8083485C,                 // PLAYER_IA_MASK_OOTMM_KAMARO
+    Player_UpperAction_Sword,      // PLAYER_IA_SWORD_OOTMM_GREAT_FAIRY
+    Player_UpperAction_CarryActor, // PLAYER_IA_OOTMM_POWDER_KEG
 };
 
 static void (*sItemActionInitFuncs[])(PlayState* play, Player* this) = {
@@ -1374,6 +1386,11 @@ static void (*sItemActionInitFuncs[])(PlayState* play, Player* this) = {
     Player_InitDefaultIA,        // PLAYER_IA_MASK_GERUDO
     Player_InitDefaultIA,        // PLAYER_IA_MASK_TRUTH
     Player_InitDefaultIA,        // PLAYER_IA_LENS_OF_TRUTH
+    Player_InitDefaultIA,        // PLAYER_IA_MASK_OOTMM_BLAST
+    Player_InitDefaultIA,        // PLAYER_IA_MASK_OOTMM_STONE
+    Player_InitDefaultIA,        // PLAYER_IA_MASK_OOTMM_KAMARO
+    Player_InitDefaultIA,        // PLAYER_IA_SWORD_OOTMM_GREAT_FAIRY
+    Player_InitExplosiveIA,      // PLAYER_IA_OOTMM_POWDER_KEG
 };
 
 typedef enum ItemChangeType {
@@ -1431,6 +1448,7 @@ static s8 sItemChangeTypes[PLAYER_ANIMTYPE_MAX][PLAYER_ANIMTYPE_MAX] = {
 static ExplosiveInfo sExplosiveInfos[] = {
     { ITEM_BOMB, ACTOR_EN_BOM },
     { ITEM_BOMBCHU, ACTOR_EN_BOM_CHU },
+    { ITEM_OOTMM_POWDER_KEG, ACTOR_EN_BOM },
 };
 
 static struct_80854190 D_80854190[PLAYER_MWA_MAX] = {
@@ -2243,6 +2261,11 @@ void Player_InitItemActionWithAnim(PlayState* play, Player* this, s8 itemAction)
 }
 
 s8 Player_ItemToItemAction(s32 item) {
+    s32 customAction = OotmmCustomItems_ItemAction(item);
+
+    if (customAction >= 0) {
+        return OotmmCustomItems_UsableNow(item) ? customAction : PLAYER_IA_NONE;
+    }
     if (GameInteractor_Should(VB_ITEM_ACTION_BE_NONE, item >= ITEM_NONE_FE, item)) {
         return PLAYER_IA_NONE;
     } else if (item == ITEM_LAST_USED) {
@@ -2300,9 +2323,13 @@ void Player_InitExplosiveIA(PlayState* play, Player* this) {
             if (play->bombchuBowlingStatus == 0) {
                 play->bombchuBowlingStatus = -1;
             }
+        } else if (OotmmCustomItems_IsCustomItem(explosiveInfo->itemId)) {
+            OotmmCustomItems_SetKegAmmo(OotmmCustomItems_KegAmmo() - 1);
         } else {
             Inventory_ChangeAmmo(explosiveInfo->itemId, -1);
         }
+
+        OotmmCustomItems_MarkExplosive(spawnedActor, explosiveType);
 
         this->interactRangeActor = spawnedActor;
         this->heldActor = spawnedActor;
@@ -2632,6 +2659,18 @@ void Player_UpdateItems(Player* this, PlayState* play) {
         (gSaveContext.health != 0) && (play->csCtx.state == CS_STATE_IDLE) && (this->csAction == 0) &&
         (play->shootingGalleryStatus == 0) && (play->activeCamera == MAIN_CAM) &&
         (play->transitionTrigger != TRANS_TRIGGER_START) && (gSaveContext.timerState != TIMER_STATE_STOP)) {
+        if (!(this->stateFlags1 & (PLAYER_STATE1_CARRYING_ACTOR | PLAYER_STATE1_IN_CUTSCENE)) &&
+            !func_8008F128(this) && (this->rideActor == NULL)) {
+            if (Player_UpdateKamaroDance(play, this, sControlInput)) {
+                sControlInput->press.button &= ~BTN_B;
+                return;
+            }
+            if (CHECK_BTN_ALL(sControlInput->press.button, BTN_B) &&
+                OotmmCustomItems_TryBlastMask(play, this)) {
+                sControlInput->press.button &= ~BTN_B;
+            }
+        }
+
         Player_ProcessItemButtons(this, play);
     }
 
@@ -3444,7 +3483,9 @@ void Player_UseItem(PlayState* play, Player* this, s32 item) {
                 (((itemAction == PLAYER_IA_DEKU_STICK) && (AMMO(ITEM_STICK) == 0)) ||
                  ((itemAction == PLAYER_IA_MAGIC_BEAN) && (AMMO(ITEM_BEAN) == 0)) ||
                  (temp = Player_ActionToExplosive(this, itemAction),
-                  ((temp >= 0) && ((AMMO(sExplosiveInfos[temp].itemId) == 0) ||
+                  ((temp >= 0) && (((OotmmCustomItems_IsCustomItem(sExplosiveInfos[temp].itemId)
+                                         ? OotmmCustomItems_ExplosiveAmmo(temp)
+                                         : AMMO(sExplosiveInfos[temp].itemId)) == 0) ||
                                    (play->actorCtx.actorLists[ACTORCAT_EXPLOSIVE].length >= 3 &&
                                     !CVarGetInteger(CVAR_ENHANCEMENT("RemoveExplosiveLimit"), 0))))))) {
                 // Prevent some items from being used if player is out of ammo.
@@ -3479,7 +3520,9 @@ void Player_UseItem(PlayState* play, Player* this, s32 item) {
                 } else {
                     Sfx_PlaySfxCentered(NA_SE_SY_ERROR);
                 }
-            } else if (itemAction >= PLAYER_IA_MASK_KEATON) {
+            } else if (((itemAction >= PLAYER_IA_MASK_KEATON) && (itemAction <= PLAYER_IA_MASK_TRUTH)) ||
+                       ((itemAction >= PLAYER_IA_MASK_OOTMM_BLAST) &&
+                        (itemAction <= PLAYER_IA_MASK_OOTMM_KAMARO))) {
                 // Handle wearable masks
                 if (this->currentMask != PLAYER_MASK_NONE) {
                     this->currentMask = PLAYER_MASK_NONE;
@@ -3491,7 +3534,7 @@ void Player_UseItem(PlayState* play, Player* this, s32 item) {
 
                 func_808328EC(this, NA_SE_PL_CHANGE_ARMS);
             } else if (((itemAction >= PLAYER_IA_OCARINA_FAIRY) && (itemAction <= PLAYER_IA_OCARINA_OF_TIME)) ||
-                       (itemAction >= PLAYER_IA_BOTTLE_FISH)) {
+                       ((itemAction >= PLAYER_IA_BOTTLE_FISH) && (itemAction <= PLAYER_IA_CLAIM_CHECK))) {
                 // Handle "cutscene items"
                 if (!Player_CheckHostileLockOn(this) ||
                     ((itemAction >= PLAYER_IA_BOTTLE_POTION_RED) && (itemAction <= PLAYER_IA_BOTTLE_FAIRY))) {
@@ -9946,7 +9989,7 @@ void func_80844DC8(Player* this, PlayState* play) {
 }
 
 void func_80844E3C(Player* this) {
-    Math_StepToF(&this->unk_858, 1.0f, 0.02f);
+    Math_StepToF(&this->unk_858, OotmmSpinUpgrade_ChargeLimit(), 0.02f);
 }
 
 void Player_Action_80844E68(Player* this, PlayState* play) {
@@ -11821,6 +11864,8 @@ static f32 sWaterConveyorSpeeds[] = { 2.0f, 4.0f, 7.0f };
 static f32 sFloorConveyorSpeeds[] = { 0.5f, 1.0f, 3.0f };
 
 void Player_UpdateCommon(Player* this, PlayState* play, Input* input) {
+    OotmmCustomItems_TickTimers();
+    OotmmCustomItems_UpdateKegStock();
     s32 pad;
 
     sControlInput = input;
@@ -12361,6 +12406,7 @@ void Player_Update(Actor* thisx, PlayState* play) {
         // func_8002F974(&player->actor, NA_SE_EV_WIND_TRAP - SFX_FLAG);
     }
 
+    OotmmSongs_Update(play, this);
     GameInteractor_ExecuteOnPlayerUpdate();
 }
 
@@ -12420,7 +12466,11 @@ void Player_DrawGameplay(PlayState* play, Player* this, s32 lod, Gfx* cullDList,
         }
 
         if (this->currentMask != PLAYER_MASK_BUNNY || !CVarGetInteger(CVAR_ENHANCEMENT("HideBunnyHood"), 0)) {
-            gSPDisplayList(POLY_OPA_DISP++, sMaskDlists[this->currentMask - 1]);
+            if (this->currentMask < PLAYER_MASK_MAX) {
+                gSPDisplayList(POLY_OPA_DISP++, sMaskDlists[this->currentMask - 1]);
+            } else {
+                OotmmCustomItems_DrawWornMask(play, this);
+            }
         }
 
         if (CVarGetInteger(CVAR_GENERAL("FixIceTrapWithBunnyHood"), 1))
@@ -15065,6 +15115,92 @@ void Player_UpdateBunnyEars(Player* this) {
     } else {
         sBunnyEarKinematics.rot.z = 0;
     }
+}
+
+static bool sKamaroDancing = false;
+
+static s32 Player_KamaroDanceSeq(void) {
+    return AudioCollection_GetSequenceNumByName("KamaroDance");
+}
+
+static void Player_StopKamaroDance(PlayState* play, Player* this) {
+    s32 danceSeq = Player_KamaroDanceSeq();
+
+    // 0x100000FF is the audio queue's stop-sequence command.
+    if (danceSeq >= 0 && func_800FA0B4(SEQ_PLAYER_FANFARE) == (u16)danceSeq) {
+        Audio_QueueSeqCmd(0x100000FF | ((u8)SEQ_PLAYER_FANFARE << 24));
+    }
+    sKamaroDancing = false;
+    func_80853080(this, play);
+}
+
+void Player_Action_KamaroDance(Player* this, PlayState* play) {
+    if (!Player_UpdateKamaroDance(play, this, sControlInput)) {
+        return;
+    }
+
+    LinkAnimation_Update(play, &this->skelAnime);
+    if (this->skelAnime.curFrame >= 144.0f) {
+        this->skelAnime.curFrame = 0.0f;
+    }
+
+    Player_DecelerateToZero(this);
+}
+
+static void Player_StartKamaroDance(PlayState* play, Player* this) {
+    LinkAnimationHeader* anim =
+        (LinkAnimationHeader*)ResourceMgr_LoadAnimByName(OotmmCustomItems_KamaroDanceAnim());
+
+    if (anim == NULL) {
+        func_80853080(this, play);
+        return;
+    }
+
+    sKamaroDancing = true;
+    Player_SetupAction(play, this, Player_Action_KamaroDance, 1);
+    LinkAnimation_PlayLoopSetSpeed(play, &this->skelAnime, anim, 1.0f);
+
+    s32 danceSeq = Player_KamaroDanceSeq();
+    if (danceSeq >= 0) {
+        Audio_PlayFanfare((u16)danceSeq);
+    }
+}
+
+s32 Player_UpdateKamaroDance(PlayState* play, Player* this, Input* input) {
+    LinkAnimationHeader* anim;
+
+    if (this->currentMask != PLAYER_MASK_OOTMM_KAMARO) {
+        if (sKamaroDancing) {
+            Player_StopKamaroDance(play, this);
+        }
+        return 0;
+    }
+
+    if (sKamaroDancing) {
+        if (!CHECK_BTN_ALL(input->cur.button, BTN_B) || (this->actionFunc != Player_Action_KamaroDance)) {
+            Player_StopKamaroDance(play, this);
+            return 0;
+        }
+        return 1;
+    }
+
+    if (!CHECK_BTN_ALL(input->press.button, BTN_B) || Player_InBlockingCsMode(play, this) ||
+        !(this->actor.bgCheckFlags & 1)) {
+        return 0;
+    }
+
+    anim = (LinkAnimationHeader*)ResourceMgr_LoadAnimByName(OotmmCustomItems_KamaroDanceAnim());
+    if (anim == NULL) {
+        return 0;
+    }
+
+    if (Player_PutAwayHeldItem(play, this)) {
+        Player_SetupWaitForPutAway(play, this, Player_StartKamaroDance);
+        return 1;
+    }
+
+    Player_StartKamaroDance(play, this);
+    return 1;
 }
 
 s32 Player_ActionHandler_7(Player* this, PlayState* play) {

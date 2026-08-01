@@ -6,6 +6,7 @@
 #include "soh/Enhancements/game-interactor/GameInteractor.h"
 #include "soh/Enhancements/game-interactor/GameInteractor_Hooks.h"
 #include "soh/OotmmOcarinaButtons.h"
+#include "soh/OotmmSongs.h"
 
 // TODO: can these macros be shared between files? code_800F9280 seems to use
 // versions without any casts...
@@ -1179,6 +1180,143 @@ OcarinaSongInfo gOcarinaSongNotes[OCARINA_SONG_MAX] = {
     // Lost Woods Memory Game
     { 0, { 0, 0, 0, 0, 0, 0, 0, 0 } },
 };
+
+// Ported from OoTMM packages/generator/src/oot/ocarina.c, indexed by OotmmSongId - 1.
+OcarinaNote sOotmmSongs[OOTMM_SONG_COUNT][20] = {
+    // Song of Soaring
+    {
+        { 5, 0, 18, 84, 0, 0, 0 },
+        { 11, 0, 18, 80, 0, 0, 0 },
+        { 14, 0, 36, 94, 0, 0, 0 },
+        { 5, 0, 18, 73, 0, 0, 0 },
+        { 11, 0, 18, 76, 0, 0, 0 },
+        { 14, 0, 108, 96, 2, 0, 0 },
+        { 0xFF, 0, 0, 90, 0, 0, 0 },
+    },
+    // Elegy of Emptiness
+    {
+        { 9, 0, 85, 93, 0, 0, 0 },
+        { 11, 0, 43, 91, 0, 0, 0 },
+        { 9, 0, 43, 93, 0, 0, 0 },
+        { 5, 0, 21, 88, 0, 0, 0 },
+        { 9, 0, 21, 88, 0, 0, 0 },
+        { 14, 0, 43, 101, 0, 0, 0 },
+        { 11, 0, 85, 95, 0, 0, 0 },
+        { 0xFF, 0, 0, 94, 0, 0, 0 },
+    },
+    // Song of Double Time
+    {
+        { 9, 0, 29, 84, 0, 0, 0 },
+        { 0xFF, 0, 3, 84, 0, 0, 0 },
+        { 9, 0, 30, 84, 0, 0, 0 },
+        { 0xFF, 0, 3, 84, 0, 0, 0 },
+        { 2, 0, 29, 84, 0, 0, 0 },
+        { 0xFF, 0, 3, 84, 0, 0, 0 },
+        { 2, 0, 30, 84, 0, 0, 0 },
+        { 0xFF, 0, 3, 84, 0, 0, 0 },
+        { 5, 0, 29, 84, 0, 0, 0 },
+        { 0xFF, 0, 3, 84, 0, 0, 0 },
+        { 5, 0, 99, 84, 0, 0, 0 },
+        { 0xFF, 0, 0, 0, 0, 0, 0 },
+    },
+    // Song of Healing
+    {
+        { 11, 0, 32, 88, 0, 0, 0 },
+        { 9, 0, 33, 88, 0, 0, 0 },
+        { 5, 0, 33, 69, 0, 0, 0 },
+        { 11, 0, 32, 94, 0, 0, 0 },
+        { 9, 0, 33, 88, 0, 0, 0 },
+        { 5, 0, 121, 86, 2, 0, 0 },
+        { 0xFF, 0, 10, 84, 0, 0, 0 },
+        { 0xFF, 0, 0, 90, 0, 0, 0 },
+    },
+    // Sonata of Awakening
+    {
+        { 14, 0, 19, 92, 0, 0, 0 },
+        { 11, 0, 19, 90, 0, 0, 0 },
+        { 14, 0, 19, 90, 0, 0, 0 },
+        { 11, 0, 38, 90, 0, 0, 0 },
+        { 2, 0, 39, 92, 0, 0, 0 },
+        { 9, 0, 76, 89, 0, 0, 0 },
+        { 2, 0, 77, 82, 0, 0, 0 },
+        { 0xFF, 0, 0, 86, 0, 0, 0 },
+    },
+    // Goron Lullaby
+    {
+        { 2, 0, 41, 80, 0, 0, 0 },
+        { 9, 0, 40, 72, 0, 0, 0 },
+        { 11, 0, 39, 84, 0, 0, 0 },
+        { 2, 0, 42, 76, 0, 0, 0 },
+        { 9, 0, 40, 84, 0, 0, 0 },
+        { 11, 0, 39, 76, 0, 0, 0 },
+        { 9, 0, 41, 84, 0, 0, 0 },
+        { 2, 0, 80, 76, 0, 0, 0 },
+        { 0xFF, 0, 40, 76, 0, 0, 0 },
+        { 0xFF, 0, 0, 66, 0, 0, 0 },
+    },
+    // Goron Lullaby Intro
+    {
+        { 2, 0, 32, 78, 0, 0, 0 },
+        { 9, 0, 33, 90, 0, 0, 0 },
+        { 11, 0, 33, 87, 0, 0, 0 },
+        { 2, 0, 32, 92, 0, 0, 0 },
+        { 9, 0, 33, 86, 0, 0, 0 },
+        { 11, 0, 130, 80, 0, 0, 0 },
+        { 0xFF, 0, 0, 66, 0, 0, 0 },
+    },
+    // New Wave Bossa Nova
+    {
+        { 11, 0, 64, 74, 0, 0, 0 },
+        { 14, 0, 13, 88, 0, 0, 0 },
+        { 11, 0, 12, 90, 0, 0, 0 },
+        { 9, 0, 78, 88, 0, 0, 0 },
+        { 5, 0, 12, 76, 0, 0, 0 },
+        { 11, 0, 13, 76, 0, 0, 0 },
+        { 9, 0, 114, 76, 6, 0, 0 },
+        { 0xFF, 0, 0, 90, 0, 0, 0 },
+    },
+    // Oath to Order
+    {
+        { 9, 0, 97, 104, 0, 0, 0 },
+        { 5, 0, 48, 88, 0, 0, 0 },
+        { 2, 0, 49, 78, 0, 0, 0 },
+        { 5, 0, 49, 78, 0, 0, 0 },
+        { 9, 0, 48, 94, 0, 0, 0 },
+        { 14, 0, 97, 100, 0, 0, 0 },
+        { 0xFF, 0, 0, 96, 0, 0, 0 },
+    },
+};
+
+OcarinaSongInfo sOotmmSongNotes[OOTMM_SONG_COUNT] = {
+    // Song of Soaring
+    { 6, { OCARINA_NOTE_F4, OCARINA_NOTE_B4, OCARINA_NOTE_D5, OCARINA_NOTE_F4, OCARINA_NOTE_B4, OCARINA_NOTE_D5 } },
+    // Elegy of Emptiness
+    { 7,
+      { OCARINA_NOTE_A4, OCARINA_NOTE_B4, OCARINA_NOTE_A4, OCARINA_NOTE_F4, OCARINA_NOTE_A4, OCARINA_NOTE_D5,
+        OCARINA_NOTE_B4 } },
+    // Song of Double Time
+    { 6, { OCARINA_NOTE_A4, OCARINA_NOTE_A4, OCARINA_NOTE_D4, OCARINA_NOTE_D4, OCARINA_NOTE_F4, OCARINA_NOTE_F4 } },
+    // Song of Healing
+    { 6, { OCARINA_NOTE_B4, OCARINA_NOTE_A4, OCARINA_NOTE_F4, OCARINA_NOTE_B4, OCARINA_NOTE_A4, OCARINA_NOTE_F4 } },
+    // Sonata of Awakening
+    { 7,
+      { OCARINA_NOTE_D5, OCARINA_NOTE_B4, OCARINA_NOTE_D5, OCARINA_NOTE_B4, OCARINA_NOTE_D4, OCARINA_NOTE_A4,
+        OCARINA_NOTE_D4 } },
+    // Goron Lullaby
+    { 8,
+      { OCARINA_NOTE_D4, OCARINA_NOTE_A4, OCARINA_NOTE_B4, OCARINA_NOTE_D4, OCARINA_NOTE_A4, OCARINA_NOTE_B4,
+        OCARINA_NOTE_A4, OCARINA_NOTE_D4 } },
+    // Goron Lullaby Intro
+    { 6, { OCARINA_NOTE_D4, OCARINA_NOTE_A4, OCARINA_NOTE_B4, OCARINA_NOTE_D4, OCARINA_NOTE_A4, OCARINA_NOTE_B4 } },
+    // New Wave Bossa Nova
+    { 7,
+      { OCARINA_NOTE_B4, OCARINA_NOTE_D5, OCARINA_NOTE_B4, OCARINA_NOTE_A4, OCARINA_NOTE_F4, OCARINA_NOTE_B4,
+        OCARINA_NOTE_A4 } },
+    // Oath to Order
+    { 6, { OCARINA_NOTE_A4, OCARINA_NOTE_F4, OCARINA_NOTE_D4, OCARINA_NOTE_F4, OCARINA_NOTE_A4, OCARINA_NOTE_D5 } },
+};
+
+u16 sOotmmAvailSongs = 0;
 // clang-format on
 
 /**
@@ -1430,9 +1568,12 @@ void func_800ECC04(u16 flg) {
         if (flg & 0xD000) {
             func_800ECB7C(OCARINA_SONG_SCARECROW);
         }
+
+        sOotmmAvailSongs = OotmmSongs_AvailableMask();
     } else {
         D_80130F3C = 0;
         sOcarinaInpEnabled = 0;
+        sOotmmAvailSongs = 0;
     }
 }
 
@@ -1586,6 +1727,27 @@ void func_800ED200(void) {
 
                     if (j == gOcarinaSongNotes[i].len) {
                         D_80131878 = i + 1;
+                        sOcarinaInpEnabled = 0;
+                        D_80130F3C = 0;
+                    }
+                }
+            }
+
+            for (i = 0; i < OOTMM_SONG_COUNT; i++) {
+                if (sOotmmAvailSongs & (u16)(1 << (i + 1))) {
+                    for (j = 0, k = 0;
+                         j < sOotmmSongNotes[i].len && k == 0 && sOcarinaSongAppendPos >= sOotmmSongNotes[i].len;) {
+                        temp_v0 = sCurOcarinaSong[(sOcarinaSongAppendPos - sOotmmSongNotes[i].len) + j];
+                        if (temp_v0 == sOcarinaNoteValues[sOotmmSongNotes[i].notesIdx[j]]) {
+                            j++;
+                        } else {
+                            k++;
+                        }
+                    }
+
+                    // D_80131878 is consumed every frame, so a non-zero value means vanilla matched first.
+                    if (j == sOotmmSongNotes[i].len && D_80131878 == 0) {
+                        D_80131878 = OOTMM_SONG_STAFF_BASE + i + 2;
                         sOcarinaInpEnabled = 0;
                         D_80130F3C = 0;
                     }
@@ -1747,6 +1909,22 @@ void Audio_OcaSetSongPlayback(s8 songIdxPlusOne, s8 playbackState) {
     }
 }
 
+void Ootmm_OcarinaSetSongPlayback(s32 song) {
+    if (song <= OOTMM_SONG_NONE || song >= OOTMM_SONG_MAX) {
+        return;
+    }
+
+    sPlaybackSong = sOotmmSongs[song - 1];
+    sPlaybackState = 1;
+    sNotePlaybackTimer = 0;
+    sDisplayedNoteValue = 0xFF;
+    sPlaybackNotePos = 0;
+    sStaffPlaybackPos = 0;
+    while (sPlaybackSong[sPlaybackNotePos].noteIdx == OCARINA_NOTE_INVALID) {
+        sPlaybackNotePos++;
+    }
+}
+
 void Audio_OcaPlayback(void) {
     u32 noteTimerStep;
     u32 nextNoteTimerStep = 0;
@@ -1836,6 +2014,7 @@ void func_800EDD68(u8 arg0) {
     u16 i;
     u16 i2;
     u16 pad;
+    u16 ootmmSongs;
     u8 lastNote;
     OcarinaNote* note;
     u8 j;
@@ -1897,6 +2076,28 @@ void func_800EDD68(u8 arg0) {
                     }
 
                     if (k == gOcarinaSongNotes[i].len) {
+                        sRecordingState = 0xFF;
+                        sOcarinaSongs[OCARINA_SONG_SCARECROW][1].volume = 0xFF;
+                        return;
+                    }
+                }
+            }
+
+            ootmmSongs = OotmmSongs_ScarecrowBlockMask();
+            for (i = 0; i < OOTMM_SONG_COUNT; i++) {
+                if (!(ootmmSongs & (u16)(1 << (i + 1)))) {
+                    continue;
+                }
+
+                for (j = 0; j < 9 - sOotmmSongNotes[i].len; j++) {
+                    for (k = 0;
+                         k < sOotmmSongNotes[i].len && k + j < 8 &&
+                         sOotmmSongNotes[i].notesIdx[k] == gOcarinaSongNotes[OCARINA_SONG_SCARECROW].notesIdx[k + j];
+                         k++) {
+                        ;
+                    }
+
+                    if (k == sOotmmSongNotes[i].len) {
                         sRecordingState = 0xFF;
                         sOcarinaSongs[OCARINA_SONG_SCARECROW][1].volume = 0xFF;
                         return;

@@ -1,5 +1,6 @@
 #include "z_en_m_thunder.h"
 #include "objects/gameplay_keep/gameplay_keep.h"
+#include "soh/OotmmSpinUpgrade.h"
 
 #define FLAGS 0
 
@@ -98,9 +99,16 @@ void EnMThunder_Init(Actor* thisx, PlayState* play2) {
 
         player->stateFlags2 &= ~PLAYER_STATE2_SPIN_ATTACKING;
         this->unk_1CA = 1;
-        this->collider.info.toucher.dmgFlags = D_80AA044C[this->unk_1C7];
-        this->unk_1C6 = 1;
-        this->unk_1C9 = ((this->unk_1C7 == 1) ? 2 : 4);
+        if (OotmmSpinUpgrade_SpinLevel() > 0) {
+            player->unk_858 = 1.0f;
+            this->collider.info.toucher.dmgFlags = D_80AA0458[this->unk_1C7];
+            this->unk_1C6 = 0;
+            this->unk_1C9 = ((this->unk_1C7 == 1) ? 4 : 8);
+        } else {
+            this->collider.info.toucher.dmgFlags = D_80AA044C[this->unk_1C7];
+            this->unk_1C6 = 1;
+            this->unk_1C9 = ((this->unk_1C7 == 1) ? 2 : 4);
+        }
         func_80A9EFE0(this, func_80A9F9B4);
         this->unk_1C4 = 8;
         Audio_PlaySoundGeneral(NA_SE_IT_ROLLING_CUT_LV1, &player->actor.projectedPos, 4, &gSfxDefaultFreqAndVolScale,
@@ -196,11 +204,15 @@ void func_80A9F408(EnMThunder* this, PlayState* play) {
             if ((this->actor.params & 0xFF00) >> 8) {
                 gSaveContext.magicState = MAGIC_STATE_CONSUME_SETUP;
             }
-            if (player->unk_858 < 0.85f) {
+            s32 spinLevel = OotmmSpinUpgrade_SpinLevel();
+            if (spinLevel < 0 ? (player->unk_858 < 0.85f) : (spinLevel == 0)) {
                 this->collider.info.toucher.dmgFlags = D_80AA044C[this->unk_1C7];
                 this->unk_1C6 = 1;
                 this->unk_1C9 = ((this->unk_1C7 == 1) ? 2 : 4);
             } else {
+                if (spinLevel > 0) {
+                    player->unk_858 = 1.0f;
+                }
                 this->collider.info.toucher.dmgFlags = D_80AA0458[this->unk_1C7];
                 this->unk_1C6 = 0;
                 this->unk_1C9 = ((this->unk_1C7 == 1) ? 4 : 8);

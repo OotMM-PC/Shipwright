@@ -12,6 +12,9 @@
 #include "soh/OTRGlobals.h"
 #include "soh/ResourceManagerHelpers.h"
 #include "soh/SaveManager.h"
+#include "soh/OotmmItemApply.h"
+#include "soh/OotmmSession.h"
+#include "soh/OotmmSouls.h"
 #include "soh/framebuffer_effects.h"
 
 #include <libultraship/libultraship.h>
@@ -368,6 +371,11 @@ void Play_Init(GameState* thisx) {
         SET_NEXT_GAMESTATE(&play->state, Opening_Init, OpeningContext);
         GameInteractor_ExecuteOnExitGame(gSaveContext.fileNum);
         return;
+    }
+
+    if ((gSaveContext.entranceIndex == ENTR_GANON_BOSS_0) && OotmmSession_IsActive() &&
+        (OotmmSouls_Withheld("NPC_ZELDA") || !OotmmItemApply_FoundMasterSword())) {
+        gSaveContext.entranceIndex = ENTR_GANONS_TOWER_0;
     }
 
     gPlayState = play;

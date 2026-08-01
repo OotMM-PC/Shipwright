@@ -1,3 +1,4 @@
+#include "soh/OotmmItemPage.h"
 #include "z_kaleido_scope.h"
 #include <stdlib.h>
 #include <string.h>
@@ -1289,6 +1290,10 @@ void KaleidoScope_SwitchPage(PauseContext* pauseCtx, u8 pt) {
 }
 
 void KaleidoScope_HandlePageToggles(PauseContext* pauseCtx, Input* input) {
+    if (OotmmItemPage_ConsumePageToggle()) {
+        return;
+    }
+
     s16 Debug_BTN = BTN_L;
     s16 PageLeft_BTN = BTN_Z;
     if (CVarGetInteger(CVAR_ENHANCEMENT("NGCKaleidoSwitcher"), 0) != 0) {
@@ -2436,7 +2441,7 @@ void KaleidoScope_UpdateNamePanel(PlayState* play) {
         if (pauseAnyCursor &&
             ((pauseCtx->pageIndex == PAUSE_EQUIP && pauseCtx->cursorX[PAUSE_EQUIP] != 0 &&
               !CHECK_OWNED_EQUIP(pauseCtx->cursorY[PAUSE_EQUIP], pauseCtx->cursorX[PAUSE_EQUIP] - 1)) ||
-             (pauseCtx->pageIndex == PAUSE_ITEM &&
+             (pauseCtx->pageIndex == PAUSE_ITEM && !OotmmItemPage_Active() &&
               gSaveContext.inventory.items[pauseCtx->cursorPoint[PAUSE_ITEM]] == ITEM_NONE))) {
             pauseCtx->namedItem = PAUSE_ITEM_NONE;
         }
@@ -3127,9 +3132,17 @@ void KaleidoScope_InitVertices(PlayState* play, GraphicsContext* gfxCtx) {
     }
 
     for (phi_t3 = 1; phi_t3 < ARRAY_COUNT(gSaveContext.equips.buttonItems); phi_t3++, phi_t2 += 4) {
-        if (gSaveContext.equips.cButtonSlots[phi_t3 - 1] != ITEM_NONE &&
-            ((phi_t3 < 4) || CVarGetInteger(CVAR_ENHANCEMENT("DpadEquips"), 0))) {
-            phi_t4 = gSaveContext.equips.cButtonSlots[phi_t3 - 1] * 4;
+        s32 ootmmOutline = OotmmItemPage_EquipOutlineIndex(gSaveContext.equips.cButtonSlots[phi_t3 - 1]);
+
+        if (ootmmOutline < 0) {
+            pauseCtx->itemVtx[phi_t2 + 0].v.ob[0] = pauseCtx->itemVtx[phi_t2 + 1].v.ob[0] =
+                pauseCtx->itemVtx[phi_t2 + 2].v.ob[0] = pauseCtx->itemVtx[phi_t2 + 3].v.ob[0] = 0;
+
+            pauseCtx->itemVtx[phi_t2 + 0].v.ob[1] = pauseCtx->itemVtx[phi_t2 + 1].v.ob[1] =
+                pauseCtx->itemVtx[phi_t2 + 2].v.ob[1] = pauseCtx->itemVtx[phi_t2 + 3].v.ob[1] = -200;
+        } else if (gSaveContext.equips.cButtonSlots[phi_t3 - 1] != ITEM_NONE &&
+                   ((phi_t3 < 4) || CVarGetInteger(CVAR_ENHANCEMENT("DpadEquips"), 0))) {
+            phi_t4 = ootmmOutline * 4;
 
             pauseCtx->itemVtx[phi_t2 + 0].v.ob[0] = pauseCtx->itemVtx[phi_t2 + 2].v.ob[0] =
                 pauseCtx->itemVtx[phi_t4].v.ob[0] - 2;

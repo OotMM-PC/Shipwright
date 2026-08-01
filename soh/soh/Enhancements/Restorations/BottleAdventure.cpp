@@ -1,5 +1,8 @@
 #include "soh/Enhancements/game-interactor/GameInteractor_Hooks.h"
+#include "soh/OotmmSession.h"
 #include "soh/ShipInit.hpp"
+
+#include <cstddef>
 
 extern "C" {
 #include "variables.h"
@@ -168,12 +171,33 @@ void HandleRBAInventoryGSTokens(uint8_t itemToPutInBottle) {
     }
 }
 
+// padding bytes
+void HandleBAPaddingBytes() {
+    // Reading from padding bytes is not implemented
+    gSaveContext.equips.buttonItems[0] = 0;
+}
+
+void HandleRBAPaddingBytes() {
+    // Writing to padding bytes is not implemented
+}
+
+// OoTMM stores silver rupee collection in SavedSceneFlags.unk, which vanilla leaves at zero.
+static bool SceneFlagsFieldIsOotmmOwned(u32 field) {
+    return field >= offsetof(SavedSceneFlags, unk) &&
+           field < offsetof(SavedSceneFlags, unk) + sizeof(u32) && OotmmSession_IsActive();
+}
+
 // gSaveContext.sceneFlags
 void HandleBASceneFlags() {
     // The rest of the items fall into the saved scene flags. Let's calculate the scene and which field it pulls from
     u32 offset = gSaveContext.equips.buttonItems[3] - ITEM_SONG_LULLABY;
     u32 scene = offset / sizeof(SavedSceneFlags);
-    switch (offset % sizeof(SavedSceneFlags)) {
+    u32 field = offset % sizeof(SavedSceneFlags);
+    if (SceneFlagsFieldIsOotmmOwned(field)) {
+        HandleBAPaddingBytes();
+        return;
+    }
+    switch (field) {
         case 0:
             gSaveContext.equips.buttonItems[0] = (gSaveContext.sceneFlags[scene].chest >> 24) & 0xFF;
             break;
@@ -265,7 +289,12 @@ void HandleRBASceneFlags(uint8_t itemToPutInBottle) {
     // The rest of the items fall into the saved scene flags. Let's calculate the scene and which field it sets
     u32 offset = gSaveContext.equips.buttonItems[3] - ITEM_SONG_LULLABY;
     u32 scene = offset / sizeof(SavedSceneFlags);
-    switch (offset % sizeof(SavedSceneFlags)) {
+    u32 field = offset % sizeof(SavedSceneFlags);
+    if (SceneFlagsFieldIsOotmmOwned(field)) {
+        HandleRBAPaddingBytes();
+        return;
+    }
+    switch (field) {
         case 0:
             gSaveContext.sceneFlags[scene].chest =
                 (itemToPutInBottle << 24) | (gSaveContext.sceneFlags[scene].chest & 0x00FFFFFF);
@@ -378,16 +407,6 @@ void HandleRBASceneFlags(uint8_t itemToPutInBottle) {
                 itemToPutInBottle | (gSaveContext.sceneFlags[scene].floors & 0xFFFFFF00);
             break;
     }
-}
-
-// padding bytes
-void HandleBAPaddingBytes() {
-    // Reading from padding bytes is not implemented
-    gSaveContext.equips.buttonItems[0] = 0;
-}
-
-void HandleRBAPaddingBytes() {
-    // Writing to padding bytes is not implemented
 }
 
 // Bottle Adventure

@@ -1,4 +1,6 @@
 #include "OotmmSession.h"
+#include "OotmmCustomItems.h"
+#include "OotmmItemApply.h"
 #include "OotmmItemPresentation.h"
 #include "OotmmItemProbe.h"
 
@@ -18,7 +20,11 @@ void Sram_InitNewSave(void);
 }
 
 #include <libultraship/bridge.h>
+#include <ship/Context.h>
 #include <spdlog/spdlog.h>
+
+#include <filesystem>
+#include <fstream>
 
 namespace {
 
@@ -36,6 +42,32 @@ uint32_t sCrossGameWaitFrames = 0;
 std::optional<uint32_t> sPendingExtendedSource;
 std::optional<uint32_t> sLastResolvedEntrance;
 uint16_t sGrottoExitSource = 0;
+
+std::filesystem::path ActiveFileMarkerPath() {
+    return std::filesystem::path(
+               Ship::Context::GetPathRelativeToAppDirectory(OotmmSession_GetSaveSubdirectory())) /
+           "last-file";
+}
+
+void RecordActiveSaveFile(int32_t fileNum) {
+    if (fileNum < 0 || fileNum >= SaveManager::MaxFiles) {
+        return;
+    }
+    const std::filesystem::path path = ActiveFileMarkerPath();
+    std::error_code ec;
+    std::filesystem::create_directories(path.parent_path(), ec);
+    std::ofstream out(path, std::ios::trunc);
+    out << fileNum;
+}
+
+std::optional<int32_t> RecordedActiveSaveFile() {
+    std::ifstream in(ActiveFileMarkerPath());
+    int32_t fileNum = -1;
+    if (!(in >> fileNum) || fileNum < 0 || fileNum >= SaveManager::MaxFiles) {
+        return std::nullopt;
+    }
+    return fileNum;
+}
 
 struct OotGrottoExit {
     uint16_t Entrance;
@@ -257,6 +289,37 @@ void ApplyMidoSpawnState(bool* should) {
         *should = !LINK_IS_ADULT && midoInHouse;
     } else {
         *should = !midoInHouse;
+    }
+}
+
+const char* MasterQuestMember(int32_t sceneNum) {
+    switch (sceneNum) {
+        case SCENE_DEKU_TREE:
+            return "DT";
+        case SCENE_DODONGOS_CAVERN:
+            return "DC";
+        case SCENE_JABU_JABU:
+            return "JJ";
+        case SCENE_FOREST_TEMPLE:
+            return "Forest";
+        case SCENE_FIRE_TEMPLE:
+            return "Fire";
+        case SCENE_WATER_TEMPLE:
+            return "Water";
+        case SCENE_SPIRIT_TEMPLE:
+            return "Spirit";
+        case SCENE_SHADOW_TEMPLE:
+            return "Shadow";
+        case SCENE_BOTTOM_OF_THE_WELL:
+            return "BotW";
+        case SCENE_ICE_CAVERN:
+            return "IC";
+        case SCENE_GERUDO_TRAINING_GROUND:
+            return "GTG";
+        case SCENE_INSIDE_GANONS_CASTLE:
+            return "Ganon";
+        default:
+            return nullptr;
     }
 }
 
@@ -632,6 +695,7 @@ void UpdateEntranceTransition() {
                 *mapping->ToNativeId);
     Play_PerformSave(gPlayState);
     SaveManager::Instance->ThreadPoolWait();
+    RecordActiveSaveFile(gSaveContext.fileNum);
     if (!OotmmIpc_SendCrossGameTransition(*mapping, static_cast<uint32_t>(gSaveContext.linkAge))) {
         SPDLOG_ERROR("[OoTMM] Cross-game transition requires the launcher IPC connection");
         gPlayState->transitionTrigger = TRANS_TRIGGER_OFF;
@@ -646,6 +710,7 @@ void UpdateEntranceTransition() {
 }
 
 void InitializeNewSave() {
+    OotmmItemApply_ResetLedgerForNewSave();
     const bool adult = sGameState.GetStringSetting("startingAge", "child") == "adult";
     gSaveContext.linkAge = adult ? LINK_AGE_ADULT : LINK_AGE_CHILD;
     gSaveContext.entranceIndex = adult ? ENTR_TEMPLE_OF_TIME_WARP_PAD : ENTR_LINKS_HOUSE_CHILD_SPAWN;
@@ -657,7 +722,19 @@ void InitializeNewSave() {
 }
 
 void BootIntoGame(GameState* gameState) {
-    const int32_t fileNum = static_cast<int32_t>(sGameState.GetBootConfig().LogicalSlot.value_or(0));
+    // The launcher's logical slot is MM's save identity and says nothing about OoT's file number.
+    int32_t fileNum = static_cast<int32_t>(sGameState.GetBootConfig().LogicalSlot.value_or(0));
+    if (const auto active = RecordedActiveSaveFile(); active.has_value() && Save_Exist(*active) != 0) {
+        fileNum = *active;
+    }
+    if (Save_Exist(fileNum) == 0) {
+        for (int32_t slot = 0; slot < 3; slot++) {
+            if (Save_Exist(slot) != 0) {
+                fileNum = slot;
+                break;
+            }
+        }
+    }
     gSaveContext.fileNum = fileNum;
     gSaveContext.gameMode = GAMEMODE_NORMAL;
 
@@ -726,8 +803,11 @@ void OotmmSession_Init() {
         ApplyEnhancements();
         OotmmItemPresentation_Init();
         OotmmItemProbe_Init();
+        OotmmItemApply_Init();
+        OotmmCustomItems_Init();
         GameInteractor::Instance->RegisterGameHook<GameInteractor::OnLoadGame>(
-            [](int32_t) {
+            [](int32_t fileNum) {
+                RecordActiveSaveFile(fileNum);
                 RestoreLoadSpawn();
                 ApplySaveFlags();
                 ApplyBootEntrance();
@@ -839,6 +919,14 @@ extern "C" void OotmmSession_PrepareGrottoReturn(void) {
         sPendingExtendedSource = source;
         sGrottoExitSource = 0;
     }
+}
+
+extern "C" int32_t OotmmSession_IsSceneMasterQuest(int32_t sceneNum) {
+    if (!OotmmSession_IsActive()) {
+        return 0;
+    }
+    const char* member = MasterQuestMember(sceneNum);
+    return member != nullptr && sGameState.WorldFlagContains("mqDungeons", member) ? 1 : 0;
 }
 
 const Ship::OotmmGameState& OotmmSession_GetState() {

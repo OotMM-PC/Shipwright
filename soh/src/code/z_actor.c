@@ -12,6 +12,8 @@
 #include "soh/frame_interpolation.h"
 #include "soh/Enhancements/cosmetics/cosmeticsTypes.h"
 #include "soh/Enhancements/game-interactor/GameInteractor.h"
+#include "soh/OotmmCustomItemsPlayer.h"
+#include "soh/OotmmSouls.h"
 #include "soh/Enhancements/game-interactor/GameInteractor_Hooks.h"
 #include "soh/Enhancements/nametag.h"
 
@@ -2580,6 +2582,7 @@ void Actor_UpdateAll(PlayState* play, ActorContext* actorCtx) {
     unkFlag = 0;
 
     if (play->numSetupActors != 0) {
+        OotmmSouls_ResetRoomState();
         actorEntry = &play->setupActorList[0];
         for (i = 0; i < play->numSetupActors; i++) {
             Actor* spawnedActor = Actor_SpawnEntry(&play->actorCtx, actorEntry++, play);
@@ -2680,7 +2683,28 @@ void Actor_UpdateAll(PlayState* play, ActorContext* actorCtx) {
                         actor->colorFilterTimer--;
                     }
                     if (GameInteractor_ShouldActorUpdate(actor)) {
+                        s32 stoneMasked = OotmmCustomItems_ActorIgnoresPlayer(actor, player);
+                        s16 maskedYaw = actor->yawTowardsPlayer;
+                        f32 maskedDistSq = actor->xyzDistToPlayerSq;
+                        f32 maskedXzDist = actor->xzDistToPlayer;
+                        f32 maskedYDist = actor->yDistToPlayer;
+
+                        if (stoneMasked) {
+                            actor->yawTowardsPlayer = (s16)(u16)(Rand_ZeroOne() * 0x10000);
+                            actor->xyzDistToPlayerSq = 10000.0f;
+                            actor->xzDistToPlayer = 10000.0f;
+                            actor->yDistToPlayer = 10000.0f;
+                        }
+
                         actor->update(actor, play);
+
+                        if (stoneMasked) {
+                            actor->yawTowardsPlayer = maskedYaw;
+                            actor->xyzDistToPlayerSq = maskedDistSq;
+                            actor->xzDistToPlayer = maskedXzDist;
+                            actor->yDistToPlayer = maskedYDist;
+                        }
+
                         GameInteractor_ExecuteOnActorUpdate(actor);
                     }
                     func_8003F8EC(play, &play->colCtx.dyna, actor);
@@ -3279,7 +3303,7 @@ Actor* Actor_RemoveFromCategory(PlayState* play, ActorContext* actorCtx, Actor* 
     actorToRemove->prev = NULL;
 
     if ((actorToRemove->room == play->roomCtx.curRoom.num) && (actorToRemove->category == ACTORCAT_ENEMY) &&
-        (actorCtx->actorLists[ACTORCAT_ENEMY].length == 0)) {
+        (actorCtx->actorLists[ACTORCAT_ENEMY].length == 0) && !OotmmSouls_RoomClearBlocked()) {
         Flags_SetTempClear(play, play->roomCtx.curRoom.num);
     }
 
@@ -3316,6 +3340,10 @@ Actor* Actor_Spawn(ActorContext* actorCtx, PlayState* play, s16 actorId, f32 pos
     Actor* actor;
     s32 objBankIndex;
     u32 temp;
+
+    if (OotmmSouls_SuppressSpawn(play, actorId, params)) {
+        return NULL;
+    }
 
     ActorDBEntry* dbEntry = ActorDB_Retrieve(actorId);
 

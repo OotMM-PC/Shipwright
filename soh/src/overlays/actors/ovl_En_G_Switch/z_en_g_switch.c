@@ -13,6 +13,8 @@
 #include "objects/object_tsubo/object_tsubo.h"
 #include "objects/object_gi_rupy/object_gi_rupy.h"
 #include "soh/frame_interpolation.h"
+#include "soh/OotmmSilverRupees.h"
+#include "soh/OotmmSilverRupeeLocations.h"
 
 #define FLAGS (ACTOR_FLAG_UPDATE_CULLING_DISABLED | ACTOR_FLAG_DRAW_CULLING_DISABLED)
 
@@ -106,6 +108,9 @@ void EnGSwitch_Init(Actor* thisx, PlayState* play) {
                 osSyncPrintf(VT_FGCOL(GREEN) "☆☆☆☆☆ Ｙｏｕ ａｒｅ Ｓｈｏｃｋ！  ☆☆☆☆☆ %d\n" VT_RST, this->switchFlag);
                 Actor_Kill(&this->actor);
             } else {
+                sCollectedCount =
+                    (s16)OotmmSilverRupeeLocations_TakenCount(play, this->actor.room, this->silverCount);
+                this->noteIndex = sCollectedCount;
                 this->actionFunc = EnGSwitch_SilverRupeeTracker;
             }
             break;
@@ -119,7 +124,9 @@ void EnGSwitch_Init(Actor* thisx, PlayState* play) {
             Collider_SetCylinder(play, &this->collider, &this->actor, &sCylinderInit);
             this->actor.draw = EnGSwitch_DrawRupee;
             this->actor.shape.yOffset = 700.0f;
-            if (Flags_GetSwitch(play, this->switchFlag)) {
+            this->index = (s16)OotmmSilverRupeeLocations_Claim(play, &this->actor);
+            if (this->index >= 0 ? OotmmSilverRupeeLocations_Taken(play, this->index)
+                                 : Flags_GetSwitch(play, this->switchFlag)) {
                 osSyncPrintf(VT_FGCOL(GREEN) "☆☆☆☆☆ Ｙｏｕ ａｒｅ Ｓｈｏｃｋ！  ☆☆☆☆☆ %d\n" VT_RST, this->switchFlag);
                 Actor_Kill(&this->actor);
             } else {
@@ -219,7 +226,7 @@ void EnGSwitch_SilverRupeeTracker(EnGSwitch* this, PlayState* play) {
             this->noteIndex = sCollectedCount;
         }
     }
-    if (sCollectedCount >= this->silverCount) {
+    if (sCollectedCount >= this->silverCount || OotmmSilverRupeesSolved(play, this->actor.room)) {
         // "It is now the end of the century."
         // This another reference to Hokuto no Ken.
         osSyncPrintf(VT_FGCOL(GREEN) "☆☆☆☆☆ 時はまさに世紀末〜  ☆☆☆☆☆ %d\n" VT_RST, this->switchFlag);
@@ -243,6 +250,7 @@ void EnGSwitch_SilverRupeeIdle(EnGSwitch* this, PlayState* play) {
     if (this->actor.xyzDistToPlayerSq < 900.0f) {
         Rupees_ChangeBy(5);
         sCollectedCount++;
+        OotmmSilverRupeeLocations_MarkTaken(play, this->index);
         Sfx_PlaySfxCentered(NA_SE_SY_GET_RUPY);
         this->actor.world.pos = player->actor.world.pos;
         this->actor.world.pos.y += 40.0f;

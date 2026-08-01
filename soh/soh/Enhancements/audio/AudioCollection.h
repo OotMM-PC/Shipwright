@@ -64,6 +64,7 @@ class AudioCollection {
     uint16_t GetReplacementSequence(uint16_t seqId);
     void InitializeShufflePool();
     const char* GetSequenceName(uint16_t seqId);
+    int32_t GetSequenceNumByName(const char* name);
     bool HasSequenceNum(uint16_t seqId);
     size_t SequenceMapSize();
     std::string GetCvarKey(std::string sfxKey);
@@ -72,6 +73,8 @@ class AudioCollection {
 #else
 void AudioCollection_AddToCollection(char* otrPath, uint16_t seqNum);
 const char* AudioCollection_GetSequenceName(uint16_t seqId);
+/// Sequence id registered under this label, or -1 when no track carries it.
+int32_t AudioCollection_GetSequenceNumByName(const char* name);
 bool AudioCollection_HasSequenceNum(uint16_t seqId);
 size_t AudioCollection_SequenceMapSize();
 void AudioCollection_EmitSongNameNotification(s32 seqId);

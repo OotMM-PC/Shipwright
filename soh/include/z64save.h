@@ -205,6 +205,17 @@ typedef struct ShipQuestSaveContextData {
     ShipQuestSpecificSaveContextData data;
 } ShipQuestSaveContextData;
 
+#define OOTMM_POND_FISH_STACK_MAX 32
+#define OOTMM_POND_FISH_ITEM_MAX 49
+
+typedef struct ShipOotmmPondFishData {
+    u8 childCount;
+    u8 adultCount;
+    u8 childWeights[OOTMM_POND_FISH_STACK_MAX];
+    u8 adultWeights[OOTMM_POND_FISH_STACK_MAX];
+    u8 granted[OOTMM_POND_FISH_ITEM_MAX];
+} ShipOotmmPondFishData;
+
 typedef struct ShipSaveContextData {
     u16 pendingSale;
     u16 pendingSaleMod;
@@ -213,6 +224,9 @@ typedef struct ShipSaveContextData {
     FaroresWindData backupFW;
     ShipQuestSaveContextData quest;
     u8 maskMemory;
+    u8 ootmmKegAmmo;
+    u8 ootmmKegGranted;
+    ShipOotmmPondFishData ootmmPondFish;
     u8 filenameLanguage;
     u16 shipInf[(SHIP_FLAG_MAX + 15) / 16];
 } ShipSaveContextData;

@@ -82,7 +82,10 @@ typedef enum PlayerMask {
     /* 0x06 */ PLAYER_MASK_ZORA,
     /* 0x07 */ PLAYER_MASK_GERUDO,
     /* 0x08 */ PLAYER_MASK_TRUTH,
-    /* 0x09 */ PLAYER_MASK_MAX
+    /* 0x09 */ PLAYER_MASK_MAX,
+    /* 0x0A */ PLAYER_MASK_OOTMM_BLAST = 0x0A,
+    /* 0x0B */ PLAYER_MASK_OOTMM_STONE,
+    /* 0x0C */ PLAYER_MASK_OOTMM_KAMARO
 } PlayerMask;
 
 typedef enum PlayerEnvHazard {
@@ -167,7 +170,12 @@ typedef enum PlayerItemAction {
     /* 0x40 */ PLAYER_IA_MASK_GERUDO,
     /* 0x41 */ PLAYER_IA_MASK_TRUTH,
     /* 0x42 */ PLAYER_IA_LENS_OF_TRUTH,
-    /* 0x43 */ PLAYER_IA_MAX
+    /* 0x43 */ PLAYER_IA_MASK_OOTMM_BLAST,
+    /* 0x44 */ PLAYER_IA_MASK_OOTMM_STONE,
+    /* 0x45 */ PLAYER_IA_MASK_OOTMM_KAMARO,
+    /* 0x46 */ PLAYER_IA_SWORD_OOTMM_GREAT_FAIRY,
+    /* 0x47 */ PLAYER_IA_OOTMM_POWDER_KEG,
+    /* 0x48 */ PLAYER_IA_MAX
 } PlayerItemAction;
 
 typedef enum PlayerLimb {

@@ -403,6 +403,9 @@ void SaveManager::InitFileNormal() {
     gSaveContext.ship.pendingSaleMod = MOD_NONE;
     gSaveContext.ship.pendingIceTrapCount = 0;
     gSaveContext.ship.maskMemory = PLAYER_MASK_NONE;
+    gSaveContext.ship.ootmmKegAmmo = 0;
+    gSaveContext.ship.ootmmKegGranted = 0;
+    memset(&gSaveContext.ship.ootmmPondFish, 0, sizeof(gSaveContext.ship.ootmmPondFish));
 
     // Init with normal quest unless only an MQ rom is provided
     gSaveContext.ship.quest.id = OTRGlobals::Instance->HasOriginal() ? QUEST_NORMAL : QUEST_MASTER;
@@ -1742,6 +1745,24 @@ void SaveManager::LoadBaseVersion4() {
     SaveManager::Instance->LoadData("dogParams", gSaveContext.dogParams);
     SaveManager::Instance->LoadData("filenameLanguage", gSaveContext.ship.filenameLanguage);
     SaveManager::Instance->LoadData("maskMemory", gSaveContext.ship.maskMemory);
+    SaveManager::Instance->LoadData("ootmmKegAmmo", gSaveContext.ship.ootmmKegAmmo);
+    SaveManager::Instance->LoadData("ootmmKegGranted", gSaveContext.ship.ootmmKegGranted);
+    SaveManager::Instance->LoadStruct("ootmmPondFish", []() {
+        SaveManager::Instance->LoadData("childCount", gSaveContext.ship.ootmmPondFish.childCount);
+        SaveManager::Instance->LoadData("adultCount", gSaveContext.ship.ootmmPondFish.adultCount);
+        SaveManager::Instance->LoadArray(
+            "childWeights", ARRAY_COUNT(gSaveContext.ship.ootmmPondFish.childWeights), [](size_t i) {
+                SaveManager::Instance->LoadData("", gSaveContext.ship.ootmmPondFish.childWeights[i]);
+            });
+        SaveManager::Instance->LoadArray(
+            "adultWeights", ARRAY_COUNT(gSaveContext.ship.ootmmPondFish.adultWeights), [](size_t i) {
+                SaveManager::Instance->LoadData("", gSaveContext.ship.ootmmPondFish.adultWeights[i]);
+            });
+        SaveManager::Instance->LoadArray(
+            "granted", ARRAY_COUNT(gSaveContext.ship.ootmmPondFish.granted), [](size_t i) {
+                SaveManager::Instance->LoadData("", gSaveContext.ship.ootmmPondFish.granted[i]);
+            });
+    });
 }
 
 void SaveManager::SaveBase(SaveContext* saveContext, int sectionID, bool fullSave) {
@@ -1910,6 +1931,24 @@ void SaveManager::SaveBase(SaveContext* saveContext, int sectionID, bool fullSav
     SaveManager::Instance->SaveData("dogParams", saveContext->dogParams);
     SaveManager::Instance->SaveData("filenameLanguage", saveContext->ship.filenameLanguage);
     SaveManager::Instance->SaveData("maskMemory", saveContext->ship.maskMemory);
+    SaveManager::Instance->SaveData("ootmmKegAmmo", saveContext->ship.ootmmKegAmmo);
+    SaveManager::Instance->SaveData("ootmmKegGranted", saveContext->ship.ootmmKegGranted);
+    SaveManager::Instance->SaveStruct("ootmmPondFish", [&]() {
+        SaveManager::Instance->SaveData("childCount", saveContext->ship.ootmmPondFish.childCount);
+        SaveManager::Instance->SaveData("adultCount", saveContext->ship.ootmmPondFish.adultCount);
+        SaveManager::Instance->SaveArray(
+            "childWeights", ARRAY_COUNT(saveContext->ship.ootmmPondFish.childWeights), [&](size_t i) {
+                SaveManager::Instance->SaveData("", saveContext->ship.ootmmPondFish.childWeights[i]);
+            });
+        SaveManager::Instance->SaveArray(
+            "adultWeights", ARRAY_COUNT(saveContext->ship.ootmmPondFish.adultWeights), [&](size_t i) {
+                SaveManager::Instance->SaveData("", saveContext->ship.ootmmPondFish.adultWeights[i]);
+            });
+        SaveManager::Instance->SaveArray(
+            "granted", ARRAY_COUNT(saveContext->ship.ootmmPondFish.granted), [&](size_t i) {
+                SaveManager::Instance->SaveData("", saveContext->ship.ootmmPondFish.granted[i]);
+            });
+    });
 }
 
 // Load a string into a char array based on size and ensuring it is null terminated when overflowed

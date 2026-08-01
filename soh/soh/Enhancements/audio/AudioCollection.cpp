@@ -452,6 +452,19 @@ extern "C" const char* AudioCollection_GetSequenceName(uint16_t seqId) {
     return AudioCollection::Instance->GetSequenceName(seqId);
 }
 
+int32_t AudioCollection::GetSequenceNumByName(const char* name) {
+    for (const auto& [seqId, info] : sequenceMap) {
+        if (info.label == name) {
+            return seqId;
+        }
+    }
+    return -1;
+}
+
+extern "C" int32_t AudioCollection_GetSequenceNumByName(const char* name) {
+    return AudioCollection::Instance->GetSequenceNumByName(name);
+}
+
 extern "C" bool AudioCollection_HasSequenceNum(uint16_t seqId) {
     return AudioCollection::Instance->HasSequenceNum(seqId);
 }

@@ -12,6 +12,7 @@
 
 #include "soh/frame_interpolation.h"
 #include "soh/Enhancements/game-interactor/GameInteractor_Hooks.h"
+#include "soh/OotmmFishing.h"
 
 #define FLAGS ACTOR_FLAG_UPDATE_CULLING_DISABLED
 #define WATER_SURFACE_Y(play) play->colCtx.colHeader->waterBoxes->ySurface
@@ -3984,6 +3985,7 @@ void Fishing_UpdateFish(Actor* thisx, PlayState* play2) {
                             (Message_GetState(&play->msgCtx) == TEXT_STATE_NONE)) {
                             if (Message_ShouldAdvance(play)) {
                                 Message_CloseTextbox(play);
+                                OotmmFishing_PeekOnHandFish(&sFishOnHandLength, &sFishOnHandIsLoach);
                                 if (play->msgCtx.choiceIndex == 0) {
                                     if (sFishOnHandLength == 0.0f) {
                                         sFishOnHandLength = this->fishLength;
@@ -3999,6 +4001,7 @@ void Fishing_UpdateFish(Actor* thisx, PlayState* play2) {
                                     } else {
                                         f32 lengthTemp = sFishOnHandLength;
                                         s16 loachTemp = sFishOnHandIsLoach;
+                                        OotmmFishing_ReleaseOnHandFish();
                                         sFishOnHandLength = this->fishLength;
                                         sFishOnHandIsLoach = this->isLoach;
                                         sLureCaughtWith = sLureEquipped;
@@ -4020,6 +4023,7 @@ void Fishing_UpdateFish(Actor* thisx, PlayState* play2) {
                                 if (play->msgCtx.choiceIndex != 0) {
                                     f32 temp1 = sFishOnHandLength;
                                     s16 temp2 = sFishOnHandIsLoach;
+                                    OotmmFishing_ReleaseOnHandFish();
                                     sFishOnHandLength = this->fishLength;
                                     sLureCaughtWith = sLureEquipped;
                                     this->fishLength = temp1;
@@ -4945,6 +4949,7 @@ void Fishing_HandleOwnerDialog(Fishing* this, PlayState* play) {
 
                     switch (play->msgCtx.choiceIndex) {
                         case 0:
+                            OotmmFishing_PeekOnHandFish(&sFishOnHandLength, &sFishOnHandIsLoach);
                             if (sFishOnHandLength == 0.0f) {
                                 this->actor.textId = 0x408C;
                                 this->stateAndTimer = 20;
@@ -4963,6 +4968,7 @@ void Fishing_HandleOwnerDialog(Fishing* this, PlayState* play) {
                                 } else {
                                     this->actor.textId = 0x408B;
                                     this->stateAndTimer = 20;
+                                    OotmmFishing_DiscardOnHandFish(&sFishOnHandLength, &sFishOnHandIsLoach);
                                 }
                             } else {
                                 this->actor.textId = 0x409B;
@@ -5023,6 +5029,7 @@ void Fishing_HandleOwnerDialog(Fishing* this, PlayState* play) {
                 GetItemEntry getItemEntry = (GetItemEntry)GET_ITEM_NONE;
 
                 Message_CloseTextbox(play);
+                OotmmFishing_TakeOnHandFish(&sFishOnHandLength, &sFishOnHandIsLoach);
                 // Declare and fill a struct for use in hooks
                 struct VBFishingData fishData;
                 fishData.actor = this;

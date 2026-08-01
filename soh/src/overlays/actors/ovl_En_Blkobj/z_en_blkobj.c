@@ -7,6 +7,7 @@
 #include "z_en_blkobj.h"
 #include "objects/object_blkobj/object_blkobj.h"
 #include "soh/Enhancements/game-interactor/GameInteractor_Hooks.h"
+#include "soh/OotmmSouls.h"
 
 #define FLAGS (ACTOR_FLAG_UPDATE_CULLING_DISABLED | ACTOR_FLAG_DRAW_CULLING_DISABLED)
 
@@ -106,6 +107,7 @@ void EnBlkobj_DarkLinkFight(EnBlkobj* this, PlayState* play) {
         // Check for if all enemies are defeated with enemy randomizer or crowd control on.
         uint8_t roomCleared = (!CVarGetInteger(CVAR_ENHANCEMENT("RandomizedEnemies"), 0) &&
                                !(CVarGetInteger(CVAR_REMOTE_CROWD_CONTROL("Enabled"), 0)) &&
+                               !OotmmSouls_Withheld("ENEMY_DARK_LINK") &&
                                Actor_Find(&play->actorCtx, ACTOR_EN_TORCH2, ACTORCAT_BOSS) == NULL) ||
                               ((CVarGetInteger(CVAR_ENHANCEMENT("RandomizedEnemies"), 0) ||
                                 (CVarGetInteger(CVAR_REMOTE_CROWD_CONTROL("Enabled"), 0))) &&

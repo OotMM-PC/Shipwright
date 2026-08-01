@@ -7,6 +7,7 @@
 #include "overlays/actors/ovl_Demo_Effect/z_demo_effect.h"
 
 #include "soh/Enhancements/game-interactor/GameInteractor.h"
+#include "soh/OotmmCustomItemsPlayer.h"
 #include "soh/Enhancements/game-interactor/GameInteractor_Hooks.h"
 #include "soh/ResourceManagerHelpers.h"
 
@@ -102,6 +103,11 @@ u8 sActionModelGroups[] = {
     PLAYER_MODELGROUP_DEFAULT,          // PLAYER_IA_MASK_GERUDO
     PLAYER_MODELGROUP_DEFAULT,          // PLAYER_IA_MASK_TRUTH
     PLAYER_MODELGROUP_DEFAULT,          // PLAYER_IA_LENS_OF_TRUTH
+    PLAYER_MODELGROUP_DEFAULT,          // PLAYER_IA_MASK_OOTMM_BLAST
+    PLAYER_MODELGROUP_DEFAULT,          // PLAYER_IA_MASK_OOTMM_STONE
+    PLAYER_MODELGROUP_DEFAULT,          // PLAYER_IA_MASK_OOTMM_KAMARO
+    PLAYER_MODELGROUP_BGS,              // PLAYER_IA_SWORD_OOTMM_GREAT_FAIRY
+    PLAYER_MODELGROUP_EXPLOSIVES,       // PLAYER_IA_OOTMM_POWDER_KEG
 };
 
 TextTriggerEntry sTextTriggers[] = {
@@ -849,7 +855,13 @@ s32 func_8008F128(Player* this) {
 }
 
 s32 Player_ActionToMeleeWeapon(s32 actionParam) {
-    s32 sword = actionParam - PLAYER_IA_FISHING_POLE;
+    s32 sword;
+
+    if (actionParam == PLAYER_IA_SWORD_OOTMM_GREAT_FAIRY) {
+        return PLAYER_IA_SWORD_BIGGORON - PLAYER_IA_FISHING_POLE;
+    }
+
+    sword = actionParam - PLAYER_IA_FISHING_POLE;
 
     if ((sword > 0) && (sword < 6)) {
         return sword;
@@ -863,6 +875,9 @@ s32 Player_GetMeleeWeaponHeld(Player* this) {
 }
 
 s32 Player_HoldsTwoHandedWeapon(Player* this) {
+    if (this->heldItemAction == PLAYER_IA_SWORD_OOTMM_GREAT_FAIRY) {
+        return 1;
+    }
     if ((this->heldItemAction >= PLAYER_IA_SWORD_BIGGORON) && (this->heldItemAction <= PLAYER_IA_HAMMER)) {
         return 1;
     } else {
@@ -889,7 +904,13 @@ s32 Player_GetBottleHeld(Player* this) {
 }
 
 s32 Player_ActionToExplosive(Player* this, s32 actionParam) {
-    s32 explosive = actionParam - PLAYER_IA_BOMB;
+    s32 explosive;
+
+    if (actionParam == PLAYER_IA_OOTMM_POWDER_KEG) {
+        return 2;
+    }
+
+    explosive = actionParam - PLAYER_IA_BOMB;
 
     if ((explosive >= 0) && (explosive < 2)) {
         return explosive;
@@ -1078,6 +1099,7 @@ void Player_DrawImpl(PlayState* play, void** skeleton, Vec3s* jointTable, s32 dL
 
     if (GameInteractor_Should(VB_APPLY_TUNIC_COLOR, true, data, color)) {
         gDPSetEnvColor(POLY_OPA_DISP++, color->r, color->g, color->b, 0);
+        OotmmCustomItems_SetTunicEnvColor(color->r, color->g, color->b);
     }
 
     // If we have a custom link model, always use the most detailed LOD
@@ -1370,7 +1392,8 @@ s32 Player_OverrideLimbDrawGameplayDefault(PlayState* play, s32 limbIndex, Gfx**
         if (limbIndex == PLAYER_LIMB_L_HAND) {
             Gfx** dLists = this->leftHandDLists;
 
-            if ((sLeftHandType == PLAYER_MODELTYPE_LH_BGS) && (gSaveContext.swordHealth <= 0.0f)) {
+            if ((sLeftHandType == PLAYER_MODELTYPE_LH_BGS) && (gSaveContext.swordHealth <= 0.0f) &&
+                (this->heldItemAction != PLAYER_IA_SWORD_OOTMM_GREAT_FAIRY)) {
                 dLists += 4;
             } else if ((sLeftHandType == PLAYER_MODELTYPE_LH_BOOMERANG) &&
                        (this->stateFlags1 & PLAYER_STATE1_BOOMERANG_THROWN)) {
@@ -1382,7 +1405,12 @@ s32 Player_OverrideLimbDrawGameplayDefault(PlayState* play, s32 limbIndex, Gfx**
                 sLeftHandType = PLAYER_MODELTYPE_LH_CLOSED;
             }
 
-            *dList = ResourceMgr_LoadGfxByName(dLists[sDListsLodOffset]);
+            if (this->heldItemAction == PLAYER_IA_SWORD_OOTMM_GREAT_FAIRY) {
+                *dList = OotmmCustomItems_GreatFairySwordHand(
+                    play, ResourceMgr_LoadGfxByName(gPlayerLeftHandClosedDLs[gSaveContext.linkAge]));
+            } else {
+                *dList = ResourceMgr_LoadGfxByName(dLists[sDListsLodOffset]);
+            }
         } else if (limbIndex == PLAYER_LIMB_R_HAND) {
             Gfx** dLists = this->rightHandDLists;
 
@@ -1906,6 +1934,7 @@ void Player_PostLimbDrawGameplay(PlayState* play, s32 limbIndex, Gfx** dList, Ve
             }
         } else if (limbIndex == PLAYER_LIMB_HEAD) {
             Matrix_MultVec3f(&D_801260D4, &this->actor.focus.pos);
+            OotmmCustomItems_CaptureMaskMatrix(play, this);
         } else {
             Vec3f* vec = &sLeftRightFootLimbModelFootPos[(gSaveContext.linkAge)];
 

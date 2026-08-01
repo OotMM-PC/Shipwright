@@ -1195,6 +1195,50 @@ bool DrawSoul(PlayState* play, std::string_view id) {
     return true;
 }
 
+void HueToRgb(float hue, uint8_t& r, uint8_t& g, uint8_t& b) {
+    const float scaled = hue * 6.0f;
+    const int sector = static_cast<int>(scaled) % 6;
+    const uint8_t ramp = static_cast<uint8_t>((scaled - static_cast<int>(scaled)) * 255.0f);
+    const uint8_t fade = static_cast<uint8_t>(255 - ramp);
+    switch (sector) {
+        case 0: r = 255; g = ramp; b = 0; return;
+        case 1: r = fade; g = 255; b = 0; return;
+        case 2: r = 0; g = 255; b = ramp; return;
+        case 3: r = 0; g = fade; b = 255; return;
+        case 4: r = ramp; g = 0; b = 255; return;
+        default: r = 255; g = 0; b = fade; return;
+    }
+}
+
+bool DrawMagicalRupee(PlayState* play) {
+    Gfx* inner = LoadOptionalGfx(dgGiRupeeInnerDL);
+    Gfx* outer = LoadOptionalGfx(dgGiRupeeOuterDL);
+    if (inner == nullptr || outer == nullptr) {
+        return false;
+    }
+
+    uint8_t r;
+    uint8_t g;
+    uint8_t b;
+    HueToRgb(static_cast<float>(play->state.frames % 60) / 60.0f, r, g, b);
+
+    GraphicsContext* gfxCtx = play->state.gfxCtx;
+    Gfx_SetupDL_25Opa(gfxCtx);
+    gSPMatrix(gfxCtx->polyOpa.p++, Matrix_NewMtx(gfxCtx, (char*)__FILE__, __LINE__),
+              G_MTX_NOPUSH | G_MTX_LOAD);
+    gDPSetPrimColor(gfxCtx->polyOpa.p++, 0, 0x80, r, g, b, 255);
+    gDPSetEnvColor(gfxCtx->polyOpa.p++, r / 5, g / 5, b / 5, 255);
+    gSPDisplayList(gfxCtx->polyOpa.p++, inner);
+
+    Gfx_SetupDL_25Xlu(gfxCtx);
+    gSPMatrix(gfxCtx->polyXlu.p++, Matrix_NewMtx(gfxCtx, (char*)__FILE__, __LINE__),
+              G_MTX_NOPUSH | G_MTX_LOAD);
+    gDPSetPrimColor(gfxCtx->polyXlu.p++, 0, 0x80, 255, 255, 255, 255);
+    gDPSetEnvColor(gfxCtx->polyXlu.p++, r * 3 / 4, g * 3 / 4, b * 3 / 4, 255);
+    gSPDisplayList(gfxCtx->polyXlu.p++, outer);
+    return true;
+}
+
 bool DrawTintedKey(PlayState* play, std::string_view id) {
     const bool rusty = id.find("_RUSTY_KEY_") != std::string_view::npos;
     const char* path = rusty ? "__OTR__objects/object_key/gSmallKeyCustomDL"
@@ -1339,7 +1383,7 @@ bool OotmmItemModel_Draw(PlayState* play, const Ship::OotmmItemDefinition& item)
         case Ship::OotmmItemModelKind::Coin:
             return DrawCoin(play, item.ModelVariant);
         case Ship::OotmmItemModelKind::MagicalRupee:
-            return DrawNative(play, GID_RUPEE_PURPLE);
+            return DrawMagicalRupee(play);
         case Ship::OotmmItemModelKind::Triforce:
             return DrawNative(play, GID_TRIFORCE_PIECE);
         case Ship::OotmmItemModelKind::Clock:

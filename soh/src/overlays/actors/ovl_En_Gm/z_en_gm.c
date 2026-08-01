@@ -9,6 +9,8 @@
 #include "objects/object_gm/object_gm.h"
 #include "vt.h"
 #include "soh/Enhancements/game-interactor/GameInteractor_Hooks.h"
+#include "soh/OotmmCustomItems.h"
+#include "soh/OotmmCustomItemsPlayer.h"
 #include <assert.h>
 #include "soh/ResourceManagerHelpers.h"
 
@@ -148,6 +150,11 @@ void EnGm_UpdateEye(EnGm* this) {
 }
 
 void EnGm_SetTextID(EnGm* this) {
+    if (OotmmCustomItems_MedigoronSellsKeg()) {
+        this->actor.textId = 0x304F;
+        return;
+    }
+
     switch (func_80A3D7C8()) {
         case 0:
             if (Flags_GetInfTable(INFTABLE_B0)) {
@@ -209,6 +216,11 @@ void func_80A3DC44(EnGm* this, PlayState* play) {
     dz = this->talkPos.z - player->actor.world.pos.z;
 
     if (Actor_ProcessTalkRequest(&this->actor, play)) {
+        if (OotmmCustomItems_MedigoronSellsKeg()) {
+            this->actionFunc = EnGm_ProcessChoiceIndex;
+            return;
+        }
+
         switch (func_80A3D7C8()) {
             case 0:
                 Flags_SetInfTable(INFTABLE_B0);
@@ -247,6 +259,16 @@ void EnGm_ProcessChoiceIndex(EnGm* this, PlayState* play) {
     if (Message_GetState(&play->msgCtx) == TEXT_STATE_CHOICE && Message_ShouldAdvance(play)) {
         switch (play->msgCtx.choiceIndex) {
             case 0: // yes
+                if (OotmmCustomItems_MedigoronSellsKeg()) {
+                    if (gSaveContext.rupees < OotmmCustomItems_MedigoronKegPrice()) {
+                        Message_ContinueTextbox(play, 0xC8);
+                    } else {
+                        OotmmCustomItems_BuyKegFromMedigoron();
+                        Message_ContinueTextbox(play, 0x3050);
+                    }
+                    this->actionFunc = func_80A3DD7C;
+                    break;
+                }
                 if (GameInteractor_Should(VB_CHECK_PRICE_OF_MEDIGORON, gSaveContext.rupees < 200, this)) {
                     Message_ContinueTextbox(play, 0xC8);
                     this->actionFunc = func_80A3DD7C;

@@ -5,6 +5,7 @@
  */
 
 #include "z_en_river_sound.h"
+#include "soh/OotmmSouls.h"
 
 #define FLAGS (ACTOR_FLAG_UPDATE_CULLING_DISABLED | ACTOR_FLAG_DRAW_CULLING_DISABLED)
 
@@ -41,7 +42,8 @@ void EnRiverSound_Init(Actor* thisx, PlayState* play) {
         Actor_Kill(&this->actor);
     } else if (this->actor.params == RS_SARIAS_SONG) {
         if (CVarGetInteger(CVAR_AUDIO("LostWoodsConsistentVolume"), 0) ||
-            (!CHECK_QUEST_ITEM(QUEST_SONG_LULLABY) || CHECK_QUEST_ITEM(QUEST_SONG_SARIA))) {
+            (!CHECK_QUEST_ITEM(QUEST_SONG_LULLABY) || CHECK_QUEST_ITEM(QUEST_SONG_SARIA)) ||
+            OotmmSouls_Withheld("NPC_SARIA")) {
             Actor_Kill(&this->actor);
         }
     }

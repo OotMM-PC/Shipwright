@@ -1,3 +1,5 @@
+#include "soh/OotmmItemApply.h"
+#include "soh/OotmmItemPage.h"
 #include "z_kaleido_scope.h"
 #include "textures/parameter_static/parameter_static.h"
 #include "textures/icon_item_static/icon_item_static.h"
@@ -330,16 +332,27 @@ bool CanMaskSelect() {
 }
 
 void KaleidoScope_HandleItemCycles(PlayState* play) {
-    // handle the mask select
-    KaleidoScope_HandleItemCycleExtras(
-        play, SLOT_TRADE_CHILD, CanMaskSelect(),
-        (INV_CONTENT(ITEM_TRADE_CHILD) <= ITEM_MASK_KEATON || INV_CONTENT(ITEM_TRADE_CHILD) > ITEM_MASK_TRUTH
-             ? ITEM_MASK_TRUTH
-             : INV_CONTENT(ITEM_TRADE_CHILD) - 1),
-        (INV_CONTENT(ITEM_TRADE_CHILD) >= ITEM_MASK_TRUTH || INV_CONTENT(ITEM_TRADE_CHILD) < ITEM_MASK_KEATON
-             ? ITEM_MASK_KEATON
-             : INV_CONTENT(ITEM_TRADE_CHILD) + 1),
-        true);
+    u8 tradeLeft;
+    u8 tradeRight;
+
+    if (OotmmItemApply_TradeCycleNeighbors(SLOT_TRADE_CHILD, &tradeLeft, &tradeRight)) {
+        KaleidoScope_HandleItemCycleExtras(play, SLOT_TRADE_CHILD, true, tradeLeft, tradeRight, true);
+    } else {
+        // handle the mask select
+        KaleidoScope_HandleItemCycleExtras(
+            play, SLOT_TRADE_CHILD, CanMaskSelect(),
+            (INV_CONTENT(ITEM_TRADE_CHILD) <= ITEM_MASK_KEATON || INV_CONTENT(ITEM_TRADE_CHILD) > ITEM_MASK_TRUTH
+                 ? ITEM_MASK_TRUTH
+                 : INV_CONTENT(ITEM_TRADE_CHILD) - 1),
+            (INV_CONTENT(ITEM_TRADE_CHILD) >= ITEM_MASK_TRUTH || INV_CONTENT(ITEM_TRADE_CHILD) < ITEM_MASK_KEATON
+                 ? ITEM_MASK_KEATON
+                 : INV_CONTENT(ITEM_TRADE_CHILD) + 1),
+            true);
+    }
+
+    if (OotmmItemApply_TradeCycleNeighbors(SLOT_TRADE_ADULT, &tradeLeft, &tradeRight)) {
+        KaleidoScope_HandleItemCycleExtras(play, SLOT_TRADE_ADULT, true, tradeLeft, tradeRight, true);
+    }
 
     // the slot age requirement for the child trade slot has to be updated
     // in case it currently holds a mask
@@ -361,15 +374,26 @@ void KaleidoScope_HandleItemCycles(PlayState* play) {
 }
 
 void KaleidoScope_DrawItemCycles(PlayState* play) {
-    // draw the mask select
-    KaleidoScope_DrawItemCycleExtras(
-        play, SLOT_TRADE_CHILD, CanMaskSelect(),
-        (INV_CONTENT(ITEM_TRADE_CHILD) <= ITEM_MASK_KEATON || INV_CONTENT(ITEM_TRADE_CHILD) > ITEM_MASK_TRUTH
-             ? ITEM_MASK_TRUTH
-             : INV_CONTENT(ITEM_TRADE_CHILD) - 1),
-        (INV_CONTENT(ITEM_TRADE_CHILD) >= ITEM_MASK_TRUTH || INV_CONTENT(ITEM_TRADE_CHILD) < ITEM_MASK_KEATON
-             ? ITEM_MASK_KEATON
-             : INV_CONTENT(ITEM_TRADE_CHILD) + 1));
+    u8 tradeLeft;
+    u8 tradeRight;
+
+    if (OotmmItemApply_TradeCycleNeighbors(SLOT_TRADE_CHILD, &tradeLeft, &tradeRight)) {
+        KaleidoScope_DrawItemCycleExtras(play, SLOT_TRADE_CHILD, true, tradeLeft, tradeRight);
+    } else {
+        // draw the mask select
+        KaleidoScope_DrawItemCycleExtras(
+            play, SLOT_TRADE_CHILD, CanMaskSelect(),
+            (INV_CONTENT(ITEM_TRADE_CHILD) <= ITEM_MASK_KEATON || INV_CONTENT(ITEM_TRADE_CHILD) > ITEM_MASK_TRUTH
+                 ? ITEM_MASK_TRUTH
+                 : INV_CONTENT(ITEM_TRADE_CHILD) - 1),
+            (INV_CONTENT(ITEM_TRADE_CHILD) >= ITEM_MASK_TRUTH || INV_CONTENT(ITEM_TRADE_CHILD) < ITEM_MASK_KEATON
+                 ? ITEM_MASK_KEATON
+                 : INV_CONTENT(ITEM_TRADE_CHILD) + 1));
+    }
+
+    if (OotmmItemApply_TradeCycleNeighbors(SLOT_TRADE_ADULT, &tradeLeft, &tradeRight)) {
+        KaleidoScope_DrawItemCycleExtras(play, SLOT_TRADE_ADULT, true, tradeLeft, tradeRight);
+    }
 }
 
 bool IsItemCycling() {
@@ -398,6 +422,14 @@ void KaleidoScope_DrawItemSelect(PlayState* play) {
     s16 cursorY;
     s16 oldCursorPoint;
     s16 moveCursorResult;
+
+    OotmmItemPage_DrawPageIndicator(play);
+
+    if (OotmmItemPage_Active()) {
+        OotmmItemPage_UpdateCursor(play);
+        OotmmItemPage_Draw(play);
+        return;
+    }
 
     OPEN_DISPS(play->state.gfxCtx);
 

@@ -86,6 +86,11 @@ ResourceFactoryBinaryAnimationV0::ReadResource(std::shared_ptr<Ship::File> file,
         const auto animData = std::static_pointer_cast<Animation>(
             Ship::Context::GetInstance()->GetResourceManager()->LoadResourceProcess(path.c_str()));
 
+        if (animData == nullptr) {
+            SPDLOG_ERROR("Link animation {} is missing its frame data at {}", initData->Path, path);
+            return nullptr;
+        }
+
         animation->animationData.linkAnimationHeader.segment = animData->GetPointer();
     } else if (animType == AnimationType::Legacy) {
         SPDLOG_DEBUG("BEYTAH ANIMATION?!");

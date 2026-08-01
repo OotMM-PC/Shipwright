@@ -6,6 +6,7 @@
 #include "soh/SohGui/SohGui.hpp"
 #include "soh/SaveManager.h"
 #include "soh/OotmmIpc.h"
+#include "soh/OotmmItemApply.h"
 #include "soh/OotmmItemProbe.h"
 #include "soh/OotmmSession.h"
 #include "libultraship/bridge/OotmmItemRender.h"
@@ -607,6 +608,33 @@ void DrawInventoryTab() {
                     UIWidgets::Tooltip(SohUtils::GetItemName(slotEntry.id).c_str());
                 }
 
+                if (OotmmSession_IsActive() &&
+                    (selectedIndex == SLOT_TRADE_CHILD || selectedIndex == SLOT_TRADE_ADULT)) {
+                    uint8_t candidates[16];
+                    const int32_t candidateCount = OotmmItemApply_TradeSlotCandidates(
+                        static_cast<uint8_t>(selectedIndex), candidates, ARRAY_COUNT(candidates));
+                    uint8_t ownedItems[16];
+                    const int32_t ownedCount = OotmmItemApply_OwnedTradeItems(
+                        static_cast<uint8_t>(selectedIndex), ownedItems, ARRAY_COUNT(ownedItems));
+                    if (candidateCount > 0) {
+                        ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(4, 4));
+                        ImGui::Separator();
+                        ImGui::Text("Owned in this slot");
+                        for (int32_t i = 0; i < candidateCount; i++) {
+                            bool owned = std::find(ownedItems, ownedItems + ownedCount,
+                                                   candidates[i]) != ownedItems + ownedCount;
+                            ImGui::PushID(candidates[i]);
+                            if (ImGui::Checkbox(SohUtils::GetItemName(candidates[i]).c_str(),
+                                                &owned)) {
+                                OotmmItemApply_SetTradeItemOwned(static_cast<uint8_t>(selectedIndex),
+                                                                 candidates[i], owned);
+                            }
+                            ImGui::PopID();
+                        }
+                        ImGui::PopStyleVar();
+                    }
+                }
+
                 ImGui::EndPopup();
             }
             ImGui::PopStyleVar();
@@ -1159,6 +1187,29 @@ void DrawUpgrade(const std::string& categoryName, int32_t categoryId, const std:
     UIWidgets::Tooltip(categoryName.c_str());
 }
 
+void DrawOotmmTierUpgrade(const std::string& categoryName, const std::vector<std::string>& names, size_t nativeTier,
+                          const std::string& itemId, const std::string& sharedItemId, bool sharedPool) {
+    const auto& inventory = OotmmIpc_GetInventory();
+    const size_t granted = std::max(inventory.Count(itemId), inventory.Count(sharedItemId));
+    const size_t value = std::min(std::max(nativeTier, granted), names.size() - 1);
+    ImGui::Text("%s", categoryName.c_str());
+    ImGui::SameLine();
+    ImGui::PushID(categoryName.c_str());
+    PushStyleCombobox(THEME_COLOR);
+    ImGui::AlignTextToFramePadding();
+    if (ImGui::BeginCombo("##upgrade", names[value].c_str())) {
+        for (size_t i = 0; i < names.size(); i++) {
+            if (ImGui::Selectable(names[i].c_str(), i == value)) {
+                OotmmIpc_SetDebugItemValue(sharedPool ? sharedItemId : itemId, static_cast<uint32_t>(i));
+            }
+        }
+        ImGui::EndCombo();
+    }
+    PopStyleCombobox();
+    ImGui::PopID();
+    UIWidgets::Tooltip(categoryName.c_str());
+}
+
 // Draws a combo that lets you choose and upgrade value from a popup grid of icons
 void DrawUpgradeIcon(const std::string& categoryName, int32_t categoryId, const std::vector<uint8_t>& items) {
     static const char* upgradePopupPicker = "upgradePopupPicker";
@@ -1281,14 +1332,16 @@ void DrawEquipmentTab() {
     };
     DrawUpgradeIcon("Bomb Bag", UPG_BOMB_BAG, bombBagValues);
 
-    ImGui::SameLine();
+    if (!OotmmSession_IsActive()) {
+        ImGui::SameLine();
 
-    const std::vector<uint8_t> scaleValues = {
-        ITEM_NONE,
-        ITEM_SCALE_SILVER,
-        ITEM_SCALE_GOLDEN,
-    };
-    DrawUpgradeIcon("Scale", UPG_SCALE, scaleValues);
+        const std::vector<uint8_t> scaleValues = {
+            ITEM_NONE,
+            ITEM_SCALE_SILVER,
+            ITEM_SCALE_GOLDEN,
+        };
+        DrawUpgradeIcon("Scale", UPG_SCALE, scaleValues);
+    }
 
     ImGui::SameLine();
 
@@ -1300,13 +1353,47 @@ void DrawEquipmentTab() {
     };
     DrawUpgradeIcon("Strength", UPG_STRENGTH, strengthValues);
 
-    // There is no icon for child wallet, so default to a text list
-    const std::vector<std::string> walletNames = {
-        "Child (99)",
-        "Adult (200)",
-        "Giant (500)",
-    };
-    DrawUpgrade("Wallet", UPG_WALLET, walletNames);
+    if (OotmmSession_IsActive()) {
+        const auto& state = OotmmSession_GetState();
+
+        const bool bronzeScale = state.GetBoolSetting("bronzeScale", false);
+        std::vector<std::string> scaleNames = { "None" };
+        if (bronzeScale) {
+            scaleNames.push_back("Bronze Scale");
+        }
+        scaleNames.push_back("Silver Scale");
+        scaleNames.push_back("Golden Scale");
+        const size_t nativeScale = CUR_UPG_VALUE(UPG_SCALE);
+        DrawOotmmTierUpgrade("Scale", scaleNames, bronzeScale && nativeScale > 0 ? nativeScale + 1 : nativeScale,
+                             "OOT_SCALE", "SHARED_SCALE", state.GetBoolSetting("sharedScales", false));
+
+        const bool childWallets = state.GetBoolSetting("childWallets", false);
+        std::vector<std::string> walletTierNames;
+        if (childWallets) {
+            walletTierNames.push_back("None");
+        }
+        walletTierNames.push_back("Child (99)");
+        walletTierNames.push_back("Adult (200)");
+        walletTierNames.push_back("Giant (500)");
+        if (state.GetBoolSetting("colossalWallets", false)) {
+            walletTierNames.push_back("Colossal (999)");
+            if (state.GetBoolSetting("bottomlessWallets", false)) {
+                walletTierNames.push_back("Bottomless (9999)");
+            }
+        }
+        const size_t nativeWallet = CUR_UPG_VALUE(UPG_WALLET);
+        DrawOotmmTierUpgrade("Wallet", walletTierNames,
+                             childWallets && nativeWallet > 0 ? nativeWallet + 1 : nativeWallet, "OOT_WALLET",
+                             "SHARED_WALLET", state.GetBoolSetting("sharedWallets", false));
+    } else {
+        // There is no icon for child wallet, so default to a text list
+        const std::vector<std::string> walletNames = {
+            "Child (99)",
+            "Adult (200)",
+            "Giant (500)",
+        };
+        DrawUpgrade("Wallet", UPG_WALLET, walletNames);
+    }
 
     const std::vector<std::string> stickNames = {
         "None",

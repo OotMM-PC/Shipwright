@@ -14,6 +14,8 @@
 #include "soh/OTRGlobals.h"
 #include "soh/SaveManager.h"
 #include "soh/ResourceManagerHelpers.h"
+#include "soh/OotmmSongs.h"
+#include "soh/OotmmSongsPlayer.h"
 
 // #region SOH [NTSC] - Allows custom messages to work on japanese
 static bool sDisplayNextMessageAsEnglish = false;
@@ -2937,6 +2939,7 @@ void Message_StartOcarina(PlayState* play, u16 ocarinaActionId) {
     s16 noStop;
     s32 k;
 
+    OotmmSongs_ClearPlayed();
     osSyncPrintf(VT_FGCOL(GREEN));
 
     for (i = sOcarinaSongBitFlags = 0; i < (QUEST_KOKIRI_EMERALD - QUEST_SONG_MINUET); i++) {
@@ -3453,6 +3456,27 @@ void Message_DrawMain(PlayState* play, Gfx** p) {
                     }
                 }
                 msgCtx->lastPlayedSong = msgCtx->ocarinaStaff->state;
+                if (msgCtx->ocarinaStaff->state > OOTMM_SONG_STAFF_BASE &&
+                    msgCtx->ocarinaStaff->state < OOTMM_SONG_STAFF_BASE + OOTMM_SONG_MAX) {
+                    if (msgCtx->ocarinaAction == OCARINA_ACTION_CHECK_NOWARP) {
+                        Audio_OcaSetInstrument(0);
+                        Audio_PlaySoundGeneral(NA_SE_SY_OCARINA_ERROR, &gSfxDefaultPos, 4,
+                                               &gSfxDefaultFreqAndVolScale, &gSfxDefaultFreqAndVolScale,
+                                               &gSfxDefaultReverb);
+                        msgCtx->msgMode = MSGMODE_OCARINA_STARTING;
+                    } else {
+                        OotmmSongs_NotePlayed(msgCtx->ocarinaStaff->state - OOTMM_SONG_STAFF_BASE);
+                        Message_ContinueTextbox(play, 0x86F); // Ocarina
+                        msgCtx->msgMode = MSGMODE_SONG_PLAYED;
+                        msgCtx->textBoxType = TEXTBOX_TYPE_OCARINA;
+                        msgCtx->stateTimer = 10;
+                        Audio_PlaySoundGeneral(NA_SE_SY_TRE_BOX_APPEAR, &gSfxDefaultPos, 4,
+                                               &gSfxDefaultFreqAndVolScale, &gSfxDefaultFreqAndVolScale,
+                                               &gSfxDefaultReverb);
+                        Interface_ChangeAlpha(1);
+                    }
+                    break;
+                }
                 if (msgCtx->ocarinaStaff->state < OCARINA_SONG_MEMORY_GAME) {
                     if (msgCtx->ocarinaStaff->state == OCARINA_SONG_SCARECROW ||
                         CHECK_QUEST_ITEM(QUEST_SONG_MINUET + gOcarinaSongItemMap[msgCtx->ocarinaStaff->state])) {
@@ -3658,8 +3682,15 @@ void Message_DrawMain(PlayState* play, Gfx** p) {
                     msgCtx->ocarinaStaff = Audio_OcaGetPlayingStaff();
                     msgCtx->ocarinaStaff->pos = sOcarinaNoteBufPos = 0;
                     Message_ResetOcarinaNoteState();
-                    if (msgCtx->lastPlayedSong >= OCARINA_SONG_SARIAS &&
-                        msgCtx->lastPlayedSong < OCARINA_SONG_MEMORY_GAME) {
+                    if (OotmmSongs_Played() != OOTMM_SONG_NONE) {
+                        if (OotmmSongs_EffectActorId() >= 0) {
+                            Actor_Spawn(&play->actorCtx, play, (s16)OotmmSongs_EffectActorId(),
+                                        player->actor.world.pos.x, player->actor.world.pos.y,
+                                        player->actor.world.pos.z, 0, 0, 0,
+                                        (s16)OotmmSongs_EffectActorParams());
+                        }
+                    } else if (msgCtx->lastPlayedSong >= OCARINA_SONG_SARIAS &&
+                               msgCtx->lastPlayedSong < OCARINA_SONG_MEMORY_GAME) {
                         Actor_Spawn(&play->actorCtx, play,
                                     sOcarinaEffectActorIds[msgCtx->lastPlayedSong - OCARINA_SONG_SARIAS],
                                     player->actor.world.pos.x, player->actor.world.pos.y, player->actor.world.pos.z, 0,
@@ -3679,12 +3710,23 @@ void Message_DrawMain(PlayState* play, Gfx** p) {
                     }
                     Audio_OcaSetInstrument(1);
                     Audio_OcaSetInstrument(1);
-                    Audio_OcaSetSongPlayback(msgCtx->lastPlayedSong + 1, 1);
+                    if (OotmmSongs_Played() != OOTMM_SONG_NONE) {
+                        Ootmm_OcarinaSetSongPlayback(OotmmSongs_Played());
+                    } else {
+                        Audio_OcaSetSongPlayback(msgCtx->lastPlayedSong + 1, 1);
+                    }
                 } else {
                     Audio_OcaSetInstrument(1);
                     Audio_OcaSetInstrument(1);
                 }
-                if (msgCtx->lastPlayedSong != OCARINA_SONG_SCARECROW) {
+                if (OotmmSongs_Played() != OOTMM_SONG_NONE) {
+                    s32 ootmmFanfare = OotmmSongs_FanfareSeqId(OotmmSongs_Played());
+
+                    if (ootmmFanfare >= 0) {
+                        Audio_PlayFanfare((u16)ootmmFanfare);
+                        Audio_SetSoundBanksMute(0x20);
+                    }
+                } else if (msgCtx->lastPlayedSong != OCARINA_SONG_SCARECROW) {
                     Audio_PlayFanfare(sOcarinaSongFanfares[msgCtx->lastPlayedSong]);
                     Audio_SetSoundBanksMute(0x20);
                 }
@@ -3727,7 +3769,12 @@ void Message_DrawMain(PlayState* play, Gfx** p) {
                 }
                 break;
             case MSGMODE_DISPLAY_SONG_PLAYED_TEXT_BEGIN:
-                Message_ContinueTextbox(play, msgCtx->lastPlayedSong + 0x893); // You played [song name]
+                if (OotmmSongs_Played() != OOTMM_SONG_NONE) {
+                    Message_ContinueTextbox(play, 0x893); // You played [song name]
+                    OotmmSongs_LoadPlayedText();
+                } else {
+                    Message_ContinueTextbox(play, msgCtx->lastPlayedSong + 0x893); // You played [song name]
+                }
                 Message_Decode(play);
                 msgCtx->msgMode = MSGMODE_DISPLAY_SONG_PLAYED_TEXT;
 
@@ -3771,6 +3818,12 @@ void Message_DrawMain(PlayState* play, Gfx** p) {
             case MSGMODE_SONG_PLAYED_ACT:
                 msgCtx->stateTimer--;
                 if (msgCtx->stateTimer == 0) {
+                    if (OotmmSongs_Played() != OOTMM_SONG_NONE) {
+                        Message_CloseTextbox(play);
+                        OotmmSongs_Begin(play);
+                        GameInteractor_ExecuteOnOcarinaSongAction();
+                        break;
+                    }
                     if (msgCtx->lastPlayedSong < OCARINA_SONG_SARIAS &&
                         (msgCtx->ocarinaAction < OCARINA_ACTION_PLAYBACK_MINUET ||
                          msgCtx->ocarinaAction >= OCARINA_ACTION_PLAYBACK_SARIA)) {
@@ -4389,6 +4442,8 @@ void Message_Draw(PlayState* play) {
     Graph_BranchDlist(polyOpaP, plusOne);
     POLY_OPA_DISP = plusOne;
     CLOSE_DISPS(play->state.gfxCtx);
+
+    OotmmSongs_DrawMenu(play);
 }
 
 void Message_Update(PlayState* play) {
@@ -4699,7 +4754,7 @@ void Message_Update(PlayState* play) {
                     player->naviTextId = -0xE0;
                     player->naviActor->flags |= 0x10000;
                 }
-                if (msgCtx->ocarinaAction == OCARINA_ACTION_FREE_PLAY_DONE &&
+                if (msgCtx->ocarinaAction == OCARINA_ACTION_FREE_PLAY_DONE && !OotmmSongs_MenuIsOpen() &&
                     (play->msgCtx.ocarinaMode == OCARINA_MODE_01 || play->msgCtx.ocarinaMode == OCARINA_MODE_0B)) {
                     play->msgCtx.ocarinaMode = OCARINA_MODE_04;
                     if (msgCtx->unk_E3F2 == OCARINA_SONG_SUNS) {
