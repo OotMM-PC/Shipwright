@@ -43,6 +43,9 @@ uint32_t sCrossGameWaitFrames = 0;
 std::optional<uint32_t> sPendingExtendedSource;
 std::optional<uint32_t> sLastResolvedEntrance;
 uint16_t sGrottoExitSource = 0;
+uint16_t sGrottoReturnEntrance = 0;
+// respawnFlag value that restores respawn[RESPAWN_MODE_RETURN].
+constexpr int32_t kRespawnGrottoPopOut = 2;
 
 std::filesystem::path ActiveFileMarkerPath() {
     return std::filesystem::path(
@@ -101,8 +104,9 @@ void ApplyGrottoExit(const OotGrottoExit& exit) {
     respawn->tempSwchFlags = 0;
     respawn->tempCollectFlags = 0;
     gSaveContext.respawn[RESPAWN_MODE_DOWN] = *respawn;
-    gSaveContext.respawnFlag = 2;
+    gSaveContext.respawnFlag = kRespawnGrottoPopOut;
     gSaveContext.nextTransitionType = TRANS_TYPE_FADE_WHITE;
+    sGrottoReturnEntrance = exit.Entrance;
 }
 
 uint32_t TranslateGrottoEntry(uint16_t entrance, int16_t scene, int8_t data) {
@@ -661,9 +665,11 @@ void UpdateEntranceTransition() {
     if (!sPendingExtendedSource.has_value() && nextEntrance < ENTR_MAX &&
         gEntranceTable[nextEntrance].scene == gPlayState->sceneNum) {
         sLastResolvedEntrance = nextEntrance;
+        sGrottoReturnEntrance = 0;
         return;
     }
 
+    sGrottoReturnEntrance = 0;
     uint32_t source = sPendingExtendedSource.value_or(nextEntrance);
     sPendingExtendedSource.reset();
     if (source == nextEntrance) {
@@ -921,6 +927,15 @@ extern "C" void OotmmSession_PrepareGrottoReturn(void) {
         sPendingExtendedSource = source;
         sGrottoExitSource = 0;
     }
+}
+
+extern "C" void OotmmSession_ApplyDeathRespawn(void) {
+    if (!OotmmSession_IsActive() || gPlayState == nullptr || sGrottoReturnEntrance == 0 ||
+        sGrottoReturnEntrance != static_cast<uint16_t>(gSaveContext.entranceIndex)) {
+        return;
+    }
+    gPlayState->nextEntranceIndex = gSaveContext.respawn[RESPAWN_MODE_RETURN].entranceIndex;
+    gSaveContext.respawnFlag = kRespawnGrottoPopOut;
 }
 
 extern "C" int32_t OotmmSession_IsSceneMasterQuest(int32_t sceneNum) {

@@ -17,6 +17,8 @@ void OotmmSession_FixLoadSpawn(void);
 int32_t OotmmSession_TryStartLoadSpawnHandoff(void);
 void OotmmSession_NotePlayerExitTransition(void);
 void OotmmSession_PrepareGrottoReturn(void);
+/// Sends the player back out of the grotto they entered the scene from, which the death reload drops.
+void OotmmSession_ApplyDeathRespawn(void);
 /// True when the seed's mqDungeons world flag marks this scene Master Quest; 0 without a seed.
 int32_t OotmmSession_IsSceneMasterQuest(int32_t sceneNum);
 

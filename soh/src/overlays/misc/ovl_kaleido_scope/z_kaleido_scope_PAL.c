@@ -1,5 +1,6 @@
 #include "soh/OotmmItemPage.h"
 #include "soh/OotmmScales.h"
+#include "soh/OotmmSession.h"
 #include "z_kaleido_scope.h"
 #include <stdlib.h>
 #include <string.h>
@@ -4769,6 +4770,7 @@ void KaleidoScope_Update(PlayState* play) {
                     if (pauseCtx->promptChoice == 0 && GameInteractor_Should(VB_BE_ABLE_TO_SAVE, true)) {
                         Play_TriggerRespawn(play);
                         gSaveContext.respawnFlag = -2;
+                        OotmmSession_ApplyDeathRespawn();
                         // Reset frame counter to prevent autosave on respawn
                         play->gameplayFrames = 0;
                         gSaveContext.nextTransitionType = TRANS_TYPE_FADE_BLACK;
