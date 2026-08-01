@@ -1,4 +1,5 @@
 #include "soh/OotmmItemPage.h"
+#include "soh/OotmmScales.h"
 #include "z_kaleido_scope.h"
 #include <stdlib.h>
 #include <string.h>
@@ -2174,7 +2175,9 @@ void KaleidoScope_DrawInfoPanel(PlayState* play) {
                 gDPSetPrimColor(POLY_OPA_DISP++, 0, 0, 255, 255, 255, 255);
             }
 
-            POLY_OPA_DISP = KaleidoScope_QuadTextureIA4(POLY_OPA_DISP, pauseCtx->nameSegment, 128, 16, 0);
+            if (!OotmmScales_DrawSlotName(play)) {
+                POLY_OPA_DISP = KaleidoScope_QuadTextureIA4(POLY_OPA_DISP, pauseCtx->nameSegment, 128, 16, 0);
+            }
         }
 
         if (pauseCtx->pageIndex == PAUSE_MAP && CVarGetInteger(CVAR_DEVELOPER_TOOLS("SkulltulaDebugEnabled"), 0) != 0) {

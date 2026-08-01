@@ -4,6 +4,13 @@
 #include "soh/Enhancements/cosmetics/cosmeticsTypes.h"
 #include "soh/Enhancements/enhancementTypes.h"
 #include "soh/Enhancements/game-interactor/GameInteractor_Hooks.h"
+#include "soh/OotmmScales.h"
+
+// The cursor rows are UPG_QUIVER, UPG_BOMB_BAG, UPG_STRENGTH, UPG_SCALE in order, so cursorY
+// doubles as the upgrade index.
+static s32 KaleidoScope_UpgradeSlotFilled(s32 upgrade) {
+    return CUR_UPG_VALUE(upgrade) != 0 || (upgrade == UPG_SCALE && OotmmScales_SlotFilled());
+}
 
 static u8 sChildUpgrades[] = { UPG_BULLET_BAG, UPG_BOMB_BAG, UPG_STRENGTH, UPG_SCALE };
 static u8 sAdultUpgrades[] = { UPG_QUIVER, UPG_BOMB_BAG, UPG_STRENGTH, UPG_SCALE };
@@ -233,7 +240,7 @@ void KaleidoScope_DrawEquipment(PlayState* play) {
                                     cursorMoveResult = 1;
                                 }
                             } else {
-                                if (CUR_UPG_VALUE(pauseCtx->cursorY[PAUSE_EQUIP]) != 0) {
+                                if (KaleidoScope_UpgradeSlotFilled(pauseCtx->cursorY[PAUSE_EQUIP])) {
                                     cursorMoveResult = 1;
                                 }
                             }
@@ -270,7 +277,7 @@ void KaleidoScope_DrawEquipment(PlayState* play) {
                         pauseCtx->cursorPoint[PAUSE_EQUIP] += 1;
 
                         if (pauseCtx->cursorX[PAUSE_EQUIP] == 0) {
-                            if (CUR_UPG_VALUE(pauseCtx->cursorY[PAUSE_EQUIP]) != 0) {
+                            if (KaleidoScope_UpgradeSlotFilled(pauseCtx->cursorY[PAUSE_EQUIP])) {
                                 cursorMoveResult = 1;
                             }
                         } else if ((gBitFlags[pauseCtx->cursorPoint[PAUSE_EQUIP] - 1] &
@@ -322,7 +329,7 @@ void KaleidoScope_DrawEquipment(PlayState* play) {
                                 if (CUR_UPG_VALUE(UPG_BULLET_BAG) != 0) {
                                     cursorMoveResult = 1;
                                 }
-                            } else if (CUR_UPG_VALUE(pauseCtx->cursorY[PAUSE_EQUIP]) != 0) {
+                            } else if (KaleidoScope_UpgradeSlotFilled(pauseCtx->cursorY[PAUSE_EQUIP])) {
                                 cursorMoveResult = 1;
                             }
                         } else if ((gBitFlags[pauseCtx->cursorPoint[PAUSE_EQUIP] - 1] &
@@ -341,7 +348,7 @@ void KaleidoScope_DrawEquipment(PlayState* play) {
                         pauseCtx->cursorPoint[PAUSE_EQUIP] += 4;
 
                         if (pauseCtx->cursorX[PAUSE_EQUIP] == 0) {
-                            if (CUR_UPG_VALUE(pauseCtx->cursorY[PAUSE_EQUIP]) != 0) {
+                            if (KaleidoScope_UpgradeSlotFilled(pauseCtx->cursorY[PAUSE_EQUIP])) {
                                 cursorMoveResult = 1;
                             }
                         } else if ((gBitFlags[pauseCtx->cursorPoint[PAUSE_EQUIP] - 1] &
@@ -376,7 +383,7 @@ void KaleidoScope_DrawEquipment(PlayState* play) {
                                 pauseCtx->cursorY[PAUSE_EQUIP] = cursorY;
                                 break;
                             }
-                        } else if (CUR_UPG_VALUE(cursorY) != 0) {
+                        } else if (KaleidoScope_UpgradeSlotFilled(cursorY)) {
                             pauseCtx->cursorPoint[PAUSE_EQUIP] = cursorPoint;
                             pauseCtx->cursorX[PAUSE_EQUIP] = cursorX;
                             pauseCtx->cursorY[PAUSE_EQUIP] = cursorY;
@@ -417,7 +424,7 @@ void KaleidoScope_DrawEquipment(PlayState* play) {
                 cursorY = 0;
                 while (true) {
                     if (cursorX == 0) {
-                        if (CUR_UPG_VALUE(cursorY) != 0) {
+                        if (KaleidoScope_UpgradeSlotFilled(cursorY)) {
                             pauseCtx->cursorPoint[PAUSE_EQUIP] = cursorPoint;
                             pauseCtx->cursorX[PAUSE_EQUIP] = cursorX;
                             pauseCtx->cursorY[PAUSE_EQUIP] = cursorY;
@@ -468,6 +475,10 @@ void KaleidoScope_DrawEquipment(PlayState* play) {
                                  CUR_UPG_VALUE(pauseCtx->cursorY[PAUSE_EQUIP]) - 1;
                     osSyncPrintf("大人 H_arrowcase_1 + non_equip_item_table = %d\n", cursorItem);
                 }
+            }
+
+            if ((pauseCtx->cursorY[PAUSE_EQUIP] == UPG_SCALE) && (OotmmScales_Tier() == OOTMM_SCALE_BRONZE)) {
+                cursorItem = ITEM_OOTMM_SCALE_BRONZE;
             }
         } else {
             cursorItem = ITEM_SWORD_KOKIRI + sEquipmentItemOffsets[pauseCtx->cursorPoint[PAUSE_EQUIP]];
@@ -773,7 +784,9 @@ void KaleidoScope_DrawEquipment(PlayState* play) {
     for (rowStart = 0, j = 0, temp = 0, i = 0; i < 4; i++, rowStart += 4, j += 16) {
         gSPVertex(POLY_OPA_DISP++, &pauseCtx->equipVtx[j], 16, 0);
         bool drawGreyItems = !CVarGetInteger(CVAR_CHEAT("TimelessEquipment"), 0);
-        if (LINK_AGE_IN_YEARS == YEARS_CHILD) {
+        if ((sChildUpgrades[i] == UPG_SCALE) && OotmmScales_DrawSlotIcon(play)) {
+            // Bronze leaves UPG_SCALE at zero, so neither age branch below would draw the slot.
+        } else if (LINK_AGE_IN_YEARS == YEARS_CHILD) {
             point = CUR_UPG_VALUE(sChildUpgrades[i]);
             if ((point != 0) && (CUR_UPG_VALUE(sChildUpgrades[i]) != 0)) {
                 // Grey Out the Gauntlets as Child
