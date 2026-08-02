@@ -48,9 +48,24 @@ uint16_t sGrottoReturnEntrance = 0;
 constexpr int32_t kRespawnGrottoPopOut = 2;
 
 std::filesystem::path ActiveFileMarkerPath() {
-    return std::filesystem::path(
-               Ship::Context::GetPathRelativeToAppDirectory(OotmmSession_GetSaveSubdirectory())) /
-           "last-file";
+    // Beside the session state, where MM can read it too.
+    return std::filesystem::path(sGameState.GetBootConfig().StatePath + ".last-file");
+}
+
+void DeleteForeignSave(int32_t fileNum) {
+    const auto& boot = sGameState.GetBootConfig();
+    std::error_code ec;
+    if (!boot.MmSaveDir.empty()) {
+        const std::filesystem::path dir =
+            std::filesystem::path(boot.MmSaveDir) / ("ootmm-" + sGameState.GetNativeSaveTag());
+        const std::string stem = "file" + std::to_string(fileNum + 1);
+        std::filesystem::remove(dir / (stem + ".json"), ec);
+        std::filesystem::remove(dir / (stem + "backup.json"), ec);
+    }
+    // A surviving ledger would suppress every re-grant onto the file that replaces this one.
+    if (!boot.StatePath.empty()) {
+        std::filesystem::remove(boot.StatePath + ".applied." + std::to_string(fileNum), ec);
+    }
 }
 
 void RecordActiveSaveFile(int32_t fileNum) {
@@ -820,6 +835,7 @@ void OotmmSession_Init() {
                 ApplySaveFlags();
                 ApplyBootEntrance();
             });
+        GameInteractor::Instance->RegisterGameHook<GameInteractor::OnDeleteFile>(DeleteForeignSave);
         GameInteractor::Instance->RegisterGameHook<GameInteractor::OnGameFrameUpdate>(UpdateEntranceTransition);
         REGISTER_VB_SHOULD(VB_OPEN_KOKIRI_FOREST, {
             if (OotmmSession_IsActive()) {
