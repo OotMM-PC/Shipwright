@@ -929,6 +929,24 @@ extern "C" void OotmmSession_PrepareGrottoReturn(void) {
     }
 }
 
+extern "C" int32_t OotmmSession_ReturnToSpawn(void) {
+    if (!OotmmSession_IsActive() || gPlayState == nullptr) {
+        return 0;
+    }
+    ApplySpawnForCurrentAge();
+    if (sLoadSpawnCrossGameSource.has_value()) {
+        sLoadSpawnHandoffReady = true;
+        return OotmmSession_TryStartLoadSpawnHandoff();
+    }
+    sLoadSpawnDestination.reset();
+    gPlayState->nextEntranceIndex = gSaveContext.entranceIndex;
+    gSaveContext.respawnFlag = 0;
+    gPlayState->transitionTrigger = TRANS_TRIGGER_START;
+    gPlayState->transitionType = TRANS_TYPE_FADE_BLACK;
+    sLastResolvedEntrance = static_cast<uint16_t>(gSaveContext.entranceIndex);
+    return 1;
+}
+
 extern "C" void OotmmSession_ApplyDeathRespawn(void) {
     if (!OotmmSession_IsActive() || gPlayState == nullptr || sGrottoReturnEntrance == 0 ||
         sGrottoReturnEntrance != static_cast<uint16_t>(gSaveContext.entranceIndex)) {

@@ -1,5 +1,6 @@
 #include "soh/OotmmItemPage.h"
 #include "soh/OotmmScales.h"
+#include "soh/OotmmSaveMenu.h"
 #include "soh/OotmmSession.h"
 #include "z_kaleido_scope.h"
 #include <stdlib.h>
@@ -4424,6 +4425,7 @@ void KaleidoScope_Update(PlayState* play) {
                                                    &gSfxDefaultFreqAndVolScale, &gSfxDefaultFreqAndVolScale,
                                                    &gSfxDefaultReverb);
                             Play_PerformSave(play);
+                            OotmmSaveMenu_Open(play);
                             pauseCtx->unk_1EC = 4;
                             D_8082B25C = CVarGetInteger(CVAR_ENHANCEMENT("SkipSaveConfirmation"), 0) ? 3 /* 0.1 sec */
                                                                                                      : 90 /* 3 secs */;
@@ -4445,8 +4447,11 @@ void KaleidoScope_Update(PlayState* play) {
                     break;
 
                 case 4:
-                    if (CHECK_BTN_ALL(input->press.button, BTN_B) || CHECK_BTN_ALL(input->press.button, BTN_A) ||
-                        CHECK_BTN_ALL(input->press.button, BTN_START) || (--D_8082B25C == 0)) {
+                    if (OotmmSaveMenu_Active()
+                            ? OotmmSaveMenu_Update(play)
+                            : (CHECK_BTN_ALL(input->press.button, BTN_B) ||
+                               CHECK_BTN_ALL(input->press.button, BTN_A) ||
+                               CHECK_BTN_ALL(input->press.button, BTN_START) || (--D_8082B25C == 0))) {
                         Interface_SetDoAction(play, DO_ACTION_NONE);
                         gSaveContext.buttonStatus[0] = gSaveContext.buttonStatus[1] = gSaveContext.buttonStatus[2] =
                             gSaveContext.buttonStatus[3] = BTN_ENABLED;
