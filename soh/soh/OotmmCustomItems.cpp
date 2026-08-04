@@ -368,11 +368,8 @@ extern "C" void OotmmCustomItems_CaptureMaskMatrix(PlayState* play, Player* play
     sMaskMatrix = MATRIX_NEWMTX(play->state.gfxCtx);
 }
 
-extern "C" void OotmmCustomItems_DrawWornMask(PlayState* play, Player* player) {
-    const CustomItem* entry = FindByMask(player->currentMask);
-    Mtx* matrix = sMaskMatrix;
-
-    sMaskMatrix = nullptr;
+extern "C" void OotmmCustomItems_DrawMaskWithMatrix(PlayState* play, uint8_t mask, Mtx* matrix) {
+    const CustomItem* entry = FindByMask(mask);
     if (entry == nullptr || matrix == nullptr) {
         return;
     }
@@ -401,6 +398,13 @@ extern "C" void OotmmCustomItems_DrawWornMask(PlayState* play, Player* player) {
     gDPSetEnvColor(POLY_OPA_DISP++, sTunicEnvColor[0], sTunicEnvColor[1], sTunicEnvColor[2], 0);
 
     CLOSE_DISPS(play->state.gfxCtx);
+}
+
+extern "C" void OotmmCustomItems_DrawWornMask(PlayState* play, Player* player) {
+    Mtx* matrix = sMaskMatrix;
+
+    sMaskMatrix = nullptr;
+    OotmmCustomItems_DrawMaskWithMatrix(play, player->currentMask, matrix);
 }
 
 extern "C" void OotmmCustomItems_MarkExplosive(Actor* spawned, int explosiveType) {

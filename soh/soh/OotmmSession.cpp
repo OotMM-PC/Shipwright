@@ -4,6 +4,7 @@
 #include "OotmmItemPresentation.h"
 #include "OotmmItemProbe.h"
 #include "OotmmScales.h"
+#include "OotmmPresence.h"
 
 #include "Enhancements/enhancementTypes.h"
 #include "Enhancements/game-interactor/GameInteractor.h"
@@ -828,6 +829,7 @@ void OotmmSession_Init() {
         OotmmItemApply_Init();
         OotmmCustomItems_Init();
         OotmmScales_Init();
+        OotmmPresence_Init();
         GameInteractor::Instance->RegisterGameHook<GameInteractor::OnLoadGame>(
             [](int32_t fileNum) {
                 RecordActiveSaveFile(fileNum);

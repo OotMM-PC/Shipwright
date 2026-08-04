@@ -8,6 +8,8 @@ extern "C" {
 
 void OotmmCustomItems_SetTunicEnvColor(u8 r, u8 g, u8 b);
 Gfx* OotmmCustomItems_GreatFairySwordHand(PlayState* play, Gfx* handDList);
+/// Draws a worn cross-game mask at an explicit head-limb matrix, for remote-player puppets.
+void OotmmCustomItems_DrawMaskWithMatrix(PlayState* play, uint8_t mask, Mtx* matrix);
 int OotmmCustomItems_ActorIgnoresPlayer(Actor* actor, Player* player);
 /// Returns 1 when the worn Blast Mask detonated and consumed the B press.
 int OotmmCustomItems_TryBlastMask(PlayState* play, Player* player);

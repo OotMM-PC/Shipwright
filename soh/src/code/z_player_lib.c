@@ -8,6 +8,7 @@
 
 #include "soh/Enhancements/game-interactor/GameInteractor.h"
 #include "soh/OotmmCustomItemsPlayer.h"
+#include "soh/OotmmPresence.h"
 #include "soh/Enhancements/game-interactor/GameInteractor_Hooks.h"
 #include "soh/ResourceManagerHelpers.h"
 
@@ -1411,6 +1412,11 @@ s32 Player_OverrideLimbDrawGameplayDefault(PlayState* play, s32 limbIndex, Gfx**
             } else {
                 *dList = ResourceMgr_LoadGfxByName(dLists[sDListsLodOffset]);
             }
+
+            if (this == GET_PLAYER(play)) {
+                gOotmmEquipDlCapture[0] = (const char*)dLists[0];
+                gOotmmEquipTypeCapture[0] = sLeftHandType;
+            }
         } else if (limbIndex == PLAYER_LIMB_R_HAND) {
             Gfx** dLists = this->rightHandDLists;
 
@@ -1423,6 +1429,11 @@ s32 Player_OverrideLimbDrawGameplayDefault(PlayState* play, s32 limbIndex, Gfx**
             }
 
             *dList = ResourceMgr_LoadGfxByName(dLists[sDListsLodOffset]);
+
+            if (this == GET_PLAYER(play)) {
+                gOotmmEquipDlCapture[1] = (const char*)dLists[0];
+                gOotmmEquipTypeCapture[1] = sRightHandType;
+            }
         } else if (limbIndex == PLAYER_LIMB_SHEATH) {
             Gfx** dLists = this->sheathDLists;
 
@@ -1451,12 +1462,20 @@ s32 Player_OverrideLimbDrawGameplayDefault(PlayState* play, s32 limbIndex, Gfx**
                 *dList = NULL;
             }
 
+            if (this == GET_PLAYER(play)) {
+                gOotmmEquipDlCapture[2] = (dLists[sDListsLodOffset] != NULL) ? (const char*)dLists[0] : "-";
+            }
         } else if (limbIndex == PLAYER_LIMB_WAIST) {
 
             if (!Player_IsCustomLinkModel()) {
                 *dList = ResourceMgr_LoadGfxByName(
                     this->waistDLists[sDListsLodOffset]); // NOTE: This needs to be disabled when using custom
                                                           // characters - they're not going to have LODs anyways...
+            }
+
+            if (this == GET_PLAYER(play)) {
+                // A custom local model keeps its skeleton's waist limb; puppets do the same ("").
+                gOotmmEquipDlCapture[3] = !Player_IsCustomLinkModel() ? (const char*)this->waistDLists[0] : NULL;
             }
         }
     }

@@ -612,8 +612,25 @@ static ActorDBInit EnPartnerInit = {
 };
 extern "C" s16 gEnPartnerId;
 
+#include "soh/OotmmPresence.h"
+
+static ActorDBInit OotmmPuppetInit = {
+    "En_OotmmPuppet",
+    "OoTMM Remote Player",
+    ACTORCAT_NPC,
+    (ACTOR_FLAG_UPDATE_CULLING_DISABLED | ACTOR_FLAG_DRAW_CULLING_DISABLED),
+    OBJECT_GAMEPLAY_KEEP,
+    sizeof(OotmmPuppetActor),
+    (ActorFunc)OotmmPuppet_Init,
+    (ActorFunc)OotmmPuppet_Destroy,
+    (ActorFunc)OotmmPuppet_Update,
+    (ActorFunc)OotmmPuppet_Draw,
+    nullptr,
+};
+
 void ActorDB::AddBuiltInCustomActors() {
     gEnPartnerId = ActorDB::Instance->AddEntry(EnPartnerInit).entry.id;
+    gOotmmPuppetId = ActorDB::Instance->AddEntry(OotmmPuppetInit).entry.id;
 }
 
 extern "C" ActorDBEntry* ActorDB_Retrieve(const int id) {
