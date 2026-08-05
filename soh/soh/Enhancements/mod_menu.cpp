@@ -2,6 +2,7 @@
 #include <vector>
 
 #include <libultraship/classes.h>
+#include <libultraship/bridge/ModLoadOrder.h>
 #include <ship/utils/StringHelper.h>
 
 #include "mod_menu.h"
@@ -162,6 +163,9 @@ void UpdateModFiles(bool init = false, bool reset = false) {
                 tempMods.clear();
             }
             if (init) {
+                // The launcher owns loadorder.txt; mount in its order. The menu's own ordering is
+                // unsupported debug UI and holds only until the next boot.
+                Ship::ModLoadOrder::SortForMounting(enabledModFiles, modsPath);
                 std::vector<std::string> enabledTemp(enabledModFiles);
                 for (std::string mod : enabledTemp) {
                     if (filePaths.contains(mod)) {
