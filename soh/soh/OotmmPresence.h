@@ -36,6 +36,9 @@ typedef struct OotmmPuppetActor {
     u8 mask;
     s32 itemAction;
     s32 customMask;
+    // Backs the skeleton pointer whenever the puppet wears its player's synced (namespaced)
+    // skeleton; SkelAnime resolves the string for as long as the actor lives.
+    char skelPath[OOTMM_PUPPET_DL_NAME_BUF];
     // PvP hurtbox the local player's weapons connect with; hits are relayed to the victim.
     ColliderCylinder collider;
     u8 pvpCooldown;
@@ -52,6 +55,11 @@ extern s16 gOotmmPuppetId;
 // What the local player's draw chose for the four equipment limbs + hand model types this frame.
 extern const char* gOotmmEquipDlCapture[4];
 extern s32 gOotmmEquipTypeCapture[2];
+
+/// The face texture for the current draw: the drawing puppet's own (synced) face when one
+/// resolves — at the puppet's age, not the save's — else the vanilla table entry.
+void* OotmmPuppet_EyeTexture(s32 eyeIndex);
+void* OotmmPuppet_MouthTexture(s32 mouthIndex);
 
 #ifdef __cplusplus
 }

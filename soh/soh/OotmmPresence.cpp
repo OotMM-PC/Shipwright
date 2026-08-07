@@ -8,6 +8,7 @@
 #include "soh/Enhancements/nametag.h"
 
 #include <libultraship/bridge/OotmmPresence.h>
+#include <ship/Context.h>
 
 #include <algorithm>
 #include <cstdio>
@@ -25,8 +26,11 @@ extern "C" {
 
 extern PlayState* gPlayState;
 extern FlexSkeletonHeader* gPlayerSkelHeaders[2];
+extern void* sEyeTextures[2][8];
+extern void* sMouthTextures[2][4];
 
 Gfx* ResourceMgr_LoadGfxByName(const char* path);
+uint8_t ResourceMgr_FileExists(const char* resName);
 
 void Player_DrawImpl(PlayState* play, void** skeleton, Vec3s* jointTable, s32 dListCount, s32 lod, s32 tunic,
                      s32 boots, s32 face, OverrideLimbDrawOpa overrideLimbDraw, PostLimbDrawOpa postLimbDraw,
@@ -40,16 +44,56 @@ s32 gOotmmEquipTypeCapture[2] = { -1, -1 };
 namespace {
 
 int32_t gPuppetDrawAge = -1; // puppet age during a puppet draw, -1 otherwise
+int32_t gPuppetPlayerId = 0; // drawing puppet's owner during a puppet draw, 0 otherwise
 int32_t gPuppetMoveFlags = 0;
 int32_t gPuppetItemAction = -1;
 int32_t gPuppetCustomMask = 0;
 Mtx* gPuppetMaskMatrix = nullptr;
 
+// Composes "__OTR__pNNobjs/…" for a canonical objects/ path when player N's synced
+// namespace provides it; the caller's buffer holds the result.
+const char* PuppetNamespaced(char* buf, size_t cap, int32_t playerId, const char* canonical) {
+    if (playerId == 0 || canonical == nullptr || std::strncmp(canonical, "objects/", 8) != 0) {
+        return nullptr;
+    }
+    std::snprintf(buf, cap, "__OTR__p%02xobjs/%s", playerId & 0xFF, canonical + 8);
+    return ResourceMgr_FileExists(buf + 7) ? buf : nullptr;
+}
+
 Gfx* PuppetLoadGfx(const char* canonicalPath) {
+    if (canonicalPath != nullptr && std::strncmp(canonicalPath, "__OTR__", 7) == 0) {
+        canonicalPath += 7;
+    }
+    char ns[128];
+    if (PuppetNamespaced(ns, sizeof(ns), gPuppetPlayerId, canonicalPath) != nullptr) {
+        return ResourceMgr_LoadGfxByName(ns + 7);
+    }
     return ResourceMgr_LoadGfxByName(canonicalPath);
 }
 
 } // namespace
+
+extern "C" void* OotmmPuppet_EyeTexture(s32 eyeIndex) {
+    const int32_t age = gPuppetDrawAge >= 0 ? (gPuppetDrawAge & 1) : (gSaveContext.linkAge & 1);
+    void* fallback = sEyeTextures[age][eyeIndex & 7];
+    const char* live = static_cast<const char*>(fallback);
+    if (gPuppetDrawAge < 0 || live == nullptr || std::strncmp(live, "__OTR__", 7) != 0) {
+        return fallback;
+    }
+    static char sPath[128];
+    return PuppetNamespaced(sPath, sizeof(sPath), gPuppetPlayerId, live + 7) != nullptr ? sPath : fallback;
+}
+
+extern "C" void* OotmmPuppet_MouthTexture(s32 mouthIndex) {
+    const int32_t age = gPuppetDrawAge >= 0 ? (gPuppetDrawAge & 1) : (gSaveContext.linkAge & 1);
+    void* fallback = sMouthTextures[age][mouthIndex & 3];
+    const char* live = static_cast<const char*>(fallback);
+    if (gPuppetDrawAge < 0 || live == nullptr || std::strncmp(live, "__OTR__", 7) != 0) {
+        return fallback;
+    }
+    static char sPath[128];
+    return PuppetNamespaced(sPath, sizeof(sPath), gPuppetPlayerId, live + 7) != nullptr ? sPath : fallback;
+}
 
 // The joint table omits child Link's 0.64 scaling of the adult-authored root translation, and the
 // four equipment limbs are always substituted, so both are replayed from the sender.
@@ -95,8 +139,8 @@ extern "C" s32 OotmmPuppet_OverrideLimbDraw(PlayState* play, s32 limbIndex, Gfx*
         // from the synced item action rather than a display list path.
         if (limbIndex == PLAYER_LIMB_L_HAND && gPuppetItemAction == PLAYER_IA_SWORD_OOTMM_GREAT_FAIRY) {
             *dList = OotmmCustomItems_GreatFairySwordHand(
-                play, ResourceMgr_LoadGfxByName(
-                          reinterpret_cast<const char*>(gPlayerLeftHandClosedDLs[gPuppetDrawAge & 1])));
+                play,
+                PuppetLoadGfx(reinterpret_cast<const char*>(gPlayerLeftHandClosedDLs[gPuppetDrawAge & 1])));
         }
     }
     return false;
@@ -121,8 +165,18 @@ struct PendingPvpHit {
 };
 std::vector<PendingPvpHit> gPendingPvpHits;
 
+// The puppet wears its player's synced skeleton when the pNN namespace provides one; an
+// unparseable resource falls back to the shared skeleton rather than reach SkelAnime.
 void PuppetInitSkeleton(OotmmPuppetActor* puppet, PlayState* play, u8 age) {
-    SkelAnime_InitLink(play, &puppet->skelAnime, gPlayerSkelHeaders[age & 1],
+    FlexSkeletonHeader* skeleton = gPlayerSkelHeaders[age & 1];
+    const char* live = reinterpret_cast<const char*>(skeleton);
+    puppet->skelPath[0] = '\0';
+    if (live != nullptr && std::strncmp(live, "__OTR__", 7) == 0 &&
+        PuppetNamespaced(puppet->skelPath, sizeof(puppet->skelPath), puppet->playerId, live + 7) != nullptr &&
+        Ship::Context::GetInstance()->GetResourceManager()->LoadResource(puppet->skelPath + 7) != nullptr) {
+        skeleton = reinterpret_cast<FlexSkeletonHeader*>(puppet->skelPath);
+    }
+    SkelAnime_InitLink(play, &puppet->skelAnime, skeleton,
                        (LinkAnimationHeader*)gPlayerAnim_link_normal_wait, 9, puppet->jointTable, puppet->morphTable,
                        PLAYER_LIMB_MAX);
     puppet->age = age & 1;
@@ -223,6 +277,7 @@ extern "C" void OotmmPuppet_Draw(Actor* thisx, PlayState* play) {
     OPEN_DISPS(play->state.gfxCtx);
     Gfx_SetupDL_25Opa(play->state.gfxCtx);
     gPuppetDrawAge = puppet->age;
+    gPuppetPlayerId = puppet->playerId;
     gPuppetMoveFlags = puppet->moveFlags;
     gPuppetItemAction = puppet->itemAction;
     gPuppetCustomMask = puppet->customMask;
@@ -261,6 +316,7 @@ extern "C" void OotmmPuppet_Draw(Actor* thisx, PlayState* play) {
         gSPDisplayList(POLY_OPA_DISP++, PuppetLoadGfx(maskName));
     }
     gPuppetDrawAge = -1;
+    gPuppetPlayerId = 0;
     gPuppetItemAction = -1;
     gPuppetCustomMask = 0;
     gPuppetMaskMatrix = nullptr;
@@ -273,9 +329,12 @@ void ApplyPoseToPuppet(PuppetSlot& slot, PlayState* play, const Ship::OotmmPlaye
     Actor* actor = slot.actor;
     OotmmPuppetActor* puppet = (OotmmPuppetActor*)actor;
     const u8 age = static_cast<u8>(pose.Form & 1);
-    puppet->playerId = static_cast<u8>(pose.PlayerId & 0xFF);
+    const u8 playerId = static_cast<u8>(pose.PlayerId & 0xFF);
+    // The first pose brings the owner's id, which decides the namespaced skeleton.
+    const bool ownerChanged = playerId != puppet->playerId;
+    puppet->playerId = playerId;
     puppet->moveFlags = static_cast<u8>(pose.MoveFlags & 0xFF);
-    if (age != puppet->age) {
+    if (age != puppet->age || ownerChanged) {
         PuppetInitSkeleton(puppet, play, age);
     }
     std::snprintf(puppet->dlLeftHand, sizeof(puppet->dlLeftHand), "%s", pose.DlLeftHand.c_str());
