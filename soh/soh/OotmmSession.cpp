@@ -1,4 +1,5 @@
 #include "OotmmSession.h"
+#include "OotmmChecks.h"
 #include "OotmmCustomItems.h"
 #include "OotmmItemApply.h"
 #include "OotmmItemPresentation.h"
@@ -825,6 +826,7 @@ void OotmmSession_Init() {
     if (sGameState.LoadFromEnvironment()) {
         ApplyEnhancements();
         OotmmItemPresentation_Init();
+        OotmmChecks_Init();
         OotmmItemProbe_Init();
         OotmmItemApply_Init();
         OotmmCustomItems_Init();

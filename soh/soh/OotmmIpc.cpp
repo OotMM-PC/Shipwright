@@ -88,3 +88,15 @@ bool OotmmIpc_TakeRemotePresence(std::vector<Ship::OotmmPlayerPose>& poses,
                                  std::vector<Ship::OotmmPvpHit>& hits) {
     return sSession.TakeRemotePresence(poses, hits);
 }
+
+bool OotmmIpc_SendCheckCollected(const std::string& checkId) {
+    return sSession.SendCheckCollected("oot", checkId);
+}
+
+bool OotmmIpc_IsCheckCompleted(const std::string& checkId) {
+    return sSession.IsCheckCompleted("oot", checkId);
+}
+
+uint64_t OotmmIpc_CompletedChecksRevision() {
+    return sSession.CompletedChecksRevision();
+}
