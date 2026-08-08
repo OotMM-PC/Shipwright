@@ -26,10 +26,13 @@ bool HasAgonyStone() {
     return CHECK_QUEST_ITEM(QUEST_STONE_OF_AGONY);
 }
 
-Gfx* LoadChestDL(const char* name, const char* fallback) {
-    Gfx* dl = ResourceMgr_LoadGfxByName(name);
+Gfx* LoadChestDL(const char* name, const char* fallback, const char* last = nullptr) {
+    Gfx* dl = name != nullptr ? ResourceMgr_LoadGfxByName(name) : nullptr;
     if (dl == nullptr && fallback != nullptr) {
         dl = ResourceMgr_LoadGfxByName(fallback);
+    }
+    if (dl == nullptr && last != nullptr) {
+        dl = ResourceMgr_LoadGfxByName(last);
     }
     return dl;
 }
@@ -92,6 +95,10 @@ int32_t OotmmCsmc_UpdateChest(EnBox* chest, PlayState* play) {
     Actor_SetScale(&chest->dyna.actor, large ? 0.01f : 0.005f);
     Actor_SetFocus(&chest->dyna.actor, large ? 40.0f : 20.0f);
 
+    // The launcher bakes OoTMM's own chest art into ootmm_assets.o2r; SoH's shipped
+    // variants cover a build where that archive is not mounted yet.
+    const char* bakedBody = nullptr;
+    const char* bakedLid = nullptr;
     const char* body;
     const char* lid;
     switch (itemClass) {
@@ -99,29 +106,45 @@ int32_t OotmmCsmc_UpdateChest(EnBox* chest, PlayState* play) {
             body = gTreasureChestBossKeyChestFrontDL;
             lid = gTreasureChestBossKeyChestSideAndTopDL;
             break;
-        // Souls borrow the major look until they have art of their own.
         case Ship::OotmmCsmcClass::Major:
+            bakedBody = "__OTR__objects/ootmm_csmc/gCsmcChestMajorBodyDL";
+            bakedLid = "__OTR__objects/ootmm_csmc/gCsmcChestMajorLidDL";
+            body = gChestBodyMajorDL;
+            lid = gChestLidMajorDL;
+            break;
         case Ship::OotmmCsmcClass::Soul:
+            bakedBody = "__OTR__objects/ootmm_csmc/gCsmcChestSoulBodyDL";
+            bakedLid = "__OTR__objects/ootmm_csmc/gCsmcChestSoulLidDL";
             body = gChestBodyMajorDL;
             lid = gChestLidMajorDL;
             break;
         case Ship::OotmmCsmcClass::Key:
+            bakedBody = "__OTR__objects/ootmm_csmc/gCsmcChestKeyBodyDL";
+            bakedLid = "__OTR__objects/ootmm_csmc/gCsmcChestKeyLidDL";
             body = gChestBodySmallKeyDL;
             lid = gChestLidSmallKeyDL;
             break;
         case Ship::OotmmCsmcClass::Spider:
+            bakedBody = "__OTR__objects/ootmm_csmc/gCsmcChestSpiderBodyDL";
+            bakedLid = "__OTR__objects/ootmm_csmc/gCsmcChestSpiderLidDL";
             body = gChestBodyTokenDL;
             lid = gChestLidTokenDL;
             break;
         case Ship::OotmmCsmcClass::Fairy:
+            bakedBody = "__OTR__objects/ootmm_csmc/gCsmcChestFairyBodyDL";
+            bakedLid = "__OTR__objects/ootmm_csmc/gCsmcChestFairyLidDL";
             body = "__OTR__objects/object_box/gChestBodyFairyDL";
             lid = "__OTR__objects/object_box/gChestLidFairyDL";
             break;
         case Ship::OotmmCsmcClass::Heart:
+            bakedBody = "__OTR__objects/ootmm_csmc/gCsmcChestHeartBodyDL";
+            bakedLid = "__OTR__objects/ootmm_csmc/gCsmcChestHeartLidDL";
             body = gChestBodyHeartDL;
             lid = gChestLidHeartDL;
             break;
         case Ship::OotmmCsmcClass::MapCompass:
+            bakedBody = "__OTR__objects/ootmm_csmc/gCsmcChestMapBodyDL";
+            bakedLid = "__OTR__objects/ootmm_csmc/gCsmcChestMapLidDL";
             body = gChestBodyMinorDL;
             lid = gChestLidMinorDL;
             break;
@@ -130,7 +153,7 @@ int32_t OotmmCsmc_UpdateChest(EnBox* chest, PlayState* play) {
             lid = gTreasureChestChestSideAndLidDL;
             break;
     }
-    chest->boxBodyDL = LoadChestDL(body, gTreasureChestChestFrontDL);
-    chest->boxLidDL = LoadChestDL(lid, gTreasureChestChestSideAndLidDL);
+    chest->boxBodyDL = LoadChestDL(bakedBody, body, gTreasureChestChestFrontDL);
+    chest->boxLidDL = LoadChestDL(bakedLid, lid, gTreasureChestChestSideAndLidDL);
     return 1;
 }
