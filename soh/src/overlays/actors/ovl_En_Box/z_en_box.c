@@ -3,6 +3,7 @@
 #include "soh_assets.h"
 #include <assert.h>
 #include "soh/OTRGlobals.h"
+#include "soh/OotmmCsmc.h"
 #include "soh/ResourceManagerHelpers.h"
 #include "soh/Enhancements/game-interactor/GameInteractor_Hooks.h"
 
@@ -564,6 +565,9 @@ void EnBox_Update(Actor* thisx, PlayState* play) {
 }
 
 void EnBox_UpdateTexture(EnBox* this, PlayState* play) {
+    if (OotmmCsmc_UpdateChest(this, play)) {
+        return;
+    }
     bool csmc = CVarGetInteger(CVAR_ENHANCEMENT("ChestSizeAndTextureMatchContents"), 0);
     int requiresStoneAgony = CVarGetInteger(CVAR_ENHANCEMENT("ChestSizeDependsStoneOfAgony"), 0);
     GetItemEntry chestItem = this->getItemEntry;
