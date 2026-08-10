@@ -465,8 +465,12 @@ extern "C" uint16_t OotmmSongs_AvailableMask(void) {
         return 0;
     }
 
+    // Song-event staffs must accept MM songs; teaching and minigame modes must not.
     const u16 action = gPlayState->msgCtx.ocarinaAction;
-    if (action != OCARINA_ACTION_FREE_PLAY && action != OCARINA_ACTION_CHECK_NOWARP) {
+    const bool staffAction =
+        (action >= OCARINA_ACTION_CHECK_MINUET && action <= OCARINA_ACTION_CHECK_STORMS) ||
+        (action >= OCARINA_ACTION_CHECK_OOTMM_HEALING && action <= OCARINA_ACTION_CHECK_OOTMM_ORDER);
+    if (action != OCARINA_ACTION_FREE_PLAY && action != OCARINA_ACTION_CHECK_NOWARP && !staffAction) {
         return 0;
     }
 

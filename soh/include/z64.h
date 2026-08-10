@@ -508,7 +508,16 @@ typedef enum {
     /* 0x2E */ OCARINA_ACTION_MEMORY_GAME,
     /* 0x2F */ OCARINA_ACTION_FROGS,
     /* 0x30 */ OCARINA_ACTION_CHECK_NOWARP, // Check for any of sarias - storms
-    /* 0x31 */ OCARINA_ACTION_CHECK_NOWARP_DONE
+    /* 0x31 */ OCARINA_ACTION_CHECK_NOWARP_DONE,
+    // OoTMM song-event staffs targeting this port's MM songs; order matches song ids 12-19.
+    /* 0x32 */ OCARINA_ACTION_CHECK_OOTMM_HEALING,
+    /* 0x33 */ OCARINA_ACTION_CHECK_OOTMM_SOARING,
+    /* 0x34 */ OCARINA_ACTION_CHECK_OOTMM_AWAKENING,
+    /* 0x35 */ OCARINA_ACTION_CHECK_OOTMM_GORON,
+    /* 0x36 */ OCARINA_ACTION_CHECK_OOTMM_GORON_HALF,
+    /* 0x37 */ OCARINA_ACTION_CHECK_OOTMM_ZORA,
+    /* 0x38 */ OCARINA_ACTION_CHECK_OOTMM_ELEGY,
+    /* 0x39 */ OCARINA_ACTION_CHECK_OOTMM_ORDER
 } OcarinaSongActionIDs;
 
 typedef enum {

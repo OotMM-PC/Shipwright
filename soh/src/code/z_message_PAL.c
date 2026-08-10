@@ -16,6 +16,7 @@
 #include "soh/ResourceManagerHelpers.h"
 #include "soh/OotmmSongs.h"
 #include "soh/OotmmSongsPlayer.h"
+#include "soh/OotmmSongEvents.h"
 
 // #region SOH [NTSC] - Allows custom messages to work on japanese
 static bool sDisplayNextMessageAsEnglish = false;
@@ -929,8 +930,10 @@ void Message_HandleOcarina(PlayState* play) {
         } else {
             // "Ocarina（%d）"
             osSyncPrintf("オカリナ（%d） ", msgCtx->ocarinaAction);
+            // The warp-song check actions are unused by vanilla callers; shuffled song-event
+            // staffs open with them and need the interactive staff, not Sheik's playback mode.
             if (msgCtx->ocarinaAction == OCARINA_ACTION_UNK_0 || msgCtx->ocarinaAction == OCARINA_ACTION_FREE_PLAY ||
-                msgCtx->ocarinaAction >= OCARINA_ACTION_CHECK_SARIA) {
+                msgCtx->ocarinaAction >= OCARINA_ACTION_CHECK_MINUET) {
                 msgCtx->msgMode = MSGMODE_OCARINA_STARTING;
                 osSyncPrintf("000000000000  -> ");
             } else if (msgCtx->ocarinaAction >= OCARINA_ACTION_TEACH_MINUET &&
@@ -2971,10 +2974,12 @@ void Message_StartOcarina(PlayState* play, u16 ocarinaActionId) {
         msgCtx->ocarinaAction = ocarinaActionId;
         Message_OpenText(play, 0x86D); // Play using [A] and [C].
         textId = ocarinaActionId + 0x86E;
-    } else if (ocarinaActionId == OCARINA_ACTION_FREE_PLAY || ocarinaActionId >= OCARINA_ACTION_CHECK_SARIA) {
+    } else if (ocarinaActionId == OCARINA_ACTION_FREE_PLAY || ocarinaActionId >= OCARINA_ACTION_CHECK_MINUET) {
         osSyncPrintf("ocarina_set 000000000000000000  = %d\n", ocarinaActionId);
         msgCtx->ocarinaAction = ocarinaActionId;
-        if (ocarinaActionId >= OCARINA_ACTION_CHECK_SARIA && ocarinaActionId <= OCARINA_ACTION_CHECK_STORMS) {
+        if ((ocarinaActionId >= OCARINA_ACTION_CHECK_MINUET && ocarinaActionId <= OCARINA_ACTION_CHECK_STORMS) ||
+            (ocarinaActionId >= OCARINA_ACTION_CHECK_OOTMM_HEALING &&
+             ocarinaActionId <= OCARINA_ACTION_CHECK_OOTMM_ORDER)) {
             Audio_PlaySoundGeneral(NA_SE_SY_TRE_BOX_APPEAR, &gSfxDefaultPos, 4, &gSfxDefaultFreqAndVolScale,
                                    &gSfxDefaultFreqAndVolScale, &gSfxDefaultReverb);
         }
@@ -3409,9 +3414,17 @@ void Message_DrawMain(PlayState* play, Gfx** p) {
                         msgCtx->ocarinaAction == OCARINA_ACTION_FREE_PLAY ||
                         msgCtx->ocarinaAction == OCARINA_ACTION_SCARECROW_RECORDING ||
                         msgCtx->ocarinaAction == OCARINA_ACTION_CHECK_NOWARP ||
-                        msgCtx->ocarinaAction >= OCARINA_ACTION_CHECK_SARIA) {
+                        msgCtx->ocarinaAction >= OCARINA_ACTION_CHECK_MINUET) {
                         if (msgCtx->ocarinaAction == OCARINA_ACTION_FREE_PLAY ||
                             msgCtx->ocarinaAction == OCARINA_ACTION_CHECK_NOWARP) {
+                            func_800ECC04(sOcarinaSongBitFlags + 0xC000);
+                        } else if (OotmmSongEvents_Enabled() &&
+                                   ((msgCtx->ocarinaAction >= OCARINA_ACTION_CHECK_MINUET &&
+                                     msgCtx->ocarinaAction <= OCARINA_ACTION_CHECK_STORMS) ||
+                                    (msgCtx->ocarinaAction >= OCARINA_ACTION_CHECK_OOTMM_HEALING &&
+                                     msgCtx->ocarinaAction <= OCARINA_ACTION_CHECK_OOTMM_ORDER))) {
+                            // Song-event staffs need the free-play checker: only it matches MM
+                            // songs, and it resets the note window the staff checker leaves stale.
                             func_800ECC04(sOcarinaSongBitFlags + 0xC000);
                         } else {
                             // "On Stage Performance"
@@ -3453,6 +3466,28 @@ void Message_DrawMain(PlayState* play, Gfx** p) {
                             msgCtx->ocarinaStaff->noteIdx;
                         sOcarinaNoteBuf[msgCtx->ocarinaStaff->pos] = OCARINA_NOTE_INVALID;
                         sOcarinaNoteBufPos++;
+                    }
+                }
+                // A guided staff forgives mistakes: straying from the asked song's notes
+                // restarts the attempt instead of letting another song resolve.
+                if (sOcarinaNoteBufPos != 0) {
+                    u8 guideNotes[8];
+                    s16 guideLen = OotmmSongEvents_GuideNotes(play, guideNotes, 8);
+                    s16 guideIdx;
+                    bool guideDeviated = false;
+
+                    for (guideIdx = 0; guideLen > 0 && guideIdx < sOcarinaNoteBufPos && guideIdx < 8; guideIdx++) {
+                        if (guideIdx >= guideLen || sOcarinaNoteBuf[guideIdx] != guideNotes[guideIdx]) {
+                            guideDeviated = true;
+                            break;
+                        }
+                    }
+                    if (guideDeviated) {
+                        Audio_OcaSetInstrument(0);
+                        Audio_PlaySoundGeneral(NA_SE_SY_OCARINA_ERROR, &gSfxDefaultPos, 4, &gSfxDefaultFreqAndVolScale,
+                                               &gSfxDefaultFreqAndVolScale, &gSfxDefaultReverb);
+                        msgCtx->msgMode = MSGMODE_OCARINA_STARTING;
+                        break;
                     }
                 }
                 msgCtx->lastPlayedSong = msgCtx->ocarinaStaff->state;
@@ -3820,13 +3855,22 @@ void Message_DrawMain(PlayState* play, Gfx** p) {
                 if (msgCtx->stateTimer == 0) {
                     if (OotmmSongs_Played() != OOTMM_SONG_NONE) {
                         Message_CloseTextbox(play);
-                        OotmmSongs_Begin(play);
+                        // A staff whose asked song was just played consumes it; otherwise the
+                        // song keeps its free-play behavior.
+                        if (!OotmmSongEvents_HandleCheckPlayed(play)) {
+                            OotmmSongs_Begin(play);
+                        }
                         GameInteractor_ExecuteOnOcarinaSongAction();
                         break;
                     }
+                    // A warp song that answers the staff asking for it resolves below instead
+                    // of prompting a warp; any other warp song still offers one.
                     if (msgCtx->lastPlayedSong < OCARINA_SONG_SARIAS &&
                         (msgCtx->ocarinaAction < OCARINA_ACTION_PLAYBACK_MINUET ||
-                         msgCtx->ocarinaAction >= OCARINA_ACTION_PLAYBACK_SARIA)) {
+                         msgCtx->ocarinaAction >= OCARINA_ACTION_PLAYBACK_SARIA) &&
+                        !(msgCtx->ocarinaAction >= OCARINA_ACTION_CHECK_MINUET &&
+                          msgCtx->ocarinaAction <= OCARINA_ACTION_CHECK_PRELUDE &&
+                          msgCtx->lastPlayedSong + OCARINA_ACTION_CHECK_MINUET == msgCtx->ocarinaAction)) {
                         if (msgCtx->disableWarpSongs || interfaceCtx->restrictions.warpSongs == 3) {
                             Message_StartTextbox(play, 0x88C, NULL); // "You can't warp here!"
                             play->msgCtx.ocarinaMode = OCARINA_MODE_04;
@@ -4303,6 +4347,25 @@ void Message_DrawMain(PlayState* play, Gfx** p) {
                         gfx++, notePosX << 2, R_OCARINA_NOTES_YPOS(gOcarinaSongNotes[g].notesIdx[i]) << 2,
                         (notePosX + 16) << 2, (R_OCARINA_NOTES_YPOS(gOcarinaSongNotes[g].notesIdx[i]) + 16) << 2,
                         G_TX_RENDERTILE, 0, 0, 1 << 10, 1 << 10);
+                }
+            }
+
+            if (msgCtx->msgMode == MSGMODE_OCARINA_PLAYING) {
+                u8 guideNotes[8];
+                s16 guideLen = OotmmSongEvents_GuideNotes(play, guideNotes, 8);
+
+                for (notePosX = R_OCARINA_NOTES_XPOS, i = 0; i < guideLen; i++, notePosX += R_OCARINA_NOTES_XPOS_OFFSET) {
+                    gDPPipeSync(gfx++);
+                    gDPSetPrimColor(gfx++, 0, 0, 150, 150, 150, 150);
+                    gDPSetEnvColor(gfx++, 10, 10, 10, 0);
+
+                    gDPLoadTextureBlock(gfx++, sOcarinaNoteTextures[guideNotes[i]], G_IM_FMT_IA, G_IM_SIZ_8b, 16, 16, 0,
+                                        G_TX_NOMIRROR | G_TX_WRAP, G_TX_NOMIRROR | G_TX_WRAP, G_TX_NOMASK, G_TX_NOMASK,
+                                        G_TX_NOLOD, G_TX_NOLOD);
+
+                    gSPTextureRectangle(gfx++, notePosX << 2, R_OCARINA_NOTES_YPOS(guideNotes[i]) << 2,
+                                        (notePosX + 16) << 2, (R_OCARINA_NOTES_YPOS(guideNotes[i]) + 16) << 2,
+                                        G_TX_RENDERTILE, 0, 0, 1 << 10, 1 << 10);
                 }
             }
 
