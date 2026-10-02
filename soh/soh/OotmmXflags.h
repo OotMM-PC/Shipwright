@@ -24,4 +24,5 @@ int OotmmXflags_PrepareFairy(struct Actor* butterfly);
 }
 
 void OotmmXflags_Init();
+int OotmmXflags_LastScene();
 #endif

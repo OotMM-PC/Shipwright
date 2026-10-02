@@ -10,6 +10,7 @@
 #include "OotmmItemModels.h"
 #include "OotmmItemPresentation.h"
 #include "OotmmSession.h"
+#include "OotmmXflags.h"
 
 #include <iterator>
 #include <cmath>
@@ -22,6 +23,7 @@ extern "C" {
 #include "src/overlays/actors/ovl_En_Bom_Bowl_Pit/z_en_bom_bowl_pit.h"
 #include "src/overlays/actors/ovl_En_Ex_Item/z_en_ex_item.h"
 #include "src/overlays/actors/ovl_En_Dnt_Jiji/z_en_dnt_jiji.h"
+#include "src/overlays/actors/ovl_En_Dns/z_en_dns.h"
 #include "src/overlays/actors/ovl_En_Fr/z_en_fr.h"
 #include "src/overlays/actors/ovl_Fishing/z_fishing.h"
 #include "src/overlays/actors/ovl_En_Ge1/z_en_ge1.h"
@@ -205,24 +207,134 @@ const char* DekuTheaterSite(int32_t getItemId) {
     }
 }
 
-std::string RewardName(const char* nativeId) {
-    const auto* placement = nativeId != nullptr ? Find(nativeId) : nullptr;
-    if (placement == nullptr) {
-        return {};
-    }
-    std::string name = "%g" + Ship::OotmmItemCatalog::TrimGameSuffix(placement->ItemName) + "%w";
+std::string PlacementName(const Ship::OotmmPlacement& placement) {
+    const bool cloaked = !placement.CloakItemId.empty();
+    std::string name =
+        "%g" + Ship::OotmmItemCatalog::TrimGameSuffix(cloaked ? placement.CloakItemName : placement.ItemName) + "%w";
+    const std::string game = cloaked ? (placement.CloakItemId.starts_with("MM_") ? "mm" : "oot") : placement.ItemGame;
     const bool otherPlayer =
-        placement->OwnerPlayer != 0 && placement->OwnerPlayer != OotmmSession_GetState().GetPlayerId();
-    const bool otherGame = !placement->ItemGame.empty() && placement->ItemGame != "oot";
+        placement.OwnerPlayer != 0 && placement.OwnerPlayer != OotmmSession_GetState().GetPlayerId();
+    const bool otherGame = !game.empty() && game != "oot";
     if (otherPlayer) {
-        name += " for %bPlayer " + std::to_string(placement->OwnerPlayer) + "%w";
+        name += " for %bPlayer " + std::to_string(placement.OwnerPlayer) + "%w";
         if (otherGame) {
-            name += "'s %r" + OotmmItemPresentation_GameName(placement->ItemGame) + "%w";
+            name += "'s %r" + OotmmItemPresentation_GameName(game) + "%w";
         }
     } else if (otherGame) {
-        name += " for %r" + OotmmItemPresentation_GameName(placement->ItemGame) + "%w";
+        name += " for %r" + OotmmItemPresentation_GameName(game) + "%w";
     }
     return name;
+}
+
+std::string RewardName(const char* nativeId) {
+    const auto* placement = nativeId != nullptr ? Find(nativeId) : nullptr;
+    return placement != nullptr ? PlacementName(*placement) : std::string();
+}
+
+constexpr uint32_t kScrubPriceBase = 0x40;
+
+enum ScrubItem {
+    kScrubNuts,
+    kScrubStick,
+    kScrubHeartPiece,
+    kScrubSeeds,
+    kScrubShieldDeku,
+    kScrubBombs,
+    kScrubSeedsArrows,
+    kScrubPotionRed,
+    kScrubPotionGreen,
+    kScrubSticksUpgrade,
+    kScrubNutsUpgrade,
+};
+
+constexpr int ScrubKey(int scene, bool grotto, int item) {
+    return (grotto ? 0x1000000 : 0) | (scene << 16) | item;
+}
+
+int ScrubId(const Actor* scrub, const PlayState* play) {
+    const bool grotto = play->sceneNum == SCENE_GROTTOS;
+    int scene = play->sceneNum;
+    if (grotto) {
+        const int room = play->roomCtx.curRoom.num;
+        scene = room == 0x06 ? SCENE_LOST_WOODS : room == 0x01 ? SCENE_HYRULE_FIELD : OotmmXflags_LastScene();
+    }
+    switch (ScrubKey(scene, grotto, scrub->params & 0xFF)) {
+        case ScrubKey(SCENE_LOST_WOODS, false, kScrubSticksUpgrade): return 0x00;
+        case ScrubKey(SCENE_LOST_WOODS, false, kScrubStick): return 0x01;
+        case ScrubKey(SCENE_LOST_WOODS, false, kScrubNuts): return 0x02;
+        case ScrubKey(SCENE_LOST_WOODS, true, kScrubNutsUpgrade): return 0x03;
+        case ScrubKey(SCENE_LOST_WOODS, true, kScrubSeedsArrows): return 0x04;
+        case ScrubKey(SCENE_SACRED_FOREST_MEADOW, true, kScrubPotionGreen): return 0x05;
+        case ScrubKey(SCENE_SACRED_FOREST_MEADOW, true, kScrubPotionRed): return 0x06;
+        case ScrubKey(SCENE_HYRULE_FIELD, true, kScrubHeartPiece): return 0x07;
+        case ScrubKey(SCENE_LON_LON_RANCH, true, kScrubNuts): return 0x08;
+        case ScrubKey(SCENE_LON_LON_RANCH, true, kScrubSeedsArrows): return 0x09;
+        case ScrubKey(SCENE_LON_LON_RANCH, true, kScrubBombs): return 0x0a;
+        case ScrubKey(SCENE_GORON_CITY, true, kScrubNuts): return 0x0b;
+        case ScrubKey(SCENE_GORON_CITY, true, kScrubSeedsArrows): return 0x0c;
+        case ScrubKey(SCENE_GORON_CITY, true, kScrubBombs): return 0x0d;
+        case ScrubKey(SCENE_DEATH_MOUNTAIN_CRATER, false, kScrubBombs): return 0x0e;
+        case ScrubKey(SCENE_DEATH_MOUNTAIN_CRATER, true, kScrubNuts): return 0x0f;
+        case ScrubKey(SCENE_DEATH_MOUNTAIN_CRATER, true, kScrubSeedsArrows): return 0x10;
+        case ScrubKey(SCENE_DEATH_MOUNTAIN_CRATER, true, kScrubBombs): return 0x11;
+        case ScrubKey(SCENE_ZORAS_RIVER, true, kScrubPotionGreen): return 0x12;
+        case ScrubKey(SCENE_ZORAS_RIVER, true, kScrubPotionRed): return 0x13;
+        case ScrubKey(SCENE_LAKE_HYLIA, true, kScrubNuts): return 0x14;
+        case ScrubKey(SCENE_LAKE_HYLIA, true, kScrubSeedsArrows): return 0x15;
+        case ScrubKey(SCENE_LAKE_HYLIA, true, kScrubBombs): return 0x16;
+        case ScrubKey(SCENE_GERUDO_VALLEY, true, kScrubPotionGreen): return 0x17;
+        case ScrubKey(SCENE_GERUDO_VALLEY, true, kScrubPotionRed): return 0x18;
+        case ScrubKey(SCENE_DESERT_COLOSSUS, true, kScrubPotionGreen): return 0x19;
+        case ScrubKey(SCENE_DESERT_COLOSSUS, true, kScrubPotionRed): return 0x1a;
+        case ScrubKey(SCENE_DEKU_TREE, false, kScrubShieldDeku): return 0x1b;
+        case ScrubKey(SCENE_DODONGOS_CAVERN, false, kScrubSeeds): return 0x1c;
+        case ScrubKey(SCENE_DODONGOS_CAVERN, false, kScrubStick): return 0x1d;
+        case ScrubKey(SCENE_DODONGOS_CAVERN, false, kScrubNuts): return 0x1e;
+        case ScrubKey(SCENE_DODONGOS_CAVERN, false, kScrubPotionRed): return 0x1e;
+        case ScrubKey(SCENE_DODONGOS_CAVERN, false, kScrubShieldDeku): return 0x1f;
+        case ScrubKey(SCENE_JABU_JABU, false, kScrubNuts): return 0x20;
+        case ScrubKey(SCENE_INSIDE_GANONS_CASTLE, false, kScrubPotionGreen): return 0x21;
+        case ScrubKey(SCENE_INSIDE_GANONS_CASTLE, false, kScrubBombs): return 0x22;
+        case ScrubKey(SCENE_INSIDE_GANONS_CASTLE, false, kScrubSeedsArrows): return 0x23;
+        case ScrubKey(SCENE_INSIDE_GANONS_CASTLE, false, kScrubPotionRed): return 0x24;
+        case ScrubKey(SCENE_INSIDE_GANONS_CASTLE, false, kScrubNuts): return 0x25;
+        default: return -1;
+    }
+}
+
+const Ship::OotmmPlacement* FindScrub(const Actor* scrub, const PlayState* play, int* id = nullptr) {
+    const int scrubId = ScrubId(scrub, play);
+    if (id != nullptr) {
+        *id = scrubId;
+    }
+    return scrubId < 0 ? nullptr
+                       : OotmmSession_GetState().FindCheck(Ship::OotmmGame::Oot, "scrub", std::to_string(scrubId));
+}
+
+bool IsShuffledScrub(const EnDns* scrub) {
+    return scrub != nullptr && scrub->dnsItemEntry == &scrub->ootmmItemEntry;
+}
+
+void BuildScrubText(uint16_t* textId, bool* loadFromMessageTable) {
+    if (gPlayState == nullptr) {
+        return;
+    }
+    Player* player = GET_PLAYER(gPlayState);
+    if (player == nullptr || player->talkActor == nullptr || player->talkActor->id != ACTOR_EN_DNS ||
+        *textId != player->talkActor->textId) {
+        return;
+    }
+    const auto* scrub = reinterpret_cast<const EnDns*>(player->talkActor);
+    const auto* placement = IsShuffledScrub(scrub) ? FindScrub(&scrub->actor, gPlayState) : nullptr;
+    if (placement == nullptr) {
+        return;
+    }
+    CustomMessage message("Do you want " + PlacementName(*placement) + " for %r" +
+                          std::to_string(scrub->dnsItemEntry->itemPrice) + " Rupees%w?" +
+                          CustomMessage::TWO_WAY_CHOICE() + "%gYes&No%w");
+    message.AutoFormat();
+    message.LoadIntoFont();
+    *loadFromMessageTable = false;
 }
 
 void BuildSkulltulaHouseText(uint16_t*, bool* loadFromMessageTable) {
@@ -247,6 +359,19 @@ void BuildSkulltulaHouseText(uint16_t*, bool* loadFromMessageTable) {
 }
 
 } // namespace
+
+std::string OotmmNpcChecks_PlacementName(const Ship::OotmmPlacement& placement) {
+    return PlacementName(placement);
+}
+
+extern "C" int OotmmNpcChecks_ScrubPrice(Actor* scrub, PlayState* play, int vanillaPrice) {
+    int id = -1;
+    const auto* placement = scrub != nullptr && play != nullptr ? FindScrub(scrub, play, &id) : nullptr;
+    if (placement == nullptr || IsCollected(*placement)) {
+        return -1;
+    }
+    return OotmmSession_GetState().GetPrice(kScrubPriceBase + id).value_or(vanillaPrice);
+}
 
 extern "C" int OotmmNpcChecks_IsShuffled(const char* nativeId) {
     return Find(nativeId) != nullptr;
@@ -407,6 +532,20 @@ void OotmmNpcChecks_Init(void) {
         }
     });
     GameInteractor::Instance->RegisterGameHook<GameInteractor::OnOpenText>(BuildSkulltulaHouseText);
+
+    GameInteractor::Instance->RegisterGameHook<GameInteractor::OnOpenText>(BuildScrubText);
+    REGISTER_VB_SHOULD(VB_GIVE_ITEM_FROM_BUSINESS_SCRUB, {
+        EnDns* scrub = va_arg(args, EnDns*);
+        if (!IsShuffledScrub(scrub)) {
+            return;
+        }
+        const auto* placement = FindScrub(&scrub->actor, gPlayState);
+        if (placement != nullptr && !IsCollected(*placement)) {
+            OotmmIpc_SendCheckCollected(placement->CheckId, true);
+            OotmmCheckLedger_Record(placement->CheckId);
+        }
+        *should = false;
+    });
 
     REGISTER_VB_SHOULD(VB_SET_CUCCO_COUNT, {
         EnNiwLady* lady = va_arg(args, EnNiwLady*);

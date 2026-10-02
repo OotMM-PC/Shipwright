@@ -1,5 +1,6 @@
 #include "z_en_ossan.h"
 #include "vt.h"
+#include "soh/OotmmShops.h"
 #include "objects/gameplay_keep/gameplay_keep.h"
 #include "objects/object_ossan/object_ossan.h"
 #include "objects/object_oF1d_map/object_oF1d_map.h"
@@ -1355,7 +1356,9 @@ void EnOssan_GiveItemWithFanfare(PlayState* play, EnOssan* this) {
     Player* player = GET_PLAYER(play);
 
     osSyncPrintf("\n" VT_FGCOL(YELLOW) "初めて手にいれた！！" VT_RST "\n\n");
-    Actor_OfferGetItem(&this->actor, play, this->shelfSlots[this->cursorIndex]->getItemId, 120.0f, 120.0f);
+    if (!OotmmShops_Report(this->shelfSlots[this->cursorIndex])) {
+        Actor_OfferGetItem(&this->actor, play, this->shelfSlots[this->cursorIndex]->getItemId, 120.0f, 120.0f);
+    }
     play->msgCtx.msgMode = MSGMODE_TEXT_CLOSING;
     play->msgCtx.stateTimer = 4;
     player->stateFlags2 &= ~PLAYER_STATE2_DISABLE_DRAW;
@@ -1382,7 +1385,7 @@ void EnOssan_HandleCanBuyItem(PlayState* play, EnOssan* this) {
 
     switch (selectedItem->canBuyFunc(play, selectedItem)) {
         case CANBUY_RESULT_SUCCESS_FANFARE:
-            if (selectedItem->actor.params == SI_HYLIAN_SHIELD &&
+            if (selectedItem->actor.params == SI_HYLIAN_SHIELD && !OotmmShops_IsShuffled(selectedItem) &&
                 Flags_GetInfTable(INFTABLE_SHOWED_ZELDAS_LETTER_TO_GATE_GUARD)) {
                 EnOssan_SetStateGiveDiscountDialog(play, this);
             } else {
@@ -1682,6 +1685,12 @@ void EnOssan_State_QuickBuyDialog(EnOssan* this, PlayState* play, Player* player
 }
 
 void EnOssan_State_GiveItemWithFanfare(EnOssan* this, PlayState* play, Player* player) {
+    if (OotmmShops_IsShuffled(this->shelfSlots[this->cursorIndex])) {
+        if (OotmmShops_ContinuePresentation(this->shelfSlots[this->cursorIndex], play, player)) {
+            this->stateFlag = OSSAN_STATE_ITEM_PURCHASED;
+        }
+        return;
+    }
     // The player sets itself as the parent actor to signal that it has obtained the give item request
     if (Actor_HasParent(&this->actor, play)) {
         this->actor.parent = NULL;

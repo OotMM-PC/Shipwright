@@ -11,6 +11,7 @@ struct Player;
 void OotmmItemPresentation_Init();
 void OotmmItemPresentation_Queue(Ship::GameIpcItemPresentation presentation);
 bool OotmmItemPresentation_ContinueChest(PlayState* play, Player* player, const std::string& checkId);
+bool OotmmItemPresentation_IsDelivering(const std::string& checkId);
 std::string OotmmItemPresentation_GameName(const std::string& game);
 
 extern "C" {

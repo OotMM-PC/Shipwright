@@ -2,6 +2,7 @@
 #include "OotmmCheckLedger.h"
 #include "OotmmChecks.h"
 #include "OotmmNpcChecks.h"
+#include "OotmmShops.h"
 #include "OotmmDrops.h"
 #include "OotmmCustomItems.h"
 #include "OotmmDebugChecks.h"
@@ -918,6 +919,7 @@ void OotmmSession_Init() {
         OotmmCheckLedger_Init();
         OotmmChecks_Init();
         OotmmNpcChecks_Init();
+        OotmmShops_Init();
         OotmmDrops_Init();
         OotmmXflags_Init();
         OotmmDebugChecks_Init();

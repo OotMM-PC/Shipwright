@@ -8,6 +8,7 @@
 #include "objects/object_shopnuts/object_shopnuts.h"
 #include "vt.h"
 #include "soh/OotmmSession.h"
+#include "soh/OotmmNpcChecks.h"
 #include "soh/Enhancements/game-interactor/GameInteractor_Hooks.h"
 #include "soh/OTRGlobals.h"
 #include "soh/ResourceManagerHelpers.h"
@@ -154,6 +155,13 @@ void EnDns_Init(Actor* thisx, PlayState* play) {
     this->actor.gravity = -1.0f;
     this->actor.textId = sStartingTextIds[this->actor.params];
     this->dnsItemEntry = sItemEntries[this->actor.params];
+    s32 ootmmPrice = OotmmNpcChecks_ScrubPrice(&this->actor, play, this->dnsItemEntry->itemPrice);
+    if (ootmmPrice >= 0) {
+        this->ootmmItemEntry = *this->dnsItemEntry;
+        this->ootmmItemEntry.itemPrice = ootmmPrice;
+        this->ootmmItemEntry.purchaseableCheck = EnDns_CanBuyPrice;
+        this->dnsItemEntry = &this->ootmmItemEntry;
+    }
     this->actionFunc = EnDns_SetupIdle;
 }
 

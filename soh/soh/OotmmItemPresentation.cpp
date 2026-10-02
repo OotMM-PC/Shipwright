@@ -177,6 +177,10 @@ void OotmmItemPresentation_Queue(Ship::GameIpcItemPresentation presentation) {
     sQueue.emplace_back(std::move(presentation));
 }
 
+bool OotmmItemPresentation_IsDelivering(const std::string& checkId) {
+    return sDeliveredCheck.has_value() && sDeliveredCheck->first == "oot:" + checkId;
+}
+
 bool OotmmItemPresentation_ContinueChest(PlayState* play, Player* player, const std::string& checkId) {
     if (play == nullptr || player == nullptr || checkId.empty() || sDeliveredCheck.has_value()) {
         return false;

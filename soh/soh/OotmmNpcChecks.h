@@ -5,6 +5,7 @@ extern "C" {
 #endif
 
 int OotmmNpcChecks_IsShuffled(const char* nativeId);
+int OotmmNpcChecks_ScrubPrice(struct Actor* scrub, struct PlayState* play, int vanillaPrice);
 int OotmmNpcChecks_IsCollected(const char* nativeId);
 int OotmmNpcChecks_Collect(const char* nativeId);
 int OotmmNpcChecks_Done(const char* nativeId, int vanillaDone);
@@ -21,4 +22,10 @@ void OotmmNpcChecks_Init(void);
 
 #ifdef __cplusplus
 }
+
+#include <libultraship/bridge/OotmmGameState.h>
+
+#include <string>
+
+std::string OotmmNpcChecks_PlacementName(const Ship::OotmmPlacement& placement);
 #endif

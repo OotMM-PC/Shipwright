@@ -8,6 +8,7 @@
 #include "vt.h"
 
 #include "soh/Enhancements/game-interactor/GameInteractor_Hooks.h"
+#include "soh/OotmmShops.h"
 #include "soh/OTRGlobals.h"
 #include <assert.h>
 
@@ -1266,6 +1267,7 @@ void EnGirlA_WaitForObject(EnGirlA* this, PlayState* play) {
             this->yRotation = 0;
             this->yRotationInit = this->actor.shape.rot.y;
         }
+        OotmmShops_SetupItem(this, play);
     }
 }
 
@@ -1301,6 +1303,9 @@ void EnGirlA_Draw(Actor* thisx, PlayState* play) {
     EnGirlA* this = (EnGirlA*)thisx;
 
     Matrix_RotateY(((this->yRotation * 360.0f) / 65536.0f) * (M_PI / 180.0f), MTXMODE_APPLY);
+    if (OotmmShops_Draw(this, play)) {
+        return;
+    }
     if (this->hiliteFunc != NULL) {
         this->hiliteFunc(thisx, play, 0);
     }
