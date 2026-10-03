@@ -3,6 +3,7 @@
 #include "Enhancements/game-interactor/GameInteractor.h"
 #include "Enhancements/game-interactor/GameInteractor_Hooks.h"
 #include "OotmmCheckLedger.h"
+#include "OotmmCsmc.h"
 #include "OotmmDrops.h"
 #include "OotmmIpc.h"
 #include "OotmmItemModels.h"
@@ -111,6 +112,12 @@ const Ship::OotmmPlacement* FindCow(const Actor* cow, const PlayState* play) {
     const int id = CowId(cow, play);
     return id < 0 ? nullptr
                   : OotmmSession_GetState().FindCheck(Ship::OotmmGame::Oot, "cow", std::to_string(id));
+}
+
+bool TokenShuffled(const Ship::OotmmPlacement& placement) {
+    const std::string mode = OotmmSession_GetState().GetStringSetting("goldSkulltulaTokens", "none");
+    const bool dungeon = placement.CheckScene.has_value() && *placement.CheckScene <= SCENE_ICE_CAVERN;
+    return mode == "all" || (mode == "dungeons" && dungeon) || (mode == "overworld" && !dungeon);
 }
 
 const Ship::OotmmPlacement* FindSilverRupee(int index) {
@@ -228,7 +235,7 @@ extern "C" int OotmmChecks_TryCollectBossContainer(Actor* actor, PlayState* play
         play->transitionTrigger != TRANS_TRIGGER_OFF || Player_InBlockingCsMode(play, player) ||
         (player->stateFlags1 &
          (PLAYER_STATE1_DEAD | PLAYER_STATE1_GETTING_ITEM | PLAYER_STATE1_TALKING | PLAYER_STATE1_IN_CUTSCENE)) ||
-        player->getItemId > GI_NONE) {
+        OotmmItemPresentation_PlayerReceiving(player)) {
         return 0;
     }
     Report(*placement, true);
@@ -266,6 +273,20 @@ extern "C" int OotmmChecks_DrawToken(Actor* actor, PlayState* play) {
     }
     DrawPlacementItem(play, *placement, GID_SKULL_TOKEN_2);
     return 1;
+}
+
+extern "C" void* OotmmChecks_SkulltulaDL(Actor* skulltula, const char* part, void* vanilla) {
+    const auto* placement = FindToken(skulltula);
+    void* dl = placement != nullptr && TokenShuffled(*placement) ? OotmmCsmc_SkulltulaDL(placement, part) : nullptr;
+    return dl != nullptr ? dl : vanilla;
+}
+
+extern "C" void* OotmmChecks_CowRingDL(Actor* cow, void* vanilla) {
+    if (gPlayState == nullptr || !OotmmSession_GetState().GetBoolSetting("cowShuffleOot", false)) {
+        return nullptr;
+    }
+    const auto* placement = FindCow(cow, gPlayState);
+    return OotmmCsmc_CowRingDL(placement, placement != nullptr && IsCollected(*placement), vanilla);
 }
 
 extern "C" int OotmmChecks_SilverRupeeIsShuffled(int index) {

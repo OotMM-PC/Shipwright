@@ -5,6 +5,7 @@
  */
 
 #include "z_en_kusa.h"
+#include "soh/OotmmXflags.h"
 #include "overlays/effects/ovl_Effect_Ss_Kakera/z_eff_ss_kakera.h"
 #include "objects/gameplay_keep/gameplay_keep.h"
 #include "objects/gameplay_field_keep/gameplay_field_keep.h"
@@ -513,6 +514,7 @@ void EnKusa_Draw(Actor* thisx, PlayState* play) {
     if (this->actor.flags & ACTOR_FLAG_GRASS_DESTROYED) {
         Gfx_DrawDListOpa(play, object_kusa_DL_0002E0);
     } else {
-        Gfx_DrawDListOpa(play, dLists[thisx->params & 3]);
+        Gfx_DrawDListOpa(play, (Gfx*)OotmmXflags_CsmcDL(thisx, (thisx->params & 3) == 0 ? "Bush" : "Grass",
+                                                        dLists[thisx->params & 3]));
     }
 }

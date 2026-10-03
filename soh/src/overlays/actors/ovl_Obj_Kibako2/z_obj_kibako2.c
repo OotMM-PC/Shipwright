@@ -5,6 +5,7 @@
  */
 
 #include "z_obj_kibako2.h"
+#include "soh/OotmmXflags.h"
 #include "objects/object_kibako2/object_kibako2.h"
 #include "overlays/effects/ovl_Effect_Ss_Kakera/z_eff_ss_kakera.h"
 #include "soh/Enhancements/game-interactor/GameInteractor_Hooks.h"
@@ -180,5 +181,5 @@ void ObjKibako2_Draw(Actor* thisx, PlayState* play) {
         return;
     }
 
-    Gfx_DrawDListOpa(play, gLargeCrateDL);
+    Gfx_DrawDListOpa(play, (Gfx*)OotmmXflags_CsmcDL(thisx, "Crate", gLargeCrateDL));
 }

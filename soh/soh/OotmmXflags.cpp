@@ -4,6 +4,7 @@
 #include "ObjectExtension/ActorListIndex.h"
 #include "ObjectExtension/ObjectExtension.h"
 #include "OotmmCheckLedger.h"
+#include "OotmmCsmc.h"
 #include "OotmmDrops.h"
 #include "OotmmIpc.h"
 #include "OotmmItemModels.h"
@@ -671,6 +672,7 @@ std::optional<Xflag> Resolve(Actor* actor) {
     if (!Alias(actor, xf)) {
         return std::nullopt;
     }
+    ObjectExtension::GetInstance().Set<XflagTag>(actor, XflagTag{ xf });
     return xf;
 }
 
@@ -792,6 +794,21 @@ void DrawFairy(Actor* actor, PlayState* play) {
                             cloaked ? placement->CloakItemName : placement->ItemName);
 }
 
+void DrawWonderGlitter(Actor* actor, PlayState* play) {
+    const auto* placement = Shuffled(actor);
+    if (placement == nullptr) {
+        actor->draw = nullptr;
+        return;
+    }
+    OotmmCsmc_DrawGlitter(play, actor, *placement);
+}
+
+void AdoptWonder(Actor* actor) {
+    if (actor->id == ACTOR_EN_WONDER_ITEM && actor->draw == nullptr && Shuffled(actor) != nullptr) {
+        actor->draw = DrawWonderGlitter;
+    }
+}
+
 void AdoptFairy(Actor* actor) {
     if (actor == nullptr || actor->id != ACTOR_EN_ELF) {
         return;
@@ -817,6 +834,15 @@ int DropActor(Actor* actor, PlayState* play, bool still) {
 }
 
 } // namespace
+
+extern "C" void* OotmmXflags_CsmcDL(Actor* actor, const char* family, void* vanilla) {
+    const auto* placement = Shuffled(actor);
+    if (placement == nullptr) {
+        return vanilla;
+    }
+    void* dl = OotmmCsmc_ContainerDL(*placement, family);
+    return dl != nullptr ? dl : vanilla;
+}
 
 extern "C" int OotmmXflags_IsShuffled(Actor* actor) {
     return Shuffled(actor) != nullptr;
@@ -949,5 +975,6 @@ void OotmmXflags_Init() {
     GameInteractor::Instance->RegisterGameHook<GameInteractor::OnActorInit>([](void* actor) {
         AdoptFreestanding(static_cast<Actor*>(actor));
         AdoptFairy(static_cast<Actor*>(actor));
+        AdoptWonder(static_cast<Actor*>(actor));
     });
 }

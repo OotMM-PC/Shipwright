@@ -5,6 +5,7 @@
  */
 
 #include "z_obj_tsubo.h"
+#include "soh/OotmmXflags.h"
 #include "overlays/effects/ovl_Effect_Ss_Kakera/z_eff_ss_kakera.h"
 #include "objects/gameplay_dangeon_keep/gameplay_dangeon_keep.h"
 #include "objects/object_tsubo/object_tsubo.h"
@@ -340,5 +341,5 @@ void ObjTsubo_Update(Actor* thisx, PlayState* play) {
 }
 
 void ObjTsubo_Draw(Actor* thisx, PlayState* play) {
-    Gfx_DrawDListOpa(play, D_80BA1B84[(thisx->params >> 8) & 1]);
+    Gfx_DrawDListOpa(play, (Gfx*)OotmmXflags_CsmcDL(thisx, "Pot", D_80BA1B84[(thisx->params >> 8) & 1]));
 }

@@ -7,6 +7,7 @@
 #include "z_en_cow.h"
 #include "objects/object_cow/object_cow.h"
 #include "soh/ResourceManagerHelpers.h"
+#include "soh/OotmmChecks.h"
 #include "soh/Enhancements/game-interactor/GameInteractor_Hooks.h"
 
 #define FLAGS (ACTOR_FLAG_ATTENTION_ENABLED | ACTOR_FLAG_FRIENDLY)
@@ -370,7 +371,7 @@ s32 EnCow_OverrideLimbDraw(PlayState* play, s32 limbIndex, Gfx** dList, Vec3f* p
         rot->x += this->someRot.x;
     }
     if (limbIndex == 5) {
-        *dList = NULL;
+        *dList = (Gfx*)OotmmChecks_CowRingDL(&this->actor, gCowNoseRingDL);
     }
     return false;
 }

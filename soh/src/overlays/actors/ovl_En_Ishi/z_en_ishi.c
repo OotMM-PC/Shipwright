@@ -484,7 +484,7 @@ void EnIshi_Update(Actor* thisx, PlayState* play) {
 }
 
 void EnIshi_DrawSmall(EnIshi* this, PlayState* play) {
-    Gfx_DrawDListOpa(play, gFieldKakeraDL);
+    Gfx_DrawDListOpa(play, (Gfx*)OotmmXflags_CsmcDL(&this->actor, "Rock", gFieldKakeraDL));
 }
 
 void EnIshi_DrawLarge(EnIshi* this, PlayState* play) {

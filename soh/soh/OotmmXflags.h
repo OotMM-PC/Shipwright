@@ -19,6 +19,7 @@ void OotmmXflags_PrepareSpawnAt(int scene, int setup, int room, int id);
 void OotmmXflags_ClearSpawn(void);
 void OotmmXflags_ClaimSpawn(struct Actor* actor);
 int OotmmXflags_PrepareFairy(struct Actor* butterfly);
+void* OotmmXflags_CsmcDL(struct Actor* actor, const char* family, void* vanilla);
 
 #ifdef __cplusplus
 }

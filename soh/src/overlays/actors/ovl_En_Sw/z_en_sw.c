@@ -2,6 +2,7 @@
 #include "objects/object_st/object_st.h"
 #include "soh/Enhancements/game-interactor/GameInteractor_Hooks.h"
 #include "soh/ResourceManagerHelpers.h"
+#include "soh/OotmmChecks.h"
 
 #define FLAGS (ACTOR_FLAG_ATTENTION_ENABLED | ACTOR_FLAG_HOSTILE | ACTOR_FLAG_UPDATE_CULLING_DISABLED)
 
@@ -944,10 +945,10 @@ s32 EnSw_OverrideLimbDraw(PlayState* play, s32 limbIndex, Gfx** dList, Vec3f* po
                 *dList = object_st_DL_0049E8;
                 break;
             case 5:
-                *dList = object_st_DL_003FB0;
+                *dList = (Gfx*)OotmmChecks_SkulltulaDL(&this->actor, "GsBody", object_st_DL_003FB0);
                 break;
             case 4:
-                *dList = object_st_DL_0043D8;
+                *dList = (Gfx*)OotmmChecks_SkulltulaDL(&this->actor, "GsHead", object_st_DL_0043D8);
                 break;
         }
     }

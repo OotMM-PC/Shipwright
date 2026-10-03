@@ -213,8 +213,7 @@ std::string PlacementName(const Ship::OotmmPlacement& placement) {
     std::string name =
         "%g" + Ship::OotmmItemCatalog::TrimGameSuffix(cloaked ? placement.CloakItemName : placement.ItemName) + "%w";
     const std::string game = cloaked ? (placement.CloakItemId.starts_with("MM_") ? "mm" : "oot") : placement.ItemGame;
-    const bool otherPlayer =
-        placement.OwnerPlayer != 0 && placement.OwnerPlayer != OotmmSession_GetState().GetPlayerId();
+    const bool otherPlayer = !placement.IsFor(OotmmSession_GetState().GetPlayerId());
     const bool otherGame = !game.empty() && game != "oot";
     if (otherPlayer) {
         name += " for %bPlayer " + std::to_string(placement.OwnerPlayer) + "%w";
@@ -468,7 +467,7 @@ extern "C" int OotmmNpcChecks_TryCollectFreestanding(Actor* actor, PlayState* pl
     if (player == nullptr || actor->xzDistToPlayer >= xzRange || std::fabs(actor->yDistToPlayer) >= yRange ||
         play->msgCtx.msgMode != MSGMODE_NONE || play->pauseCtx.state != 0 ||
         play->transitionTrigger != TRANS_TRIGGER_OFF || OotmmItemPresentation_IsPending() ||
-        Player_GetExplosiveHeld(player) >= 0 || player->getItemId > GI_NONE ||
+        Player_GetExplosiveHeld(player) >= 0 || OotmmItemPresentation_PlayerReceiving(player) ||
         (player->stateFlags1 &
          (PLAYER_STATE1_DEAD | PLAYER_STATE1_CHARGING_SPIN_ATTACK | PLAYER_STATE1_HANGING_OFF_LEDGE |
           PLAYER_STATE1_CLIMBING_LEDGE | PLAYER_STATE1_JUMPING | PLAYER_STATE1_FREEFALL |

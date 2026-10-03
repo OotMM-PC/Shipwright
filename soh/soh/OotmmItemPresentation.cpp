@@ -125,7 +125,7 @@ void PumpPresentation() {
     if (Player_InBlockingCsMode(gPlayState, player) ||
         (player->stateFlags1 & (PLAYER_STATE1_DEAD | PLAYER_STATE1_GETTING_ITEM |
                                 PLAYER_STATE1_TALKING | PLAYER_STATE1_IN_CUTSCENE)) ||
-        player->getItemId > GI_NONE) {
+        OotmmItemPresentation_PlayerReceiving(player)) {
         return;
     }
 
@@ -175,6 +175,10 @@ extern "C" int OotmmItemPresentation_IsPending(void) {
 
 void OotmmItemPresentation_Queue(Ship::GameIpcItemPresentation presentation) {
     sQueue.emplace_back(std::move(presentation));
+}
+
+bool OotmmItemPresentation_PlayerReceiving(const Player* player) {
+    return player->getItemId > GI_NONE && player->getItemId < GI_MAX;
 }
 
 bool OotmmItemPresentation_IsDelivering(const std::string& checkId) {

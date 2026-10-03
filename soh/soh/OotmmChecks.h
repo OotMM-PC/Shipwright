@@ -20,6 +20,8 @@ int OotmmChecks_CollectibleDone(struct PlayState* play, int flag, int vanillaDon
 int OotmmChecks_DrawDivingRupee(struct Actor* actor, struct PlayState* play, int colorIdx);
 int OotmmChecks_CollectDivingRupee(struct PlayState* play, int colorIdx);
 int OotmmChecks_SilverRupeeIsShuffled(int index);
+void* OotmmChecks_SkulltulaDL(struct Actor* skulltula, const char* part, void* vanilla);
+void* OotmmChecks_CowRingDL(struct Actor* cow, void* vanilla);
 int OotmmChecks_SilverRupeeTaken(int index);
 int OotmmChecks_DrawSilverRupee(struct Actor* actor, struct PlayState* play, int index);
 void OotmmChecks_CollectSilverRupee(int index);
