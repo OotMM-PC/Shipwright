@@ -5,6 +5,7 @@
  */
 
 #include "z_en_ishi.h"
+#include "soh/OotmmXflags.h"
 #include "overlays/effects/ovl_Effect_Ss_Kakera/z_eff_ss_kakera.h"
 #include "objects/gameplay_field_keep/gameplay_field_keep.h"
 #include "soh/OTRGlobals.h"
@@ -250,6 +251,10 @@ void EnIshi_SpawnDustLarge(EnIshi* this, PlayState* play) {
 
 void EnIshi_DropCollectible(EnIshi* this, PlayState* play) {
     s16 dropParams;
+
+    if (OotmmXflags_Drop(&this->actor, play)) {
+        return;
+    }
 
     if ((this->actor.params & 1) == ROCK_SMALL) {
         dropParams = (this->actor.params >> 8) & 0xF;

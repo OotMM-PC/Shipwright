@@ -9,6 +9,7 @@
 #include "objects/object_bdoor/object_bdoor.h"
 #include "soh/ObjectExtension/ObjectExtension.h"
 #include "soh/ObjectExtension/ActorListIndex.h"
+#include "soh/OotmmXflags.h"
 #include "soh/frame_interpolation.h"
 #include "soh/Enhancements/cosmetics/cosmeticsTypes.h"
 #include "soh/Enhancements/game-interactor/GameInteractor.h"
@@ -2585,7 +2586,9 @@ void Actor_UpdateAll(PlayState* play, ActorContext* actorCtx) {
         OotmmSouls_ResetRoomState();
         actorEntry = &play->setupActorList[0];
         for (i = 0; i < play->numSetupActors; i++) {
+            currentActorListIndex = i;
             Actor* spawnedActor = Actor_SpawnEntry(&play->actorCtx, actorEntry++, play);
+            currentActorListIndex = -1;
 
             // #region SOH [ObjectExtension] ActorListIndex tracking
             SetActorListIndex(spawnedActor, (s16)i);
@@ -3399,6 +3402,9 @@ Actor* Actor_Spawn(ActorContext* actorCtx, PlayState* play, s16 actorId, f32 pos
     }
 
     memset((u8*)actor, 0, dbEntry->instanceSize);
+    SetActorListIndex(actor, currentActorListIndex);
+    currentActorListIndex = -1;
+    OotmmXflags_ClaimSpawn(actor);
     actor->id = dbEntry->id;
     actor->flags = dbEntry->flags;
 

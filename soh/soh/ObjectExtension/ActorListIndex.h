@@ -8,6 +8,7 @@ extern "C" {
 
 int16_t GetActorListIndex(const Actor* actor);
 void SetActorListIndex(const Actor* actor, int16_t index);
+extern s16 currentActorListIndex;
 
 #ifdef __cplusplus
 }

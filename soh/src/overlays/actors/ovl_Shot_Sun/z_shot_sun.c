@@ -5,6 +5,7 @@
  */
 
 #include "z_shot_sun.h"
+#include "soh/OotmmXflags.h"
 #include "overlays/actors/ovl_En_Elf/z_en_elf.h"
 #include "scenes/overworld/spot06/spot06_scene.h"
 #include "soh/Enhancements/game-interactor/GameInteractor_Hooks.h"
@@ -102,8 +103,10 @@ void ShotSun_SpawnFairy(ShotSun* this, PlayState* play) {
 
         //! @bug fairyType may be uninitialized
         if (GameInteractor_Should(VB_SPAWN_SONG_FAIRY, true, this)) {
+            OotmmXflags_PrepareSpawn(&this->actor, 0);
             Actor_Spawn(&play->actorCtx, play, ACTOR_EN_ELF, this->actor.home.pos.x, this->actor.home.pos.y,
                         this->actor.home.pos.z, 0, 0, 0, fairyType);
+            OotmmXflags_ClearSpawn();
         }
 
         Actor_Kill(&this->actor);

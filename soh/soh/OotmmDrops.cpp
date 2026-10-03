@@ -65,8 +65,16 @@ void Present(const Drop& drop) {
         return;
     }
     const bool collected = OotmmCheckLedger_Contains(drop.CheckId) || OotmmIpc_IsCheckCompleted(drop.CheckId);
-    OotmmIpc_SendCheckCollected(drop.CheckId, !collected);
-    OotmmCheckLedger_Record(drop.CheckId);
+    OotmmDrops_Report(drop.CheckId, drop.ItemId, !collected);
+}
+
+void Track(EnItem00* item, Drop drop) {
+    item->actor.draw = OotmmDrops_DrawActor;
+    item->unk_15A = kDespawnRefresh;
+    if (Ship::OotmmItemCatalog::IsTrap(drop.ItemId)) {
+        PickDisguise(drop.DrawItemId, drop.DrawItemName);
+    }
+    sDrops.insert_or_assign(&item->actor, std::move(drop));
 }
 
 Actor* Spawn(PlayState* play, float x, float y, float z, Drop drop) {
@@ -78,13 +86,15 @@ Actor* Spawn(PlayState* play, float x, float y, float z, Drop drop) {
     if (item == nullptr) {
         return nullptr;
     }
-    item->actor.draw = OotmmDrops_DrawActor;
-    item->unk_15A = kDespawnRefresh;
-    if (Ship::OotmmItemCatalog::IsTrap(drop.ItemId)) {
-        PickDisguise(drop.DrawItemId, drop.DrawItemName);
-    }
-    sDrops.emplace(&item->actor, std::move(drop));
+    Track(item, std::move(drop));
     return &item->actor;
+}
+
+Drop PlacementDrop(const Ship::OotmmPlacement& placement, int collectibleFlag) {
+    const std::string& drawItemId = placement.CloakItemId.empty() ? placement.ItemId : placement.CloakItemId;
+    const std::string& drawItemName = placement.CloakItemId.empty() ? placement.ItemName : placement.CloakItemName;
+    return Drop{ placement.ItemId,    placement.ItemName,    placement.ItemGame, placement.CheckId,
+                 placement.OwnerPlayer, collectibleFlag, drawItemId,         drawItemName };
 }
 
 } // namespace
@@ -114,13 +124,35 @@ bool OotmmDrops_Spawn(PlayState* play, float x, float y, float z, const std::str
 
 Actor* OotmmDrops_SpawnPlacement(PlayState* play, float x, float y, float z,
                                  const Ship::OotmmPlacement& placement, int collectibleFlag) {
-    const std::string& drawItemId =
-        placement.CloakItemId.empty() ? placement.ItemId : placement.CloakItemId;
-    const std::string& drawItemName =
-        placement.CloakItemId.empty() ? placement.ItemName : placement.CloakItemName;
-    return Spawn(play, x, y, z,
-                 Drop{ placement.ItemId, placement.ItemName, placement.ItemGame, placement.CheckId,
-                       placement.OwnerPlayer, collectibleFlag, drawItemId, drawItemName });
+    return Spawn(play, x, y, z, PlacementDrop(placement, collectibleFlag));
+}
+
+bool OotmmDrops_Adopt(Actor* actor, const Ship::OotmmPlacement& placement, int collectibleFlag) {
+    if (actor == nullptr || actor->id != ACTOR_EN_ITEM00) {
+        return false;
+    }
+    Track(reinterpret_cast<EnItem00*>(actor), PlacementDrop(placement, collectibleFlag));
+    return true;
+}
+
+void OotmmDrops_Report(const std::string& checkId, const std::string& itemId, bool present) {
+    const bool fast = Ship::OotmmItemCatalog::IsFast(itemId);
+    OotmmIpc_SendCheckCollected(checkId, present && !fast);
+    OotmmCheckLedger_Record(checkId);
+    if (fast) {
+        Audio_PlaySoundGeneral(itemId.find("_RUPEE_") != std::string::npos ? NA_SE_SY_GET_RUPY : NA_SE_SY_GET_BOXITEM,
+                               &gSfxDefaultPos, 4, &gSfxDefaultFreqAndVolScale, &gSfxDefaultFreqAndVolScale,
+                               &gSfxDefaultReverb);
+    }
+}
+
+bool OotmmDrops_HasCheck(const std::string& checkId) {
+    for (const auto& [actor, drop] : sDrops) {
+        if (drop.CheckId == checkId) {
+            return true;
+        }
+    }
+    return false;
 }
 
 void OotmmDrops_Init() {

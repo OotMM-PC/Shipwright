@@ -26,47 +26,48 @@ struct Puzzle {
     bool masterQuest;
     const char* suffix;
     uint8_t base;
+    int8_t flag;
 };
 
 constexpr Puzzle kPuzzles[] = {
-    { SCENE_BOTTOM_OF_THE_WELL, kAnyRoom, false, "BOTW", 0x05 },
-    { SCENE_SPIRIT_TEMPLE, 0x00, false, "SPIRIT_CHILD", 0x0a },
-    { SCENE_SPIRIT_TEMPLE, 0x02, false, "SPIRIT_CHILD", 0x0a },
-    { SCENE_SPIRIT_TEMPLE, 0x08, false, "SPIRIT_SUN", 0x0f },
-    { SCENE_SPIRIT_TEMPLE, 0x17, false, "SPIRIT_SUN", 0x0f },
-    { SCENE_SPIRIT_TEMPLE, 0x0d, false, "SPIRIT_BOULDERS", 0x14 },
-    { SCENE_SHADOW_TEMPLE, 0x06, false, "SHADOW_SCYTHE", 0x19 },
-    { SCENE_SHADOW_TEMPLE, 0x09, false, "SHADOW_PIT", 0x28 },
-    { SCENE_SHADOW_TEMPLE, 0x0b, false, "SHADOW_SPIKES", 0x2d },
-    { SCENE_ICE_CAVERN, 0x03, false, "IC_SCYTHE", 0x37 },
-    { SCENE_ICE_CAVERN, 0x05, false, "IC_BLOCK", 0x3c },
-    { SCENE_GERUDO_TRAINING_GROUND, 0x02, false, "GTG_SLOPES", 0x41 },
-    { SCENE_GERUDO_TRAINING_GROUND, 0x06, false, "GTG_LAVA", 0x46 },
-    { SCENE_GERUDO_TRAINING_GROUND, 0x09, false, "GTG_WATER", 0x4c },
-    { SCENE_INSIDE_GANONS_CASTLE, 0x0c, false, "GANON_SPIRIT", 0x51 },
-    { SCENE_INSIDE_GANONS_CASTLE, 0x11, false, "GANON_SPIRIT", 0x51 },
-    { SCENE_INSIDE_GANONS_CASTLE, 0x03, false, "GANON_LIGHT", 0x56 },
-    { SCENE_INSIDE_GANONS_CASTLE, 0x08, false, "GANON_LIGHT", 0x56 },
-    { SCENE_INSIDE_GANONS_CASTLE, 0x0e, false, "GANON_FIRE", 0x5b },
-    { SCENE_INSIDE_GANONS_CASTLE, 0x06, false, "GANON_FOREST", 0x60 },
+    { SCENE_BOTTOM_OF_THE_WELL, kAnyRoom, false, "BOTW", 0x05, 0x1f },
+    { SCENE_SPIRIT_TEMPLE, 0x00, false, "SPIRIT_CHILD", 0x0a, 0x05 },
+    { SCENE_SPIRIT_TEMPLE, 0x02, false, "SPIRIT_CHILD", 0x0a, 0x05 },
+    { SCENE_SPIRIT_TEMPLE, 0x08, false, "SPIRIT_SUN", 0x0f, 0x0a },
+    { SCENE_SPIRIT_TEMPLE, 0x17, false, "SPIRIT_SUN", 0x0f, 0x0a },
+    { SCENE_SPIRIT_TEMPLE, 0x0d, false, "SPIRIT_BOULDERS", 0x14, 0x02 },
+    { SCENE_SHADOW_TEMPLE, 0x06, false, "SHADOW_SCYTHE", 0x19, 0x01 },
+    { SCENE_SHADOW_TEMPLE, 0x09, false, "SHADOW_PIT", 0x28, 0x09 },
+    { SCENE_SHADOW_TEMPLE, 0x0b, false, "SHADOW_SPIKES", 0x2d, 0x08 },
+    { SCENE_ICE_CAVERN, 0x03, false, "IC_SCYTHE", 0x37, 0x08 },
+    { SCENE_ICE_CAVERN, 0x05, false, "IC_BLOCK", 0x3c, 0x09 },
+    { SCENE_GERUDO_TRAINING_GROUND, 0x02, false, "GTG_SLOPES", 0x41, 0x1c },
+    { SCENE_GERUDO_TRAINING_GROUND, 0x06, false, "GTG_LAVA", 0x46, 0x0c },
+    { SCENE_GERUDO_TRAINING_GROUND, 0x09, false, "GTG_WATER", 0x4c, 0x1b },
+    { SCENE_INSIDE_GANONS_CASTLE, 0x0c, false, "GANON_SPIRIT", 0x51, 0x0b },
+    { SCENE_INSIDE_GANONS_CASTLE, 0x11, false, "GANON_SPIRIT", 0x51, 0x0b },
+    { SCENE_INSIDE_GANONS_CASTLE, 0x03, false, "GANON_LIGHT", 0x56, 0x12 },
+    { SCENE_INSIDE_GANONS_CASTLE, 0x08, false, "GANON_LIGHT", 0x56, 0x12 },
+    { SCENE_INSIDE_GANONS_CASTLE, 0x0e, false, "GANON_FIRE", 0x5b, 0x09 },
+    { SCENE_INSIDE_GANONS_CASTLE, 0x06, false, "GANON_FOREST", 0x60, 0x0e },
 
-    { SCENE_DODONGOS_CAVERN, kAnyRoom, true, "DC", 0x00 },
-    { SCENE_SPIRIT_TEMPLE, 0x00, true, "SPIRIT_LOBBY", 0x0a },
-    { SCENE_SPIRIT_TEMPLE, 0x02, true, "SPIRIT_LOBBY", 0x0a },
-    { SCENE_SPIRIT_TEMPLE, 0x08, true, "SPIRIT_ADULT", 0x0f },
-    { SCENE_SPIRIT_TEMPLE, 0x17, true, "SPIRIT_ADULT", 0x0f },
-    { SCENE_SHADOW_TEMPLE, 0x06, true, "SHADOW_SCYTHE", 0x19 },
-    { SCENE_SHADOW_TEMPLE, 0x10, true, "SHADOW_BLADES", 0x1e },
-    { SCENE_SHADOW_TEMPLE, 0x09, true, "SHADOW_PIT", 0x28 },
-    { SCENE_SHADOW_TEMPLE, 0x0b, true, "SHADOW_SPIKES", 0x2d },
-    { SCENE_GERUDO_TRAINING_GROUND, 0x02, true, "GTG_SLOPES", 0x41 },
-    { SCENE_GERUDO_TRAINING_GROUND, 0x06, true, "GTG_LAVA", 0x46 },
-    { SCENE_GERUDO_TRAINING_GROUND, 0x09, true, "GTG_WATER", 0x4c },
-    { SCENE_INSIDE_GANONS_CASTLE, 0x0c, true, "GANON_SHADOW", 0x51 },
-    { SCENE_INSIDE_GANONS_CASTLE, 0x11, true, "GANON_SHADOW", 0x51 },
-    { SCENE_INSIDE_GANONS_CASTLE, 0x03, true, "GANON_WATER", 0x56 },
-    { SCENE_INSIDE_GANONS_CASTLE, 0x08, true, "GANON_WATER", 0x56 },
-    { SCENE_INSIDE_GANONS_CASTLE, 0x0e, true, "GANON_FIRE", 0x5b },
+    { SCENE_DODONGOS_CAVERN, kAnyRoom, true, "DC", 0x00, -1 },
+    { SCENE_SPIRIT_TEMPLE, 0x00, true, "SPIRIT_LOBBY", 0x0a, -1 },
+    { SCENE_SPIRIT_TEMPLE, 0x02, true, "SPIRIT_LOBBY", 0x0a, -1 },
+    { SCENE_SPIRIT_TEMPLE, 0x08, true, "SPIRIT_ADULT", 0x0f, 0x00 },
+    { SCENE_SPIRIT_TEMPLE, 0x17, true, "SPIRIT_ADULT", 0x0f, 0x00 },
+    { SCENE_SHADOW_TEMPLE, 0x06, true, "SHADOW_SCYTHE", 0x19, 0x01 },
+    { SCENE_SHADOW_TEMPLE, 0x10, true, "SHADOW_BLADES", 0x1e, 0x03 },
+    { SCENE_SHADOW_TEMPLE, 0x09, true, "SHADOW_PIT", 0x28, 0x11 },
+    { SCENE_SHADOW_TEMPLE, 0x0b, true, "SHADOW_SPIKES", 0x2d, 0x08 },
+    { SCENE_GERUDO_TRAINING_GROUND, 0x02, true, "GTG_SLOPES", 0x41, 0x1c },
+    { SCENE_GERUDO_TRAINING_GROUND, 0x06, true, "GTG_LAVA", 0x46, 0x0c },
+    { SCENE_GERUDO_TRAINING_GROUND, 0x09, true, "GTG_WATER", 0x4c, 0x1b },
+    { SCENE_INSIDE_GANONS_CASTLE, 0x0c, true, "GANON_SHADOW", 0x51, 0x0b },
+    { SCENE_INSIDE_GANONS_CASTLE, 0x11, true, "GANON_SHADOW", 0x51, 0x0b },
+    { SCENE_INSIDE_GANONS_CASTLE, 0x03, true, "GANON_WATER", 0x56, 0x02 },
+    { SCENE_INSIDE_GANONS_CASTLE, 0x08, true, "GANON_WATER", 0x56, 0x02 },
+    { SCENE_INSIDE_GANONS_CASTLE, 0x0e, true, "GANON_FIRE", 0x5b, 0x01 },
 };
 
 bool ShuffleActive() {
@@ -136,6 +137,24 @@ extern "C" int OotmmSilverRupeesPuzzleIds(int scene, int room, int* base, int* w
     *base = puzzle->base;
     *width = rupees;
     return 1;
+}
+
+extern "C" void OotmmSilverRupeesSyncFlags(PlayState* play) {
+    if (!ShuffleActive()) {
+        return;
+    }
+    for (const Puzzle& puzzle : kPuzzles) {
+        const bool masterQuest = OotmmSession_IsSceneMasterQuest(puzzle.scene) != 0;
+        if (puzzle.flag < 0 || puzzle.masterQuest != masterQuest ||
+            !(OwnsMagicalRupee() || Satisfied(puzzle, masterQuest))) {
+            continue;
+        }
+        if (play != nullptr && play->sceneNum == puzzle.scene) {
+            Flags_SetSwitch(play, puzzle.flag);
+        } else {
+            gSaveContext.sceneFlags[puzzle.scene].swch |= 1u << puzzle.flag;
+        }
+    }
 }
 
 extern "C" int OotmmSilverRupeesSceneBase(int scene) {

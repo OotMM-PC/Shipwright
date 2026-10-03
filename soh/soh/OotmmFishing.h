@@ -15,6 +15,15 @@ void OotmmFishing_DiscardOnHandFish(float* onHandLength, uint8_t* onHandIsLoach)
 
 void OotmmFishing_ReleaseOnHandFish(void);
 
+struct Actor;
+struct PlayState;
+
+int OotmmFishing_FishSpecies(struct Actor* fish);
+void OotmmFishing_InitFishLength(struct Actor* fish, float* length);
+int OotmmFishing_DrawFish(struct Actor* fish, struct PlayState* play);
+int OotmmFishing_CatchFish(struct Actor* fish, struct PlayState* play);
+int OotmmFishing_SpawnLoaches(int vanilla);
+
 #ifdef __cplusplus
 }
 #endif

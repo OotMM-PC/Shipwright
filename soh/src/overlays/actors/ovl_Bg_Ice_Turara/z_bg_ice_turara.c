@@ -5,6 +5,7 @@
  */
 
 #include "z_bg_ice_turara.h"
+#include "soh/OotmmXflags.h"
 #include "objects/object_ice_objects/object_ice_objects.h"
 
 #define FLAGS 0
@@ -116,6 +117,7 @@ void BgIceTurara_Break(BgIceTurara* this, PlayState* play, f32 arg2) {
 void BgIceTurara_Stalagmite(BgIceTurara* this, PlayState* play) {
     if (this->collider.base.acFlags & AC_HIT) {
         BgIceTurara_Break(this, play, 50.0f);
+        OotmmXflags_Drop(&this->dyna.actor, play);
         Actor_Kill(&this->dyna.actor);
         return;
     }

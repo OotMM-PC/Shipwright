@@ -37,8 +37,6 @@ bool ResolveBit(PlayState* play, int32_t id, uint32_t** storage, uint32_t* mask)
 
 } // namespace
 
-// TODO: these track collection only; each rupee should be a real check granting its shuffled item,
-// which needs the check system and seed placement data.
 extern "C" int32_t OotmmSilverRupeeLocations_Claim(PlayState* play, Actor* actor) {
     int base;
     int width;

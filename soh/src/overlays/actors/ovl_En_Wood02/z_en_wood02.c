@@ -5,6 +5,7 @@
  */
 
 #include "z_en_wood02.h"
+#include "soh/OotmmXflags.h"
 #include "objects/object_wood02/object_wood02.h"
 #include "soh/Enhancements/game-interactor/GameInteractor_Hooks.h"
 
@@ -158,6 +159,7 @@ void EnWood02_SpawnOffspring(EnWood02* this, PlayState* play) {
                                                           childPos.x, childPos.y, childPos.z, this->actor.world.rot.x,
                                                           *childSpawnAngle, 0, childParams);
                 if (childWood != NULL) {
+                    OotmmXflags_TagChild(&childWood->actor, &this->actor, i + 1);
                     childWood->unk_14E[0] = i;
                     this->unk_14E[i] |= 1;
                     childWood->actor.projectedPos = this->actor.projectedPos;
@@ -358,7 +360,7 @@ void EnWood02_Update(Actor* thisx, PlayState* play2) {
             dropsSpawnPt.y += 200.0f;
 
             if (GameInteractor_Should(VB_TREE_DROP_ITEM, true, this)) {
-                if ((this->unk_14C >= 0) && (this->unk_14C < 0x64)) {
+                if (!OotmmXflags_Drop(&this->actor, play) && (this->unk_14C >= 0) && (this->unk_14C < 0x64)) {
                     if (GameInteractor_Should(VB_TREE_DROP_COLLECTIBLE, true, this)) {
                         Item_DropCollectibleRandom(play, &this->actor, &dropsSpawnPt, this->unk_14C << 4);
                     }
@@ -404,7 +406,7 @@ void EnWood02_Update(Actor* thisx, PlayState* play2) {
                 ((player->rideActor != NULL) && (sqrt(this->actor.xyzDistToPlayerSq) < 60.0) &&
                  (player->rideActor->speedXZ != 0.0f))) {
                 if (GameInteractor_Should(VB_BUSH_DROP_ITEM, true, this)) {
-                    if ((this->unk_14C >= 0) && (this->unk_14C < 0x64)) {
+                    if (!OotmmXflags_Drop(&this->actor, play) && (this->unk_14C >= 0) && (this->unk_14C < 0x64)) {
                         Item_DropCollectibleRandom(play, &this->actor, &this->actor.world.pos,
                                                    ((this->unk_14C << 4) | 0x8000));
                     }

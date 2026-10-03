@@ -5,6 +5,7 @@
  */
 
 #include "z_en_wonder_item.h"
+#include "soh/OotmmXflags.h"
 #include "vt.h"
 
 #define FLAGS 0
@@ -80,6 +81,14 @@ void EnWonderItem_DropCollectible(EnWonderItem* this, PlayState* play, s32 autoC
     if (this->dropCount == 0) {
         this->dropCount++;
     }
+    if (OotmmXflags_IsShuffled(&this->actor)) {
+        if (autoCollect && this->itemDrop != WONDERITEM_DROP_FLEXIBLE) {
+            OotmmXflags_Collect(&this->actor);
+        } else {
+            OotmmXflags_Drop(&this->actor, play);
+        }
+        this->dropCount = 0;
+    }
     for (i = this->dropCount; i > 0; i--) {
         if (this->itemDrop < WONDERITEM_DROP_RANDOM) {
             if ((this->itemDrop == WONDERITEM_DROP_FLEXIBLE) || !autoCollect) {
@@ -125,6 +134,9 @@ void EnWonderItem_Init(Actor* thisx, PlayState* play) {
         this->switchFlag = -1;
     }
     this->actor.targetMode = 1;
+    if ((this->switchFlag >= 0) && Flags_GetSwitch(play, this->switchFlag) && OotmmXflags_IsShuffled(&this->actor)) {
+        this->switchFlag = -1;
+    }
     if ((this->switchFlag >= 0) && Flags_GetSwitch(play, this->switchFlag)) {
         osSyncPrintf(VT_FGCOL(GREEN) "☆☆☆☆☆ Ｙｏｕ ａｒｅ Ｓｈｏｃｋ！  ☆☆☆☆☆ %d\n" VT_RST, this->switchFlag);
         Actor_Kill(&this->actor);

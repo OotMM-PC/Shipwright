@@ -513,7 +513,7 @@ void OotmmNpcChecks_Init(void) {
         }
     });
     REGISTER_VB_SHOULD(VB_GIVE_ITEM_OCARINA_OF_TIME, {
-        if (Collect("OOT_OCARINA_TIME_ITEM")) {
+        if (Find("OOT_OCARINA_TIME_ITEM") != nullptr) {
             *should = false;
         }
     });

@@ -5,6 +5,7 @@
  */
 
 #include "z_bg_spot11_oasis.h"
+#include "soh/OotmmXflags.h"
 #include "overlays/actors/ovl_En_Elf/z_en_elf.h"
 #include "objects/object_spot11_obj/object_spot11_obj.h"
 
@@ -108,8 +109,10 @@ void func_808B29E0(BgSpot11Oasis* this) {
 void func_808B29F0(BgSpot11Oasis* this, PlayState* play) {
     if (Math_StepToF(&this->actor.world.pos.y, 0.0f, 0.7f)) {
         func_808B2AA8(this);
+        OotmmXflags_PrepareSpawnAt(SCENE_DESERT_COLOSSUS, 0, 0, 1);
         Actor_Spawn(&play->actorCtx, play, ACTOR_EN_ELF, this->actor.world.pos.x, this->actor.world.pos.y + 40.0f,
                     this->actor.world.pos.z, 0, 0, 0, FAIRY_SPAWNER);
+        OotmmXflags_ClearSpawn();
         Sfx_PlaySfxCentered(NA_SE_SY_CORRECT_CHIME);
     }
     func_808B27F0(play, this->actor.world.pos.y);

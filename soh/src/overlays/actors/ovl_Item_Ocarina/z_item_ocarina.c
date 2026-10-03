@@ -8,6 +8,7 @@
 #include "scenes/overworld/spot00/spot00_scene.h"
 #include "soh/OTRGlobals.h"
 #include "soh/Enhancements/game-interactor/GameInteractor_Hooks.h"
+#include "soh/OotmmNpcChecks.h"
 
 #define FLAGS ACTOR_FLAG_UPDATE_CULLING_DISABLED
 
@@ -181,6 +182,7 @@ void ItemOcarina_WaitInWater(ItemOcarina* this, PlayState* play) {
     if (Actor_HasParent(&this->actor, play) ||
         (!GameInteractor_Should(VB_GIVE_ITEM_OCARINA_OF_TIME, true) && (this->actor.xzDistToPlayer < 20.0f) &&
          (fabsf(this->actor.yDistToPlayer) < 10.0f) && GET_PLAYER(play)->stateFlags2 & PLAYER_STATE2_DIVING)) {
+        OotmmNpcChecks_Collect("OOT_OCARINA_TIME_ITEM");
         Flags_SetEventChkInf(EVENTCHKINF_OBTAINED_OCARINA_OF_TIME);
         Flags_SetSwitch(play, 3);
         this->actionFunc = ItemOcarina_StartSoTCutscene;

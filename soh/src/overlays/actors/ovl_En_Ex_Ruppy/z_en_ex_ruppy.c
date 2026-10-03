@@ -2,6 +2,7 @@
 #include "vt.h"
 #include "../ovl_En_Diving_Game/z_en_diving_game.h"
 #include "objects/gameplay_keep/gameplay_keep.h"
+#include "soh/OotmmChecks.h"
 
 #define FLAGS ACTOR_FLAG_UPDATE_CULLING_DISABLED
 
@@ -283,8 +284,10 @@ void EnExRuppy_WaitInGame(EnExRuppy* this, PlayState* play) {
                 this->timer = 20;
                 this->actionFunc = EnExRuppy_Kill;
             } else if (this->actor.xyzDistToPlayerSq < SQ(localConst)) {
-                Rupees_ChangeBy(this->rupeeValue);
-                Sfx_PlaySfxCentered(NA_SE_SY_GET_RUPY);
+                if (!OotmmChecks_CollectDivingRupee(play, this->colorIdx)) {
+                    Rupees_ChangeBy(this->rupeeValue);
+                    Sfx_PlaySfxCentered(NA_SE_SY_GET_RUPY);
+                }
                 divingGame->grabbedRupeesCounter++;
                 Actor_Kill(&this->actor);
             }
@@ -385,6 +388,9 @@ void EnExRuppy_Draw(Actor* thisx, PlayState* play) {
     EnExRuppy* this = (EnExRuppy*)thisx;
 
     if (!this->invisible) {
+        if (this->type == 0 && OotmmChecks_DrawDivingRupee(thisx, play, this->colorIdx)) {
+            return;
+        }
         OPEN_DISPS(play->state.gfxCtx);
 
         if (CVarGetInteger(CVAR_ENHANCEMENT("NewDrops"), 0)) {

@@ -1,6 +1,8 @@
 #include "OotmmFishing.h"
 
+#include "OotmmCheckLedger.h"
 #include "OotmmIpc.h"
+#include "OotmmItemModels.h"
 #include "OotmmSession.h"
 
 #include <array>
@@ -9,6 +11,7 @@
 #include <string>
 
 extern "C" {
+#include "functions.h"
 #include "variables.h"
 #include "z64.h"
 }
@@ -137,10 +140,41 @@ float LengthForWeight(uint8_t weight) {
     return std::sqrt((static_cast<float>(weight & 0x7F) - 0.5f) / 0.0036f) + 1.0f;
 }
 
+constexpr int16_t kFishParamFirst = 100;
+constexpr int16_t kFishParamLast = 116;
+constexpr int kAdultFishOffset = 17;
+
+const Ship::OotmmPlacement* FishPlacement(const Actor* fish) {
+    if (fish == nullptr || !ShuffleActive() || fish->params < kFishParamFirst || fish->params > kFishParamLast) {
+        return nullptr;
+    }
+    const int id = fish->params - kFishParamFirst + (gSaveContext.linkAge == LINK_AGE_CHILD ? 0 : kAdultFishOffset);
+    return OotmmSession_GetState().FindCheck(Ship::OotmmGame::Oot, "fish", std::to_string(id));
+}
+
+bool IsCollected(const Ship::OotmmPlacement& placement) {
+    return OotmmCheckLedger_Contains(placement.CheckId) || OotmmIpc_IsCheckCompleted(placement.CheckId);
+}
+
+const PondFish* PlacedPondFish(const Ship::OotmmPlacement& placement) {
+    if (!placement.CloakItemId.empty() || !placement.IsFor(OotmmSession_GetState().GetPlayerId())) {
+        return nullptr;
+    }
+    for (const auto& fish : kPondFish) {
+        if (placement.ItemId == fish.Id) {
+            return &fish;
+        }
+    }
+    return nullptr;
+}
+
+const PondFish* LivePondFish(const Actor* fish) {
+    const auto* placement = FishPlacement(fish);
+    return placement != nullptr && !IsCollected(*placement) ? PlacedPondFish(*placement) : nullptr;
+}
+
 } // namespace
 
-// TODO: the pond actors are still vanilla, so real and shuffled fish coexist and a released fish can
-// be reused; replacing them as checks needs the check system.
 extern "C" void OotmmFishing_PeekOnHandFish(float* onHandLength, uint8_t* onHandIsLoach) {
     if (onHandLength == nullptr || onHandIsLoach == nullptr || !ShuffleActive()) {
         return;
@@ -207,4 +241,62 @@ extern "C" void OotmmFishing_DiscardOnHandFish(float* onHandLength, uint8_t* onH
 
 extern "C" void OotmmFishing_ReleaseOnHandFish(void) {
     sHeldFromStack = false;
+}
+
+extern "C" int OotmmFishing_FishSpecies(Actor* fish) {
+    const PondFish* pond = LivePondFish(fish);
+    if (pond == nullptr) {
+        return -1;
+    }
+    return (pond->Param & kParamLoach) != 0 ? 1 : 0;
+}
+
+extern "C" void OotmmFishing_InitFishLength(Actor* fish, float* length) {
+    const PondFish* pond = LivePondFish(fish);
+    if (pond == nullptr || length == nullptr) {
+        return;
+    }
+    *length = LengthForWeight(static_cast<uint8_t>(pond->Param & 0xFF));
+    if ((pond->Param & kParamLoach) != 0) {
+        *length *= 0.5f;
+    }
+}
+
+extern "C" int OotmmFishing_DrawFish(Actor* fish, PlayState* play) {
+    const auto* placement = FishPlacement(fish);
+    if (placement == nullptr || LivePondFish(fish) != nullptr) {
+        return 0;
+    }
+    Matrix_Push();
+    Matrix_Scale(56.0f, 56.0f, 56.0f, MTXMODE_APPLY);
+    if (IsCollected(*placement)) {
+        GetItem_Draw(play, GID_HEART);
+        Matrix_Pop();
+        return 1;
+    }
+    const bool cloaked = !placement->CloakItemId.empty();
+    if (!OotmmItemModel_DrawById(play, cloaked ? placement->CloakItemId : placement->ItemId,
+                                 cloaked ? placement->CloakItemName : placement->ItemName)) {
+        GetItem_Draw(play, GID_RUPEE_GREEN);
+    }
+    Matrix_Pop();
+    return 1;
+}
+
+extern "C" int OotmmFishing_CatchFish(Actor* fish, PlayState* play) {
+    const auto* placement = FishPlacement(fish);
+    if (placement == nullptr) {
+        return 0;
+    }
+    if (IsCollected(*placement)) {
+        Item_Give(play, ITEM_HEART);
+        return 1;
+    }
+    OotmmIpc_SendCheckCollected(placement->CheckId, true);
+    OotmmCheckLedger_Record(placement->CheckId);
+    return 1;
+}
+
+extern "C" int OotmmFishing_SpawnLoaches(int vanilla) {
+    return ShuffleActive() ? 1 : vanilla;
 }

@@ -5,6 +5,7 @@
  */
 
 #include "z_en_butte.h"
+#include "soh/OotmmXflags.h"
 #include "overlays/actors/ovl_En_Elf/z_en_elf.h"
 #include "objects/gameplay_keep/gameplay_keep.h"
 #include "objects/gameplay_field_keep/gameplay_field_keep.h"
@@ -271,7 +272,8 @@ void EnButte_FlyAround(EnButte* this, PlayState* play) {
         EnButte_SelectFlightParams(this, &sFlyAroundParams[this->flightParamsIdx]);
     }
 
-    if (((this->actor.params & 1) == 1) && (player->heldItemAction == PLAYER_IA_DEKU_STICK) &&
+    if ((((this->actor.params & 1) == 1) || OotmmXflags_IsShuffled(&this->actor)) &&
+        (player->heldItemAction == PLAYER_IA_DEKU_STICK) &&
         (this->swordDownTimer <= 0) &&
         ((Math3D_Dist2DSq(player->actor.world.pos.x, player->actor.world.pos.z, this->actor.home.pos.x,
                           this->actor.home.pos.z) < SQ(120.0f)) ||
@@ -364,8 +366,11 @@ void EnButte_TransformIntoFairy(EnButte* this, PlayState* play) {
     if (this->timer == 5) {
         SoundSource_PlaySfxAtFixedWorldPos(play, &this->actor.world.pos, 60, NA_SE_EV_BUTTERFRY_TO_FAIRY);
     } else if (this->timer == 4) {
-        Actor_Spawn(&play->actorCtx, play, ACTOR_EN_ELF, this->actor.focus.pos.x, this->actor.focus.pos.y,
-                    this->actor.focus.pos.z, 0, this->actor.shape.rot.y, 0, FAIRY_HEAL_TIMED);
+        if (OotmmXflags_PrepareFairy(&this->actor)) {
+            Actor_Spawn(&play->actorCtx, play, ACTOR_EN_ELF, this->actor.focus.pos.x, this->actor.focus.pos.y,
+                        this->actor.focus.pos.z, 0, this->actor.shape.rot.y, 0, FAIRY_HEAL_TIMED);
+        }
+        OotmmXflags_ClearSpawn();
         this->drawSkelAnime = false;
     } else if (this->timer <= 0) {
         EnButte_SetupWaitToDie(this);

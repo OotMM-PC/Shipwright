@@ -5,6 +5,7 @@
  */
 
 #include "z_en_elf.h"
+#include "soh/OotmmXflags.h"
 #include "objects/gameplay_keep/gameplay_keep.h"
 #include <assert.h>
 #include "soh/Enhancements/game-interactor/GameInteractor_Hooks.h"
@@ -403,9 +404,11 @@ void EnElf_Init(Actor* thisx, PlayState* play) {
 
             if (GameInteractor_Should(VB_SPAWN_FOUNTAIN_FAIRIES, true, this)) {
                 for (i = 0; i < 8; i++) {
+                    OotmmXflags_PrepareSpawn(thisx, i);
                     Actor_Spawn(&play->actorCtx, play, ACTOR_EN_ELF, thisx->world.pos.x, thisx->world.pos.y - 30.0f,
                                 thisx->world.pos.z, 0, 0, 0, FAIRY_HEAL);
                 }
+                OotmmXflags_ClearSpawn();
             }
             break;
         default:
@@ -635,11 +638,13 @@ void func_80A0329C(EnElf* this, PlayState* play) {
 
         if ((heightDiff > 0.0f) && (heightDiff < 60.0f)) {
             if (!func_80A01F90(&this->actor.world.pos, &refActor->actor.world.pos, 10.0f)) {
-                if (GameInteractor_Should(VB_FAIRY_HEAL, true, this)) {
-                    Health_ChangeBy(play, 128);
-                }
-                if (this->fairyFlags & FAIRY_FLAG_BIG) {
-                    Magic_Fill(play);
+                if (!OotmmXflags_Collect(&this->actor)) {
+                    if (GameInteractor_Should(VB_FAIRY_HEAL, true, this)) {
+                        Health_ChangeBy(play, 128);
+                    }
+                    if (this->fairyFlags & FAIRY_FLAG_BIG) {
+                        Magic_Fill(play);
+                    }
                 }
                 this->unk_2B8 = 50.0f;
                 this->unk_2AC = refActor->actor.shape.rot.y;

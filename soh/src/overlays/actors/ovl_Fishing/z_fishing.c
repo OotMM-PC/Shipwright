@@ -988,7 +988,7 @@ void Fishing_Init(Actor* thisx, PlayState* play2) {
         Actor_Spawn(&play->actorCtx, play, ACTOR_FISHING, 0.0f, 0.0f, 0.0f, 0, 0, 0, 200);
 
         // Loach(es) will spawn every fourth game, or if "Loaches Always Appear" is enabled
-        if (getShouldSpawnLoaches()) {
+        if (OotmmFishing_SpawnLoaches(getShouldSpawnLoaches())) {
             // Fishes 16 and 17 are loaches. Only 16 is spawned as adult; child also spawns 17.
             if (sLinkAge != LINK_AGE_CHILD) {
                 fishCount = 16;
@@ -1004,7 +1004,11 @@ void Fishing_Init(Actor* thisx, PlayState* play2) {
                         sFishInits[i].pos.z, 0, Rand_ZeroFloat(0x10000), 0, 100 + i);
         }
     } else {
-        if ((thisx->params < (EN_FISH_PARAM + 15) && !AllHyruleLoaches()) || (thisx->params == EN_FISH_AQUARIUM)) {
+        s32 ootmmSpecies = OotmmFishing_FishSpecies(thisx);
+
+        if ((ootmmSpecies == 0) ||
+            ((ootmmSpecies < 0) && (((thisx->params < (EN_FISH_PARAM + 15)) && !AllHyruleLoaches()) ||
+                                    (thisx->params == EN_FISH_AQUARIUM)))) {
             SkelAnime_InitFlex(play, &this->skelAnime, &gFishingFishSkel, &gFishingFishAnim, NULL, NULL, 0);
             Animation_MorphToLoop(&this->skelAnime, &gFishingFishAnim, 0.0f);
         } else {
@@ -1024,7 +1028,8 @@ void Fishing_Init(Actor* thisx, PlayState* play2) {
             this->fishState = 10;
             this->fishStateNext = 10;
 
-            this->isLoach = sFishInits[thisx->params - EN_FISH_PARAM].isLoach || AllHyruleLoaches();
+            this->isLoach = (ootmmSpecies >= 0) ? ootmmSpecies
+                                                : (sFishInits[thisx->params - EN_FISH_PARAM].isLoach || AllHyruleLoaches());
             this->perception = sFishInits[thisx->params - EN_FISH_PARAM].perception;
             this->fishLength = sFishInits[thisx->params - EN_FISH_PARAM].baseLength;
 
@@ -1043,6 +1048,7 @@ void Fishing_Init(Actor* thisx, PlayState* play2) {
             if (sLinkAge == LINK_AGE_CHILD) {
                 this->fishLength *= 0.73f;
             }
+            OotmmFishing_InitFishLength(thisx, &this->fishLength);
         }
     }
 }
@@ -3938,7 +3944,9 @@ void Fishing_UpdateFish(Actor* thisx, PlayState* play2) {
                 sCameraAt.y += 25.0f;
             }
 
-            if (this->timerArray[0] == 90) {
+            if ((this->timerArray[0] == 90) && OotmmFishing_CatchFish(&this->actor, play)) {
+                this->keepState = 2;
+            } else if (this->timerArray[0] == 90) {
                 Audio_QueueSeqCmd(SEQ_PLAYER_BGM_MAIN << 24 | NA_BGM_HEART_GET | 0x900);
                 sFishingCaughtTextDelay = 40;
 
@@ -4033,6 +4041,10 @@ void Fishing_UpdateFish(Actor* thisx, PlayState* play2) {
                                 sRodCastState = 0;
                             }
                         }
+                        break;
+                    case 2:
+                        Actor_Kill(&this->actor);
+                        sRodCastState = 0;
                         break;
                 }
             }
@@ -4351,6 +4363,13 @@ void Fishing_DrawFish(Actor* thisx, PlayState* play) {
     Matrix_RotateX(((this->unk_160 + this->actor.shape.rot.x) / 32768.0f) * M_PI, MTXMODE_APPLY);
     Matrix_RotateZ(((this->unk_164 + this->actor.shape.rot.z) / 32768.0f) * M_PI, MTXMODE_APPLY);
     Matrix_Scale(this->actor.scale.x, this->actor.scale.y, this->actor.scale.z, MTXMODE_APPLY);
+
+    if (OotmmFishing_DrawFish(thisx, play)) {
+        Vec3f mouthOffset = { 0.0f, 0.0f, 0.0f };
+
+        Matrix_MultVec3f(&mouthOffset, &this->fishMouthPos);
+        return;
+    }
 
     if (this->isLoach == 0) {
         Matrix_RotateY((this->fishLimb23RotYDelta * (M_PI / 32768)) - (M_PI / 2), MTXMODE_APPLY);

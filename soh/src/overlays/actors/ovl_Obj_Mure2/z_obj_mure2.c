@@ -5,6 +5,7 @@
  */
 
 #include "z_obj_mure2.h"
+#include "soh/OotmmXflags.h"
 #include "soh/OTRGlobals.h"
 
 #define FLAGS 0
@@ -123,6 +124,7 @@ void ObjMure2_SpawnActors(ObjMure2* this, PlayState* play) {
                 Actor_Spawn(&play->actorCtx, play, sActorSpawnIDs[actorNum], spawnPos[i].x, spawnPos[i].y,
                             spawnPos[i].z, this->actor.world.rot.x, 0, this->actor.world.rot.z, params);
             if (this->actorSpawnPtrList[i] != NULL) {
+                OotmmXflags_TagChild(this->actorSpawnPtrList[i], &this->actor, i);
                 this->actorSpawnPtrList[i]->room = this->actor.room;
             }
         }

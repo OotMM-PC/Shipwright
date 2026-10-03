@@ -5,6 +5,7 @@
  */
 
 #include "z_obj_bean.h"
+#include "soh/OotmmXflags.h"
 #include "objects/object_mamenoki/object_mamenoki.h"
 #include "objects/gameplay_keep/gameplay_keep.h"
 #include "vt.h"
@@ -704,7 +705,9 @@ void ObjBean_GrowWaterPhase3(ObjBean* this, PlayState* play) {
             itemDropPos.z = this->dyna.actor.world.pos.z;
             if (GameInteractor_Should(VB_SPAWN_BEAN_STALK_FAIRIES, true, this)) {
                 for (i = 0; i < 3; i++) {
-                    Item_DropCollectible(play, &itemDropPos, ITEM00_FLEXIBLE);
+                    if (!OotmmXflags_DropSlice(&this->dyna.actor, play, i, itemDropPos.x, itemDropPos.y, itemDropPos.z)) {
+                        Item_DropCollectible(play, &itemDropPos, ITEM00_FLEXIBLE);
+                    }
                 }
             }
             this->stateFlags |= BEAN_STATE_BEEN_WATERED;

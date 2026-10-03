@@ -5,6 +5,7 @@
  */
 
 #include "z_en_tubo_trap.h"
+#include "soh/OotmmXflags.h"
 #include "objects/gameplay_dangeon_keep/gameplay_dangeon_keep.h"
 #include "overlays/effects/ovl_Effect_Ss_Kakera/z_eff_ss_kakera.h"
 #include "vt.h"
@@ -75,6 +76,10 @@ void EnTuboTrap_Destroy(Actor* thisx, PlayState* play) {
 void EnTuboTrap_DropCollectible(EnTuboTrap* this, PlayState* play) {
     s16 params = this->actor.params;
     s16 param3FF = (params >> 6) & 0x3FF;
+
+    if (OotmmXflags_Drop(&this->actor, play)) {
+        return;
+    }
 
     if (param3FF >= 0 && param3FF < 0x1A) {
         Item_DropCollectible(play, &this->actor.world.pos, param3FF | ((params & 0x3F) << 8));

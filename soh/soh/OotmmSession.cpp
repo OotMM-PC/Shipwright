@@ -11,6 +11,7 @@
 #include "OotmmItemProbe.h"
 #include "OotmmScales.h"
 #include "OotmmPresence.h"
+#include "OotmmXflags.h"
 
 #include "Enhancements/enhancementTypes.h"
 #include "Enhancements/game-interactor/GameInteractor.h"
@@ -918,6 +919,7 @@ void OotmmSession_Init() {
         OotmmChecks_Init();
         OotmmNpcChecks_Init();
         OotmmDrops_Init();
+        OotmmXflags_Init();
         OotmmDebugChecks_Init();
         OotmmItemProbe_Init();
         OotmmItemModels_Init();

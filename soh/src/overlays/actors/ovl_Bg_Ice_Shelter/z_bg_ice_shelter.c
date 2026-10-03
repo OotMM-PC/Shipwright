@@ -1,4 +1,5 @@
 #include "z_bg_ice_shelter.h"
+#include "soh/OotmmXflags.h"
 #include "objects/object_ice_objects/object_ice_objects.h"
 #include "soh/OTRGlobals.h"
 
@@ -425,6 +426,7 @@ void func_808911D4(BgIceShelter* this, PlayState* play) {
     sEffSpawnFuncs[type](this, play, phi_f0, D_808917D0[type]);
 
     if (this->alpha <= 0) {
+        OotmmXflags_Drop(&this->dyna.actor, play);
         if (!((this->dyna.actor.params >> 6) & 1)) {
             Flags_SetSwitch(play, this->dyna.actor.params & 0x3F);
         }

@@ -1,6 +1,7 @@
 #include "OotmmChecks.h"
 
 #include "Enhancements/game-interactor/GameInteractor.h"
+#include "Enhancements/game-interactor/GameInteractor_Hooks.h"
 #include "OotmmCheckLedger.h"
 #include "OotmmDrops.h"
 #include "OotmmIpc.h"
@@ -16,6 +17,8 @@ extern "C" {
 #include "variables.h"
 #include "z64.h"
 #include "src/overlays/actors/ovl_En_Box/z_en_box.h"
+#include "src/overlays/actors/ovl_En_Si/z_en_si.h"
+#include "src/overlays/actors/ovl_En_Cow/z_en_cow.h"
 
 extern PlayState* gPlayState;
 extern void func_8084DFAC(PlayState* play, Player* player);
@@ -64,6 +67,66 @@ const Ship::OotmmPlacement* FindBossContainer(uint32_t scene) {
 
 const Ship::OotmmPlacement* FindCollectible(uint32_t scene, uint32_t flag) {
     return OotmmSession_GetState().FindCheck(Ship::OotmmGame::Oot, scene, "collectible", flag);
+}
+
+bool IsFlaggedCollectible(const EnItem00* item) {
+    return item->actor.params == ITEM00_HEART_PIECE || item->actor.params == ITEM00_SMALL_KEY;
+}
+
+const Ship::OotmmPlacement* FindToken(const Actor* actor) {
+    const int bits = actor->params & 0xFF;
+    if (bits == 0 || (bits & (bits - 1)) != 0) {
+        return nullptr;
+    }
+    int key = 0;
+    while (((bits >> key) & 1) == 0) {
+        ++key;
+    }
+    key += (((actor->params + 0x100) >> 8) & 0x1F) * 8;
+    return OotmmSession_GetState().FindCheck(Ship::OotmmGame::Oot, "gs", std::to_string(key));
+}
+
+int CowId(const Actor* cow, const PlayState* play) {
+    switch (play->sceneNum) {
+        case SCENE_LINKS_HOUSE:
+            return 0;
+        case SCENE_GROTTOS:
+            return cow->world.pos.x > 3000.0f ? 1 : 7;
+        case SCENE_STABLE:
+            return cow->world.pos.x < -50.0f ? 2 : 3;
+        case SCENE_LON_LON_BUILDINGS:
+            return cow->world.pos.z > -100.0f ? 4 : 5;
+        case SCENE_IMPAS_HOUSE:
+            return 6;
+        case SCENE_GERUDO_VALLEY:
+            return 8;
+        case SCENE_JABU_JABU:
+            return cow->room == 0x04 ? 9 : -1;
+        default:
+            return -1;
+    }
+}
+
+const Ship::OotmmPlacement* FindCow(const Actor* cow, const PlayState* play) {
+    const int id = CowId(cow, play);
+    return id < 0 ? nullptr
+                  : OotmmSession_GetState().FindCheck(Ship::OotmmGame::Oot, "cow", std::to_string(id));
+}
+
+const Ship::OotmmPlacement* FindSilverRupee(int index) {
+    const auto& state = OotmmSession_GetState();
+    if (index < 0 || state.GetStringSetting("silverRupeeShuffle", "vanilla") == "vanilla") {
+        return nullptr;
+    }
+    return state.FindCheck(Ship::OotmmGame::Oot, "sr", std::to_string(index));
+}
+
+void DrawPlacementItem(PlayState* play, const Ship::OotmmPlacement& placement, s16 fallback) {
+    const std::string& itemId = placement.CloakItemId.empty() ? placement.ItemId : placement.CloakItemId;
+    const std::string& itemName = placement.CloakItemId.empty() ? placement.ItemName : placement.CloakItemName;
+    if (!OotmmItemModel_DrawById(play, itemId, itemName)) {
+        GetItem_Draw(play, fallback);
+    }
 }
 
 bool IsCollected(const Ship::OotmmPlacement& placement) {
@@ -183,17 +246,80 @@ extern "C" int OotmmChecks_DrawBossContainer(Actor* actor, PlayState* play) {
     if (IsCollected(*placement)) {
         return 1;
     }
-    const std::string& itemId = placement->CloakItemId.empty() ? placement->ItemId : placement->CloakItemId;
-    const std::string& itemName = placement->CloakItemId.empty() ? placement->ItemName : placement->CloakItemName;
     Matrix_Push();
     if (actor->scale.x > 0.0001f) {
         const float scale = 0.35f / actor->scale.x;
         Matrix_Scale(scale, scale, scale, MTXMODE_APPLY);
     }
-    if (!OotmmItemModel_DrawById(play, itemId, itemName)) {
-        GetItem_Draw(play, GID_RUPEE_GREEN);
-    }
+    DrawPlacementItem(play, *placement, GID_RUPEE_GREEN);
     Matrix_Pop();
+    return 1;
+}
+
+extern "C" int OotmmChecks_DrawToken(Actor* actor, PlayState* play) {
+    if (actor == nullptr || play == nullptr) {
+        return 0;
+    }
+    const auto* placement = FindToken(actor);
+    if (placement == nullptr) {
+        return 0;
+    }
+    DrawPlacementItem(play, *placement, GID_SKULL_TOKEN_2);
+    return 1;
+}
+
+extern "C" int OotmmChecks_SilverRupeeIsShuffled(int index) {
+    return FindSilverRupee(index) != nullptr;
+}
+
+extern "C" int OotmmChecks_SilverRupeeTaken(int index) {
+    const auto* placement = FindSilverRupee(index);
+    return placement != nullptr && IsCollected(*placement);
+}
+
+extern "C" int OotmmChecks_DrawSilverRupee(Actor* actor, PlayState* play, int index) {
+    const auto* placement = FindSilverRupee(index);
+    if (actor == nullptr || play == nullptr || placement == nullptr) {
+        return 0;
+    }
+    Matrix_Push();
+    if (actor->scale.x > 0.0001f) {
+        const float scale = 0.375f / actor->scale.x;
+        Matrix_Scale(scale, scale, scale, MTXMODE_APPLY);
+    }
+    DrawPlacementItem(play, *placement, GID_RUPEE_GREEN);
+    Matrix_Pop();
+    return 1;
+}
+
+extern "C" void OotmmChecks_CollectSilverRupee(int index) {
+    if (const auto* placement = FindSilverRupee(index)) {
+        Report(*placement, true);
+    }
+}
+
+extern "C" int OotmmChecks_DrawDivingRupee(Actor* actor, PlayState* play, int colorIdx) {
+    const auto* placement = play != nullptr ? FindCollectible(play->sceneNum, colorIdx + 1) : nullptr;
+    if (placement == nullptr || IsCollected(*placement)) {
+        return 0;
+    }
+    Matrix_Push();
+    if (actor->scale.x > 0.0001f) {
+        const float scale = 0.25f / actor->scale.x;
+        Matrix_Scale(scale, scale, scale, MTXMODE_APPLY);
+    }
+    DrawPlacementItem(play, *placement, GID_RUPEE_BLUE);
+    Matrix_Pop();
+    return 1;
+}
+
+extern "C" int OotmmChecks_CollectDivingRupee(PlayState* play, int colorIdx) {
+    const auto* placement = play != nullptr ? FindCollectible(play->sceneNum, colorIdx + 1) : nullptr;
+    if (placement == nullptr || IsCollected(*placement)) {
+        return 0;
+    }
+    Flags_SetCollectible(play, colorIdx + 1);
+    OotmmDrops_Report(placement->CheckId, placement->ItemId, true);
     return 1;
 }
 
@@ -265,6 +391,53 @@ void OotmmChecks_Init() {
             OotmmChecks_OpenChestSilently(gPlayState, player);
             Report(*sActiveChest, true);
             *should = false;
+        }
+    });
+
+    REGISTER_VB_SHOULD(VB_GIVE_ITEM_FROM_COW, {
+        EnCow* cow = va_arg(args, EnCow*);
+        const auto* placement = FindCow(&cow->actor, gPlayState);
+        if (placement == nullptr) {
+            return;
+        }
+        *should = false;
+        if (IsCollected(*placement)) {
+            Item_Give(gPlayState, ITEM_HEART);
+        } else {
+            Report(*placement, true);
+        }
+    });
+
+    REGISTER_VB_SHOULD(VB_GIVE_ITEM_SKULL_TOKEN, {
+        EnSi* token = va_arg(args, EnSi*);
+        if (const auto* placement = FindToken(&token->actor)) {
+            Report(*placement, true);
+            SET_GS_FLAGS((token->actor.params & 0x1F00) >> 8, token->actor.params & 0xFF);
+            GameInteractor_ExecuteOnFlagSet(FLAG_GS_TOKEN, token->actor.params);
+            Actor_Kill(&token->actor);
+            *should = false;
+        }
+    });
+
+    REGISTER_VB_SHOULD(VB_ITEM00_DESPAWN, {
+        EnItem00* item = va_arg(args, EnItem00*);
+        if (IsFlaggedCollectible(item)) {
+            *should = OotmmChecks_CollectibleDone(gPlayState, item->collectibleFlag, *should);
+        }
+    });
+
+    GameInteractor::Instance->RegisterGameHook<GameInteractor::OnActorInit>([](void* refActor) {
+        Actor* actor = static_cast<Actor*>(refActor);
+        if (gPlayState == nullptr || actor->id != ACTOR_EN_ITEM00 || actor->update == nullptr) {
+            return;
+        }
+        auto* item = reinterpret_cast<EnItem00*>(actor);
+        if (!IsFlaggedCollectible(item)) {
+            return;
+        }
+        const auto* placement = FindCollectible(gPlayState->sceneNum, item->collectibleFlag);
+        if (placement != nullptr && !IsCollected(*placement)) {
+            OotmmDrops_Adopt(actor, *placement, item->collectibleFlag);
         }
     });
 

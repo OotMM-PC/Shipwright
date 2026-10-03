@@ -5,6 +5,7 @@
  */
 
 #include "z_obj_hamishi.h"
+#include "soh/OotmmXflags.h"
 #include "objects/gameplay_field_keep/gameplay_field_keep.h"
 
 #define FLAGS 0
@@ -179,6 +180,7 @@ void ObjHamishi_Update(Actor* thisx, PlayState* play) {
             this->shakePosSize = 2.0f;
             this->shakeRotSize = 400.0f;
         } else {
+            OotmmXflags_Drop(&this->actor, play);
             ObjHamishi_Break(this, play);
             SoundSource_PlaySfxAtFixedWorldPos(play, &this->actor.world.pos, 40, NA_SE_EV_WALL_BROKEN);
             Flags_SetSwitch(play, this->actor.params & 0x3F);

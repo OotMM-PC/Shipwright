@@ -7,6 +7,7 @@
 #include "z_en_si.h"
 #include "soh/Enhancements/custom-message/CustomMessageTypes.h"
 #include "soh/Enhancements/game-interactor/GameInteractor_Hooks.h"
+#include "soh/OotmmChecks.h"
 
 #define FLAGS (ACTOR_FLAG_ATTENTION_ENABLED | ACTOR_FLAG_HOOKSHOT_PULLS_ACTOR)
 
@@ -161,6 +162,8 @@ void EnSi_Draw(Actor* thisx, PlayState* play) {
     if (this->actionFunc != func_80AFB950) {
         func_8002ED80(&this->actor, play, 0);
         func_8002EBCC(&this->actor, play, 0);
-        GetItem_Draw(play, GID_SKULL_TOKEN_2);
+        if (!OotmmChecks_DrawToken(&this->actor, play)) {
+            GetItem_Draw(play, GID_SKULL_TOKEN_2);
+        }
     }
 }

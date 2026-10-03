@@ -12,6 +12,8 @@ int OotmmSilverRupeesSolved(struct PlayState* play, int room);
 /// Writes the save-bit id range OoTMM assigns this room, or returns 0 leaving the outputs alone.
 int OotmmSilverRupeesPuzzleIds(int scene, int room, int* base, int* width);
 
+void OotmmSilverRupeesSyncFlags(struct PlayState* play);
+
 /// Lowest puzzle id in this scene, or -1 when the scene holds no shuffled puzzle.
 int OotmmSilverRupeesSceneBase(int scene);
 

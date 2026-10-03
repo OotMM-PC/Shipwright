@@ -673,6 +673,7 @@ void ApplyOne(PlayState* play, const std::string& itemId, uint32_t count) {
                     Rupees_ChangeBy(static_cast<int16_t>(std::min<uint32_t>(payout, 999)));
                 }
                 sLedger.SetApplied(itemId, count);
+                OotmmSilverRupeesSyncFlags(play);
                 break;
             }
             default:

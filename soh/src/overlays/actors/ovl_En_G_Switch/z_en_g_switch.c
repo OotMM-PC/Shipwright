@@ -15,6 +15,7 @@
 #include "soh/frame_interpolation.h"
 #include "soh/OotmmSilverRupees.h"
 #include "soh/OotmmSilverRupeeLocations.h"
+#include "soh/OotmmChecks.h"
 
 #define FLAGS (ACTOR_FLAG_UPDATE_CULLING_DISABLED | ACTOR_FLAG_DRAW_CULLING_DISABLED)
 
@@ -125,8 +126,9 @@ void EnGSwitch_Init(Actor* thisx, PlayState* play) {
             this->actor.draw = EnGSwitch_DrawRupee;
             this->actor.shape.yOffset = 700.0f;
             this->index = (s16)OotmmSilverRupeeLocations_Claim(play, &this->actor);
-            if (this->index >= 0 ? OotmmSilverRupeeLocations_Taken(play, this->index)
-                                 : Flags_GetSwitch(play, this->switchFlag)) {
+            if (OotmmChecks_SilverRupeeIsShuffled(this->index) ? OotmmChecks_SilverRupeeTaken(this->index)
+                : this->index >= 0                               ? OotmmSilverRupeeLocations_Taken(play, this->index)
+                                                                 : Flags_GetSwitch(play, this->switchFlag)) {
                 osSyncPrintf(VT_FGCOL(GREEN) "☆☆☆☆☆ Ｙｏｕ ａｒｅ Ｓｈｏｃｋ！  ☆☆☆☆☆ %d\n" VT_RST, this->switchFlag);
                 Actor_Kill(&this->actor);
             } else {
@@ -247,7 +249,11 @@ void EnGSwitch_SilverRupeeIdle(EnGSwitch* this, PlayState* play) {
     Player* player = GET_PLAYER(play);
 
     this->actor.shape.rot.y += 0x800;
-    if (this->actor.xyzDistToPlayerSq < 900.0f) {
+    if (this->actor.xyzDistToPlayerSq < 900.0f && OotmmChecks_SilverRupeeIsShuffled(this->index)) {
+        OotmmChecks_CollectSilverRupee(this->index);
+        OotmmSilverRupeeLocations_MarkTaken(play, this->index);
+        Actor_Kill(&this->actor);
+    } else if (this->actor.xyzDistToPlayerSq < 900.0f) {
         Rupees_ChangeBy(5);
         sCollectedCount++;
         OotmmSilverRupeeLocations_MarkTaken(play, this->index);
@@ -484,6 +490,9 @@ void EnGSwitch_DrawRupee(Actor* thisx, PlayState* play) {
     s32 pad;
     EnGSwitch* this = (EnGSwitch*)thisx;
 
+    if (this->type == ENGSWITCH_SILVER_RUPEE && OotmmChecks_DrawSilverRupee(thisx, play, this->index)) {
+        return;
+    }
     if (!this->broken) {
         OPEN_DISPS(play->state.gfxCtx);
 
