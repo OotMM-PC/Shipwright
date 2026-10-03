@@ -6,6 +6,8 @@
 
 #include <libultraship/bridge/OotmmCsmc.h>
 
+#include <unordered_map>
+
 extern "C" {
 #include "macros.h"
 #include "variables.h"
@@ -20,6 +22,9 @@ Gfx* ResourceMgr_LoadGfxByName(const char* path);
 }
 
 namespace {
+
+// Test chests placed by the debug menu, shown as a fixed class.
+std::unordered_map<EnBox*, Ship::OotmmCsmcClass> sChestOverrides;
 
 // Every grant path — shared or separate, launcher or debug — lands in the quest bit.
 bool HasAgonyStone() {
@@ -61,35 +66,7 @@ void SetVanillaLook(EnBox* chest) {
     }
 }
 
-} // namespace
-
-int32_t OotmmCsmc_UpdateChest(EnBox* chest, PlayState* play) {
-    if (!OotmmSession_IsActive()) {
-        return 0;
-    }
-
-    const auto& state = OotmmSession_GetState();
-    const auto* placement = state.FindCheck(Ship::OotmmGame::Oot, play->sceneNum, "chest",
-                                            chest->dyna.actor.params & 0x1F);
-    if (placement == nullptr) {
-        return 0;
-    }
-
-    // The treasure-game rooms keep vanilla chests unless their keys are shuffled;
-    // the final room's reward chest always participates.
-    const bool excluded =
-        play->sceneNum == SCENE_TREASURE_BOX_SHOP && chest->dyna.actor.room != 6 &&
-        state.GetStringSetting("smallKeyShuffleChestGame", "vanilla") == "vanilla";
-    const auto mode = Ship::OotmmCsmc_Mode(state);
-    if (mode == Ship::OotmmCsmcMode::Never || excluded) {
-        SetVanillaLook(chest);
-        return 1;
-    }
-
-    const bool revealed = mode == Ship::OotmmCsmcMode::Always || HasAgonyStone();
-    const auto itemClass =
-        Ship::OotmmCsmc_Classify(state, Ship::OotmmGame::Oot, *placement, revealed);
-
+void ApplyClassLook(EnBox* chest, Ship::OotmmCsmcClass itemClass) {
     const bool large = itemClass == Ship::OotmmCsmcClass::Major ||
                        itemClass == Ship::OotmmCsmcClass::BossKey;
     Actor_SetScale(&chest->dyna.actor, large ? 0.01f : 0.005f);
@@ -155,5 +132,46 @@ int32_t OotmmCsmc_UpdateChest(EnBox* chest, PlayState* play) {
     }
     chest->boxBodyDL = LoadChestDL(bakedBody, body, gTreasureChestChestFrontDL);
     chest->boxLidDL = LoadChestDL(bakedLid, lid, gTreasureChestChestSideAndLidDL);
+}
+
+} // namespace
+
+int32_t OotmmCsmc_UpdateChest(EnBox* chest, PlayState* play) {
+    if (const auto override = sChestOverrides.find(chest); override != sChestOverrides.end()) {
+        ApplyClassLook(chest, override->second);
+        return 1;
+    }
+    if (!OotmmSession_IsActive()) {
+        return 0;
+    }
+
+    const auto& state = OotmmSession_GetState();
+    const auto* placement = state.FindCheck(Ship::OotmmGame::Oot, play->sceneNum, "chest",
+                                            chest->dyna.actor.params & 0x1F);
+    if (placement == nullptr) {
+        return 0;
+    }
+
+    // The treasure-game rooms keep vanilla chests unless their keys are shuffled;
+    // the final room's reward chest always participates.
+    const bool excluded =
+        play->sceneNum == SCENE_TREASURE_BOX_SHOP && chest->dyna.actor.room != 6 &&
+        state.GetStringSetting("smallKeyShuffleChestGame", "vanilla") == "vanilla";
+    const auto mode = Ship::OotmmCsmc_Mode(state);
+    if (mode == Ship::OotmmCsmcMode::Never || excluded) {
+        SetVanillaLook(chest);
+        return 1;
+    }
+
+    const bool revealed = mode == Ship::OotmmCsmcMode::Always || HasAgonyStone();
+    ApplyClassLook(chest, Ship::OotmmCsmc_Classify(state, Ship::OotmmGame::Oot, *placement, revealed));
     return 1;
+}
+
+void OotmmCsmc_SetChestOverride(EnBox* chest, Ship::OotmmCsmcClass itemClass) {
+    sChestOverrides[chest] = itemClass;
+}
+
+void OotmmCsmc_ClearChestOverrides() {
+    sChestOverrides.clear();
 }

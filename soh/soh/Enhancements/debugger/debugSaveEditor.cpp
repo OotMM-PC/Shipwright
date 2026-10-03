@@ -5,6 +5,7 @@
 #include "soh/SohGui/UIWidgets.hpp"
 #include "soh/SohGui/SohGui.hpp"
 #include "soh/SaveManager.h"
+#include "soh/OotmmDebugChecks.h"
 #include "soh/OotmmIpc.h"
 #include "soh/OotmmItemApply.h"
 #include "soh/OotmmItemProbe.h"
@@ -2123,6 +2124,12 @@ void SaveEditorWindow::DrawElement() {
             ResetBaseOptions();
             if (ImGui::BeginTabItem("OoTMM Custom Items")) {
                 DrawOotmmItemsTab();
+                ImGui::EndTabItem();
+            }
+
+            ResetBaseOptions();
+            if (ImGui::BeginTabItem("OoTMM Debug Checks")) {
+                OotmmDebugChecks_DrawTab();
                 ImGui::EndTabItem();
             }
         }

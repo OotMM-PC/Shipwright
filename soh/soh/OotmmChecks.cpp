@@ -81,6 +81,10 @@ void SweepSavedChests() {
 
 } // namespace
 
+void OotmmChecks_OpenChestSilently(PlayState* play, Player* player) {
+    Player_SetupWaitForPutAway(play, player, ChestOpenAfterPutAway);
+}
+
 void OotmmChecks_Init() {
     GameInteractor::Instance->RegisterGameHook<GameInteractor::OnSceneFlagSet>(
         [](int16_t sceneNum, int16_t flagType, int16_t flag) {
@@ -97,7 +101,7 @@ void OotmmChecks_Init() {
         Player* player = GET_PLAYER(gPlayState);
         sActiveChest = FindChest(gPlayState->sceneNum, chest->dyna.actor.params & kChestFlagMask);
         if (sActiveChest != nullptr && player != nullptr) {
-            Player_SetupWaitForPutAway(gPlayState, player, ChestOpenAfterPutAway);
+            OotmmChecks_OpenChestSilently(gPlayState, player);
             OotmmItemPresentation_Queue(MakePresentation(*sActiveChest));
             *should = false;
         }

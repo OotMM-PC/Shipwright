@@ -1,6 +1,8 @@
 #include "OotmmSession.h"
 #include "OotmmChecks.h"
+#include "OotmmDrops.h"
 #include "OotmmCustomItems.h"
+#include "OotmmDebugChecks.h"
 #include "OotmmItemApply.h"
 #include "OotmmItemPresentation.h"
 #include "OotmmItemProbe.h"
@@ -827,6 +829,8 @@ void OotmmSession_Init() {
         ApplyEnhancements();
         OotmmItemPresentation_Init();
         OotmmChecks_Init();
+        OotmmDrops_Init();
+        OotmmDebugChecks_Init();
         OotmmItemProbe_Init();
         OotmmItemApply_Init();
         OotmmCustomItems_Init();

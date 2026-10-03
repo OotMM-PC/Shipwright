@@ -3,6 +3,8 @@
 #include <stdint.h>
 
 #ifdef __cplusplus
+#include <libultraship/bridge/OotmmCsmc.h>
+
 extern "C" {
 #endif
 
@@ -15,4 +17,8 @@ int32_t OotmmCsmc_UpdateChest(struct EnBox* chest, struct PlayState* play);
 
 #ifdef __cplusplus
 }
+
+/// Renders a chest as the given class regardless of placements (test chests).
+void OotmmCsmc_SetChestOverride(EnBox* chest, Ship::OotmmCsmcClass itemClass);
+void OotmmCsmc_ClearChestOverrides();
 #endif
