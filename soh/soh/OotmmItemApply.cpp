@@ -3,6 +3,8 @@
 #include "Enhancements/game-interactor/GameInteractor.h"
 #include "OotmmCustomItems.h"
 #include "OotmmDungeons.h"
+#include "OotmmRegionState.h"
+#include "OotmmFaroresWind.h"
 #include "OotmmIpc.h"
 #include "OotmmSession.h"
 #include "OotmmSilverRupees.h"
@@ -13,6 +15,7 @@
 #include <libultraship/bridge/OotmmHealth.h>
 #include <libultraship/bridge/OotmmMagic.h>
 #include <libultraship/bridge/OotmmBombchu.h>
+#include <libultraship/bridge/OotmmSharedFamilies.h>
 #include <spdlog/spdlog.h>
 
 #include <algorithm>
@@ -109,12 +112,33 @@ int DungeonSceneOf(std::string_view suffix) {
 Ship::OotmmAppliedLedger sLedger;
 Ship::OotmmSharedResourceState sSharedResources;
 
-bool SharedBombchuReward(const std::string& id) {
-    return id == "SHARED_BOMBCHU" || id.rfind("SHARED_BOMBCHU_", 0) == 0;
+bool FamilyEnabled(const Ship::OotmmSharedFamily& family) {
+    if (!family.EnabledValue.empty()) {
+        return OotmmSession_GetState().GetStringSetting(std::string(family.Setting), "") == family.EnabledValue;
+    }
+    return OotmmSession_GetState().GetBoolSetting(std::string(family.Setting), false);
+}
+
+bool AnySharedFamily() {
+    for (const auto& family : Ship::OotmmSharedFamilies()) {
+        if (FamilyEnabled(family)) {
+            return true;
+        }
+    }
+    return false;
+}
+
+bool SharedReward(const std::string& id) {
+    for (const auto& family : Ship::OotmmSharedFamilies()) {
+        if (FamilyEnabled(family) && family.IsReward(id)) {
+            return true;
+        }
+    }
+    return false;
 }
 
 bool LoadSharedResources(const nlohmann::json& saved) {
-    if (!OotmmSession_GetState().GetBoolSetting("sharedBombchu", false)) {
+    if (!AnySharedFamily()) {
         return true;
     }
     const auto& boot = OotmmSession_GetState().GetBootConfig();
@@ -401,26 +425,158 @@ int32_t BombchuCapacity() {
         CUR_UPG_VALUE(UPG_BOMB_BAG), tier).value_or(0);
 }
 
+uint32_t ReadSharedValue(std::string_view key) {
+    if (OotmmFaroresWind_IsSharedKey(key)) {
+        return OotmmFaroresWind_ReadShared(key);
+    }
+    if (key == "bossClears") {
+        return sLedger.Applied("native:bossClears");
+    }
+    const auto& inventory = gSaveContext.inventory;
+    if (key == "bombchu") {
+        return static_cast<uint32_t>(inventory.ammo[SLOT_BOMBCHU]);
+    }
+    if (key == "bombchuOwned") {
+        return inventory.items[SLOT_BOMBCHU] == ITEM_BOMBCHU ? 1u : 0u;
+    }
+    if (key == "bombchuBagFirst") {
+        return sLedger.Applied("native:bombchuBagFirst");
+    }
+    if (key == "rupees") {
+        return static_cast<uint32_t>(gSaveContext.rupees);
+    }
+    if (key == "health") {
+        return static_cast<uint32_t>(gSaveContext.health);
+    }
+    if (key == "healthCapacity") {
+        return static_cast<uint32_t>(gSaveContext.healthCapacity);
+    }
+    if (key == "heartPieces") {
+        return (inventory.questItems >> 28) & 0xF;
+    }
+    if (key == "magic") {
+        return static_cast<uint32_t>(gSaveContext.magic);
+    }
+    if (key == "arrows") {
+        return static_cast<uint32_t>(inventory.ammo[SLOT_BOW]);
+    }
+    if (key == "bombs") {
+        return static_cast<uint32_t>(inventory.ammo[SLOT_BOMB]);
+    }
+    if (key == "nuts") {
+        return static_cast<uint32_t>(inventory.ammo[SLOT_NUT]);
+    }
+    if (key == "sticks") {
+        return static_cast<uint32_t>(inventory.ammo[SLOT_STICK]);
+    }
+    if (key == "seeds") {
+        return static_cast<uint32_t>(inventory.ammo[SLOT_SLINGSHOT]);
+    }
+    if (key == "keg") {
+        return static_cast<uint32_t>(OotmmCustomItems_KegAmmo());
+    }
+    return 0;
+}
+
+constexpr int kLastOotBossDungeon = 7;
+constexpr int kLastBossDungeon = 12;
+
+void ApplyBossClears(uint32_t mask) {
+    uint32_t applied = sLedger.Applied("native:bossClearsApplied");
+    for (int dungeon = 0; dungeon <= kLastOotBossDungeon; ++dungeon) {
+        const uint32_t bit = 1u << dungeon;
+        if ((mask & bit) && !(applied & bit)) {
+            OotmmRegionState_ApplyBossClear(dungeon);
+            applied |= bit;
+        }
+    }
+    sLedger.SetApplied("native:bossClearsApplied", applied);
+}
+
+uint32_t SharedValueLimit(std::string_view key) {
+    if (OotmmFaroresWind_IsSharedKey(key)) {
+        return 2;
+    }
+    if (key == "bossClears") {
+        return 0xFFFF;
+    }
+    if (key == "bombchuOwned" || key == "bombchuBagFirst" || key == "keg") {
+        return 1;
+    }
+    if (key == "rupees") {
+        return 9999;
+    }
+    if (key == "health" || key == "healthCapacity") {
+        return 0x140;
+    }
+    if (key == "heartPieces") {
+        return 3;
+    }
+    if (key == "magic") {
+        return 0x60;
+    }
+    return 99;
+}
+
+void WriteSharedValue(std::string_view key, uint32_t value) {
+    auto& inventory = gSaveContext.inventory;
+    if (OotmmFaroresWind_IsSharedKey(key)) {
+        OotmmFaroresWind_WriteShared(key, value);
+    } else if (key == "bossClears") {
+        const uint32_t mask = sLedger.Applied("native:bossClears") | value;
+        sLedger.SetApplied("native:bossClears", mask);
+        ApplyBossClears(mask);
+    } else if (key == "bombchu") {
+        inventory.ammo[SLOT_BOMBCHU] = static_cast<int8_t>(value);
+    } else if (key == "bombchuOwned") {
+        inventory.items[SLOT_BOMBCHU] = value ? ITEM_BOMBCHU : ITEM_NONE;
+    } else if (key == "bombchuBagFirst") {
+        sLedger.SetApplied("native:bombchuBagFirst", value);
+    } else if (key == "rupees") {
+        gSaveContext.rupees = static_cast<s16>(value);
+        gSaveContext.rupeeAccumulator = 0;
+    } else if (key == "health") {
+        gSaveContext.health = static_cast<s16>(value);
+        gSaveContext.healthAccumulator = 0;
+    } else if (key == "healthCapacity") {
+        gSaveContext.healthCapacity = static_cast<s16>(value);
+    } else if (key == "heartPieces") {
+        inventory.questItems = (inventory.questItems & 0x0FFFFFFF) | (value << 28);
+    } else if (key == "magic") {
+        gSaveContext.magic = static_cast<s8>(value);
+    } else if (key == "arrows") {
+        inventory.ammo[SLOT_BOW] = static_cast<int8_t>(value);
+    } else if (key == "bombs") {
+        inventory.ammo[SLOT_BOMB] = static_cast<int8_t>(value);
+    } else if (key == "nuts") {
+        inventory.ammo[SLOT_NUT] = static_cast<int8_t>(value);
+    } else if (key == "sticks") {
+        inventory.ammo[SLOT_STICK] = static_cast<int8_t>(value);
+    } else if (key == "seeds") {
+        inventory.ammo[SLOT_SLINGSHOT] = static_cast<int8_t>(value);
+    } else if (key == "keg") {
+        OotmmCustomItems_SetKegAmmo(static_cast<int>(value));
+    }
+}
+
 bool RestoreSharedResources() {
-    if (!OotmmSession_GetState().GetBoolSetting("sharedBombchu", false) || !sSharedResources.NeedsRestore()) {
+    if (!AnySharedFamily() || !sSharedResources.NeedsRestore()) {
         return true;
     }
     const auto& snapshot = *sSharedResources.Current();
-    const auto ammo = snapshot.Values.find("bombchu");
-    const auto owned = snapshot.Values.find("bombchuOwned");
-    const auto first = snapshot.Values.find("bombchuBagFirst");
-    if (ammo == snapshot.Values.end() || ammo->second > 50 || owned == snapshot.Values.end() ||
-        owned->second > 1 || first == snapshot.Values.end() || first->second > 1) {
-        return false;
+    for (const auto& [key, value] : snapshot.Values) {
+        if (value > SharedValueLimit(key)) {
+            return false;
+        }
     }
     for (const auto& [id, count] : snapshot.Applied) {
-        if (!SharedBombchuReward(id) || OotmmIpc_GetInventory().Count(id) < count) {
+        if (!SharedReward(id) || OotmmIpc_GetInventory().Count(id) < count) {
             return false;
         }
     }
     std::vector<std::string> previous;
     for (const auto& [id, count] : sLedger.GetValues()) {
-        if (SharedBombchuReward(id)) {
+        if (SharedReward(id)) {
             previous.push_back(id);
         }
     }
@@ -430,9 +586,16 @@ bool RestoreSharedResources() {
     for (const auto& [id, count] : snapshot.Applied) {
         sLedger.SetApplied(id, count);
     }
-    sLedger.SetApplied("native:bombchuBagFirst", first->second);
-    gSaveContext.inventory.items[SLOT_BOMBCHU] = owned->second ? ITEM_BOMBCHU : ITEM_NONE;
-    gSaveContext.inventory.ammo[SLOT_BOMBCHU] = static_cast<int8_t>(ammo->second);
+    for (const auto& family : Ship::OotmmSharedFamilies()) {
+        if (!FamilyEnabled(family)) {
+            continue;
+        }
+        for (const auto key : family.Values) {
+            if (const auto value = snapshot.Values.find(std::string(key)); value != snapshot.Values.end()) {
+                WriteSharedValue(key, value->second);
+            }
+        }
+    }
     sSharedResources.Restored();
     return true;
 }
@@ -864,21 +1027,15 @@ void OotmmItemApply_Reconcile() {
     if (!sLedgerValid) {
         return;
     }
+    sRetryMagicApplication = false;
     for (const auto& [itemId, count] : inventory.GetValues()) {
-        const auto suffix = Ship::OotmmItemGrant::SuffixOf(itemId);
-        if (suffix == "BOMB_BAG") {
+        if (Ship::OotmmItemGrant::SuffixOf(itemId) == "BOMB_BAG" ||
+            (Ship::OotmmItemGrant::GameOf(itemId) == Ship::OotmmGrantGame::Shared && !SharedReward(itemId))) {
             ApplyOne(gPlayState, itemId, count);
         }
     }
     if (!RestoreSharedResources()) {
         return;
-    }
-    sRetryMagicApplication = false;
-    for (const auto& [itemId, count] : inventory.GetValues()) {
-        const auto suffix = Ship::OotmmItemGrant::SuffixOf(itemId);
-        if (suffix == "BOMBCHU_BAG") {
-            ApplyOne(gPlayState, itemId, count);
-        }
     }
     size_t owned = 0;
     for (const auto& [itemId, count] : inventory.GetValues()) {
@@ -922,7 +1079,7 @@ void OotmmItemApply_LedgerSet(const std::string& key, uint32_t value) {
 
 bool OotmmItemApply_CaptureSharedSnapshot(nlohmann::json& snapshot) {
     snapshot = nullptr;
-    if (!OotmmSession_IsActive() || !OotmmSession_GetState().GetBoolSetting("sharedBombchu", false)) {
+    if (!OotmmSession_IsActive() || !AnySharedFamily()) {
         return true;
     }
     EnsureLedger();
@@ -932,14 +1089,19 @@ bool OotmmItemApply_CaptureSharedSnapshot(nlohmann::json& snapshot) {
     const auto& boot = OotmmSession_GetState().GetBootConfig();
     std::map<std::string, uint32_t> applied;
     for (const auto& [id, count] : sLedger.GetValues()) {
-        if (SharedBombchuReward(id)) {
+        if (SharedReward(id)) {
             applied.emplace(id, count);
         }
     }
-    return sSharedResources.Capture(boot.SaveId, gSaveContext.fileNum, "oot",
-        {{"bombchu", static_cast<uint32_t>(gSaveContext.inventory.ammo[SLOT_BOMBCHU])},
-         {"bombchuOwned", gSaveContext.inventory.items[SLOT_BOMBCHU] == ITEM_BOMBCHU ? 1u : 0u},
-         {"bombchuBagFirst", sLedger.Applied("native:bombchuBagFirst")}}, applied, snapshot);
+    std::map<std::string, uint32_t> values;
+    for (const auto& family : Ship::OotmmSharedFamilies()) {
+        if (FamilyEnabled(family)) {
+            for (const auto key : family.Values) {
+                values.emplace(std::string(key), ReadSharedValue(key));
+            }
+        }
+    }
+    return sSharedResources.Capture(boot.SaveId, gSaveContext.fileNum, "oot", values, applied, snapshot);
 }
 
 bool OotmmItemApply_CaptureSnapshot(nlohmann::json& snapshot) {
@@ -969,6 +1131,18 @@ void OotmmItemApply_SetSaveSnapshot(int fileNum, const nlohmann::json& snapshot,
     sSharedSaveSnapshots[fileNum] = shared;
     sLedgerLoaded = false;
     sAppliedRevision = 0;
+}
+
+void OotmmItemApply_RecordBossClear(int dungeonId) {
+    if (dungeonId < 0 || dungeonId > kLastBossDungeon) {
+        return;
+    }
+    EnsureLedger();
+    const uint32_t bit = 1u << dungeonId;
+    sLedger.SetApplied("native:bossClears", sLedger.Applied("native:bossClears") | bit);
+    if (dungeonId <= kLastOotBossDungeon) {
+        sLedger.SetApplied("native:bossClearsApplied", sLedger.Applied("native:bossClearsApplied") | bit);
+    }
 }
 
 void OotmmItemApply_Init() {

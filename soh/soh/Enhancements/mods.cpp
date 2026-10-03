@@ -3,6 +3,7 @@
 #include "game-interactor/GameInteractor.h"
 #include "soh/Enhancements/boss-rush/BossRush.h"
 #include "soh/Enhancements/enhancementTypes.h"
+#include "soh/OotmmFaroresWind.h"
 #include <soh/Enhancements/item-tables/ItemTableManager.h>
 
 extern "C" {
@@ -50,6 +51,9 @@ void SwitchAge() {
     gPlayState->transitionType = TRANS_TYPE_INSTANT;
     gSaveContext.nextTransitionType = TRANS_TYPE_FADE_BLACK_FAST;
     gPlayState->linkAgeOnLoad ^= 1;
+    if (OotmmFaroresWind_PerAge()) {
+        OotmmFaroresWind_SwapAge();
+    }
 
     static HOOK_ID hookId = 0;
     hookId = REGISTER_VB_SHOULD(VB_INFLICT_VOID_DAMAGE, {

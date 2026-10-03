@@ -1,5 +1,6 @@
 #include "OotmmSession.h"
 #include "OotmmCheckLedger.h"
+#include "OotmmFaroresWind.h"
 #include "OotmmChecks.h"
 #include "OotmmNpcChecks.h"
 #include "OotmmHints.h"
@@ -652,6 +653,14 @@ void ApplyBootEntrance() {
     sLoadSpawnHandoffReady = false;
     sGrottoExitSource = 0;
     gSaveContext.respawnFlag = 0;
+    if (*boot.BootEntrance == OOTMM_ENTR_FW_CROSS) {
+        gSaveContext.cutsceneIndex = 0;
+        if (!OotmmFaroresWind_ApplyArrival()) {
+            SPDLOG_ERROR("[OoTMM] Farore's Wind arrival without an OoT warp point");
+        }
+        sBootRespawnPending = gSaveContext.respawnFlag != 0;
+        return;
+    }
     const auto target = ResolveOotEntrance(*boot.BootEntrance);
     if (!target.has_value()) {
         SPDLOG_ERROR("[OoTMM] Unsupported OoT boot entrance {}", *boot.BootEntrance);

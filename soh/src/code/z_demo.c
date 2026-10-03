@@ -33,6 +33,7 @@
 
 #include "soh/OTRGlobals.h"
 #include "soh/ResourceManagerHelpers.h"
+#include "soh/OotmmFaroresWind.h"
 #include "soh/Enhancements/game-interactor/GameInteractor_Hooks.h"
 
 u16 D_8011E1C0 = 0;
@@ -625,7 +626,9 @@ void Cutscene_Command_Terminator(PlayState* play, CutsceneContext* csCtx, CsCmdB
                 play->transitionType = TRANS_TYPE_INSTANT;
                 break;
             case 8:
-                if (CVarGetInteger(CVAR_ENHANCEMENT("BetterFarore"), 0)) {
+                if (OotmmFaroresWind_PerAge()) {
+                    OotmmFaroresWind_SwapAge();
+                } else if (CVarGetInteger(CVAR_ENHANCEMENT("BetterFarore"), 0)) {
                     FaroresWindData tempFW = gSaveContext.ship.backupFW;
                     gSaveContext.ship.backupFW = gSaveContext.fw;
                     gSaveContext.fw = tempFW;

@@ -16,6 +16,7 @@
 #include "soh/OotmmCustomItemsPlayer.h"
 #include "soh/OotmmActorSpawn.h"
 #include "soh/OotmmSouls.h"
+#include "soh/OotmmFaroresWind.h"
 #include "soh/Enhancements/game-interactor/GameInteractor_Hooks.h"
 #include "soh/Enhancements/nametag.h"
 
@@ -2368,7 +2369,7 @@ void Actor_DrawFaroresWindPointer(PlayState* play) {
 
     params = gSaveContext.respawn[RESPAWN_MODE_TOP].data;
 
-    if (params) {
+    if (params && !OotmmFaroresWind_IsCrossEntrance(gSaveContext.respawn[RESPAWN_MODE_TOP].entranceIndex)) {
         f32 yOffset = LINK_IS_ADULT ? 80.0f : 60.0f;
         f32 ratio = 1.0f;
         s32 alpha = 255;

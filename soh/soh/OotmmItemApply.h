@@ -32,6 +32,7 @@ void OotmmItemApply_SetTradeItemOwned(uint8_t slot, uint8_t item, int32_t owned)
 }
 
 void OotmmItemApply_Init();
+void OotmmItemApply_RecordBossClear(int dungeonId);
 bool OotmmItemApply_CaptureSnapshot(nlohmann::json& snapshot);
 nlohmann::json OotmmItemApply_LegacySnapshot(int fileNum);
 void OotmmItemApply_SetSaveSnapshot(int fileNum, const nlohmann::json& snapshot, const nlohmann::json& shared = nullptr);

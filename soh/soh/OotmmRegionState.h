@@ -11,6 +11,7 @@ void OotmmCustomWarp_Update(Actor* thisx, PlayState* play);
 void OotmmCustomWarp_Draw(Actor* thisx, PlayState* play);
 void OotmmRegionState_SetDungeonFlags(int dungeonId, int flags);
 void OotmmRegionState_ApplyBossWarp(int bossId);
+void OotmmRegionState_ApplyBossClear(int dungeonId);
 
 extern s16 gOotmmCustomWarpId;
 

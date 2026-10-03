@@ -1,6 +1,7 @@
 #include "OotmmRegionState.h"
 
 #include "Enhancements/game-interactor/GameInteractor.h"
+#include "OotmmItemApply.h"
 #include "OotmmSession.h"
 
 #include <string>
@@ -125,11 +126,16 @@ extern "C" void OotmmRegionState_ApplyBossWarp(int bossId) {
     if (!dungeon.has_value()) {
         return;
     }
+    OotmmItemApply_RecordBossClear(static_cast<int>(*dungeon));
+    OotmmRegionState_ApplyBossClear(static_cast<int>(*dungeon));
+}
+
+extern "C" void OotmmRegionState_ApplyBossClear(int dungeonId) {
     int flags = 0;
     if (State().GetStringSetting("regionState", "dungeonBeaten") == "dungeonBeaten") {
         flags = kClearEffect | (State().GetBoolSetting("erMajorDungeons", false) ? kClearWisp : 0);
     }
-    OotmmRegionState_SetDungeonFlags(static_cast<int>(*dungeon), flags);
+    OotmmRegionState_SetDungeonFlags(dungeonId, flags);
 }
 
 void OotmmRegionState_InitializeNewSave() {

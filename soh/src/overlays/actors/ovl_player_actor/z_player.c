@@ -25,6 +25,7 @@
 #include "soh/Enhancements/game-interactor/GameInteractor.h"
 #include "soh/OotmmCustomItems.h"
 #include "soh/OotmmCustomItemsPlayer.h"
+#include "soh/OotmmFaroresWind.h"
 #include "soh/OotmmSongs.h"
 #include "soh/OotmmSongsPlayer.h"
 #include "soh/OotmmSpinUpgrade.h"
@@ -15336,6 +15337,9 @@ void Player_Action_8085063C(Player* this, PlayState* play) {
         s32 respawnData = gSaveContext.respawn[RESPAWN_MODE_TOP].data;
 
         if (play->msgCtx.choiceIndex == 0) { // Returns to FW
+            if (OotmmFaroresWind_BeginCrossWarp()) {
+                return;
+            }
             gSaveContext.respawnFlag = 3;
             play->transitionTrigger = TRANS_TRIGGER_START;
             play->nextEntranceIndex = gSaveContext.respawn[RESPAWN_MODE_TOP].entranceIndex;
