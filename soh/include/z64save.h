@@ -226,6 +226,7 @@ typedef struct ShipSaveContextData {
     u8 maskMemory;
     u8 ootmmKegAmmo;
     u8 ootmmKegGranted;
+    u8 ootmmWispLake;
     ShipOotmmPondFishData ootmmPondFish;
     u8 filenameLanguage;
     u16 shipInf[(SHIP_FLAG_MAX + 15) / 16];

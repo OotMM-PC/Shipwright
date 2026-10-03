@@ -2,6 +2,7 @@
 #include "OotmmCheckLedger.h"
 #include "OotmmChecks.h"
 #include "OotmmNpcChecks.h"
+#include "OotmmHints.h"
 #include "OotmmShops.h"
 #include "OotmmDrops.h"
 #include "OotmmCustomItems.h"
@@ -11,6 +12,10 @@
 #include "OotmmItemPresentation.h"
 #include "OotmmItemProbe.h"
 #include "OotmmScales.h"
+#include "OotmmRegionState.h"
+#include "OotmmSpecialConds.h"
+#include "OotmmBrokenActors.h"
+#include "OotmmSunlightArrows.h"
 #include "OotmmPresence.h"
 #include "OotmmXflags.h"
 
@@ -23,10 +28,12 @@
 #include "variables.h"
 
 extern "C" {
+#include "src/overlays/actors/ovl_Bg_Gate_Shutter/z_bg_gate_shutter.h"
 #include "src/overlays/actors/ovl_Bg_Treemouth/z_bg_treemouth.h"
 void Save_SaveFile(void);
 uint32_t Save_Exist(int fileNum);
 void Sram_InitNewSave(void);
+s32 Object_Spawn(ObjectContext* objectCtx, s16 objectId);
 }
 
 #include <libultraship/bridge.h>
@@ -295,6 +302,86 @@ bool IsResolvedReloadTarget(uint32_t entrance) {
 void KeepDekuTreeMouthState(BgTreemouth*, PlayState*) {
 }
 
+void OpenWellForAdult(void* actorRef) {
+    if (LINK_IS_ADULT && sGameState.WorldFlagContains("openDungeonsOot", "wellAdult") &&
+        Flags_GetEventChkInf(EVENTCHKINF_DRAINED_WELL_IN_KAKARIKO)) {
+        Actor_Kill(static_cast<Actor*>(actorRef));
+    }
+}
+
+void KeepKakarikoGateLocked(void* actorRef) {
+    auto* gate = static_cast<BgGateShutter*>(actorRef);
+    if (gPlayState != nullptr && gPlayState->sceneNum == SCENE_KAKARIKO_VILLAGE &&
+        !Flags_GetInfTable(INFTABLE_SHOWED_ZELDAS_LETTER_TO_GATE_GUARD)) {
+        gate->dyna.actor.world.pos = gate->somePos;
+    }
+}
+
+void UpdateHyperEnemy(void* refActor) {
+    Actor* actor = static_cast<Actor*>(refActor);
+    if (actor->id == ACTOR_EN_DOG || actor->id == ACTOR_BOSS_VA || actor->id == ACTOR_BOSS_GANON) {
+        return;
+    }
+    if ((actor->category != ACTORCAT_BOSS && actor->category != ACTORCAT_ENEMY) || actor->update == nullptr ||
+        Player_InBlockingCsMode(gPlayState, GET_PLAYER(gPlayState))) {
+        return;
+    }
+    const s32 frameAdvance = gPlayState->frameAdvCtx.enabled;
+    gPlayState->frameAdvCtx.enabled = true;
+    actor->update(actor, gPlayState);
+    gPlayState->frameAdvCtx.enabled = frameAdvance;
+}
+
+void SpawnAdultKakarikoGate() {
+    if (gPlayState == nullptr || gPlayState->sceneNum != SCENE_KAKARIKO_VILLAGE || !LINK_IS_ADULT ||
+        sGameState.GetStringSetting("kakarikoGate", "vanilla") != "closed") {
+        return;
+    }
+    if (Object_GetIndex(&gPlayState->objectCtx, OBJECT_SPOT01_MATOYAB) < 0) {
+        Object_Spawn(&gPlayState->objectCtx, OBJECT_SPOT01_MATOYAB);
+    }
+    Actor_Spawn(&gPlayState->actorCtx, gPlayState, ACTOR_BG_GATE_SHUTTER, 91.0f, 400.0f, -1350.0f, 0,
+                static_cast<s16>(0xF99A), 0, static_cast<s16>(0xFFFF));
+}
+
+void AlterLostWoodsExits() {
+    if (gPlayState == nullptr || gPlayState->sceneNum != SCENE_LOST_WOODS ||
+        !sGameState.GetBoolSetting("alterLostWoodsExits", false)) {
+        return;
+    }
+    CollisionHeader* header = gPlayState->colCtx.colHeader;
+    if (header == nullptr || header->numPolygons <= 163) {
+        return;
+    }
+    SurfaceType* surfaces = header->surfaceTypeList;
+    static constexpr struct {
+        int Surface;
+        u32 Exit;
+    } kExits[] = { { 3, 3 }, { 6, 5 }, { 17, 6 }, { 22, 4 } };
+    for (const auto& exit : kExits) {
+        surfaces[exit.Surface].data[0] = (surfaces[exit.Surface].data[0] & ~0xFF00u) | (exit.Exit << 8);
+    }
+    surfaces[5].data[0] = 0x00000103;
+    surfaces[5].data[1] = 0x000C3FCA;
+    for (const int poly : { 81, 82, 83, 84, 85, 86, 158, 159, 160, 161, 162, 163 }) {
+        header->polyList[poly].type = 1;
+    }
+    header->polyList[121].type = 5;
+}
+
+bool IsFireTempleBoulder(const PlayState* play, const ActorEntry* entry) {
+    static constexpr Vec3s kBoulders[] = { { -20, 472, -659 }, { 38, 471, -627 }, { 92, 469, -610 } };
+    if (play->sceneNum != SCENE_DEATH_MOUNTAIN_CRATER || entry->id != ACTOR_EN_ISHI) {
+        return false;
+    }
+    for (const auto& boulder : kBoulders) {
+        if (entry->pos.x == boulder.x && entry->pos.y == boulder.y && entry->pos.z == boulder.z) {
+            return true;
+        }
+    }
+    return false;
+}
+
 void ConfigureDekuTreeMouth(void* actorRef) {
     auto* treeMouth = static_cast<BgTreemouth*>(actorRef);
     const std::string dekuTree = sGameState.GetStringSetting("dekuTree", "open");
@@ -392,10 +479,6 @@ void ApplyEnhancements() {
     CVarSetInteger(CVAR_ENHANCEMENT("TimeSavers.SkipOwlInteractions"), 1);
     CVarSetInteger(CVAR_ENHANCEMENT("TimeSavers.SkipMiscInteractions"), 1);
     CVarSetInteger(CVAR_ENHANCEMENT("TimeSavers.SkipTowerEscape"), 1);
-    CVarSetInteger(CVAR_ENHANCEMENT("FasterShadowShip"),
-                   sGameState.GetBoolSetting("shadowFastBoat", false) ? 1 : 0);
-    CVarSetInteger(CVAR_ENHANCEMENT("InstantScarecrow"),
-                   sGameState.GetBoolSetting("freeScarecrowOot", false) ? 1 : 0);
 
     const std::string ageChange = sGameState.GetStringSetting("ageChange", "none");
     CVarSetInteger(CVAR_ENHANCEMENT("TimeTravel"),
@@ -407,8 +490,6 @@ void ApplyEnhancements() {
                    sGameState.GetStringSetting("climbMostSurfacesOot", "off") != "off" ? 1 : 0);
     CVarSetInteger(CVAR_ENHANCEMENT("DamageMult"),
                    DamageMultiplier(sGameState.GetStringSetting("damageMultiplierOot", "normal")));
-    CVarSetInteger(CVAR_ENHANCEMENT("HyperEnemies"),
-                   sGameState.GetBoolSetting("ootHyperEnemies", false) ? 1 : 0);
     CVarSetInteger(CVAR_CHEAT("EasyFrameAdvance"), 1);
     CVarSetInteger(CVAR_ENHANCEMENT("PauseBufferWindow"), 1);
     CVarSetInteger(CVAR_ENHANCEMENT("DpadEquips"), 1);
@@ -416,9 +497,6 @@ void ApplyEnhancements() {
     const std::string csmc = sGameState.GetStringSetting("csmc", "always");
     CVarSetInteger(CVAR_ENHANCEMENT("ChestSizeAndTextureMatchContents"), csmc != "never" ? 1 : 0);
     CVarSetInteger(CVAR_ENHANCEMENT("ChestSizeDependsStoneOfAgony"), csmc == "agony" ? 1 : 0);
-    CVarSetInteger(CVAR_ENHANCEMENT("MMBunnyHood"),
-                   sGameState.GetBoolSetting("fastBunnyHood", true) ? BUNNY_HOOD_FAST_AND_JUMP
-                                                                   : BUNNY_HOOD_VANILLA);
 }
 
 void ApplySaveFlags() {
@@ -483,6 +561,9 @@ void ApplySaveFlags() {
     if (sGameState.GetStringSetting("zoraKing", "vanilla") == "open") {
         Flags_SetEventChkInf(EVENTCHKINF_KING_ZORA_MOVED);
     }
+    if (sGameState.GetBoolSetting("freeScarecrowOot", false)) {
+        Flags_SetEventChkInf(EVENTCHKINF_PLAYED_SONG_FOR_SCARECROW_AS_ADULT);
+    }
 
     if (sGameState.GetBoolSetting("ootPreplantedBeans", false)) {
         gSaveContext.sceneFlags[SCENE_DEATH_MOUNTAIN_CRATER].swch |= 1 << 3;
@@ -508,6 +589,9 @@ void ApplySaveFlags() {
     if (sGameState.WorldFlagContains("openDungeonsOot", "BotW")) {
         Flags_SetEventChkInf(EVENTCHKINF_DRAINED_WELL_IN_KAKARIKO);
     }
+    if (sGameState.WorldFlagContains("openDungeonsOot", "JJ")) {
+        Flags_SetEventChkInf(EVENTCHKINF_OFFERED_FISH_TO_JABU_JABU);
+    }
 
     static constexpr struct {
         const char* Dungeon;
@@ -525,23 +609,26 @@ void ApplySaveFlags() {
         }
     }
 
-    if (sGameState.HasWorldFlag("ganonTrials")) {
-        static constexpr struct {
-            const char* Trial;
-            int Flag;
-        } trials[] = {
-            { "Light", EVENTCHKINF_COMPLETED_LIGHT_TRIAL },
-            { "Forest", EVENTCHKINF_COMPLETED_FOREST_TRIAL },
-            { "Fire", EVENTCHKINF_COMPLETED_FIRE_TRIAL },
-            { "Water", EVENTCHKINF_COMPLETED_WATER_TRIAL },
-            { "Shadow", EVENTCHKINF_COMPLETED_SHADOW_TRIAL },
-            { "Spirit", EVENTCHKINF_COMPLETED_SPIRIT_TRIAL },
-        };
-        for (const auto& trial : trials) {
-            if (!sGameState.WorldFlagContains("ganonTrials", trial.Trial)) {
-                Flags_SetEventChkInf(trial.Flag);
-            }
+    static constexpr struct {
+        const char* Trial;
+        int Flag;
+    } trials[] = {
+        { "Light", EVENTCHKINF_COMPLETED_LIGHT_TRIAL },
+        { "Forest", EVENTCHKINF_COMPLETED_FOREST_TRIAL },
+        { "Fire", EVENTCHKINF_COMPLETED_FIRE_TRIAL },
+        { "Water", EVENTCHKINF_COMPLETED_WATER_TRIAL },
+        { "Shadow", EVENTCHKINF_COMPLETED_SHADOW_TRIAL },
+        { "Spirit", EVENTCHKINF_COMPLETED_SPIRIT_TRIAL },
+    };
+    int skipped = 0;
+    for (const auto& trial : trials) {
+        if (!sGameState.WorldFlagContains("ganonTrials", trial.Trial)) {
+            Flags_SetEventChkInf(trial.Flag);
+            skipped++;
         }
+    }
+    if (skipped == static_cast<int>(std::size(trials))) {
+        Flags_SetEventChkInf(EVENTCHKINF_DISPELLED_GANONS_TOWER_BARRIER);
     }
 }
 
@@ -820,6 +907,7 @@ void InitializeNewSave() {
     gSaveContext.cutsceneIndex = 0;
     gSaveContext.savedSceneNum = -1;
     ApplySaveFlags();
+    OotmmRegionState_InitializeNewSave();
     ApplySeedSpawn();
     ApplyBootEntrance();
 }
@@ -920,6 +1008,7 @@ void OotmmSession_Init() {
         OotmmChecks_Init();
         OotmmNpcChecks_Init();
         OotmmShops_Init();
+        OotmmHints_Init();
         OotmmDrops_Init();
         OotmmXflags_Init();
         OotmmDebugChecks_Init();
@@ -929,6 +1018,10 @@ void OotmmSession_Init() {
         OotmmCustomItems_Init();
         OotmmScales_Init();
         OotmmPresence_Init();
+        OotmmSpecialConds_Init();
+        OotmmRegionState_Init();
+        OotmmSunlightArrows_Init();
+        OotmmBrokenActors_Init();
         GameInteractor::Instance->RegisterGameHook<GameInteractor::OnLoadGame>(
             [](int32_t fileNum) {
                 RecordActiveSaveFile(fileNum);
@@ -948,6 +1041,19 @@ void OotmmSession_Init() {
                 ApplyMidoSpawnState(should);
             }
         });
+        REGISTER_VB_SHOULD(VB_SKIP_SCARECROWS_SONG, {
+            if (OotmmSession_IsActive() && gPlayState != nullptr &&
+                sGameState.GetBoolSetting("freeScarecrowOot", false) &&
+                (GET_PLAYER(gPlayState)->stateFlags2 & PLAYER_STATE2_OCARINA_PLAYING)) {
+                *should = true;
+            }
+        });
+        REGISTER_VB_SHOULD(VB_KING_ZORA_BE_MOVED, {
+            if (OotmmSession_IsActive() && LINK_IS_ADULT &&
+                sGameState.GetStringSetting("zoraKing", "vanilla") == "adult") {
+                *should = true;
+            }
+        });
         REGISTER_VB_SHOULD(VB_MIDO_CONSIDER_DEKU_TREE_DEAD, {
             if (OotmmSession_IsActive()) {
                 *should = Flags_GetEventChkInf(EVENTCHKINF_OBTAINED_KOKIRI_EMERALD_DEKU_TREE_DEAD);
@@ -955,6 +1061,26 @@ void OotmmSession_Init() {
         });
         GameInteractor::Instance->RegisterGameHookForID<GameInteractor::OnActorInit>(ACTOR_BG_TREEMOUTH,
                                                                                      ConfigureDekuTreeMouth);
+        GameInteractor::Instance->RegisterGameHookForID<GameInteractor::OnActorInit>(ACTOR_BG_SPOT01_IDOSOKO,
+                                                                                     OpenWellForAdult);
+        GameInteractor::Instance->RegisterGameHookForID<GameInteractor::OnActorInit>(ACTOR_BG_GATE_SHUTTER,
+                                                                                     KeepKakarikoGateLocked);
+        GameInteractor::Instance->RegisterGameHook<GameInteractor::OnSceneSpawnActors>(SpawnAdultKakarikoGate);
+        GameInteractor::Instance->RegisterGameHook<GameInteractor::OnSceneSpawnActors>(AlterLostWoodsExits);
+        if (sGameState.GetBoolSetting("ootHyperEnemies", false)) {
+            GameInteractor::Instance->RegisterGameHook<GameInteractor::OnActorUpdate>(UpdateHyperEnemy);
+        }
+        REGISTER_VB_SHOULD(VB_SPAWN_ACTOR_ENTRY, {
+            [[maybe_unused]] ActorContext* actorCtx = va_arg(args, ActorContext*);
+            const ActorEntry* entry = va_arg(args, ActorEntry*);
+            const PlayState* play = va_arg(args, PlayState*);
+            Actor** spawned = va_arg(args, Actor**);
+            if (OotmmSession_IsActive() && sGameState.WorldFlagContains("openDungeonsOot", "fireChild") &&
+                IsFireTempleBoulder(play, entry)) {
+                *should = false;
+                *spawned = nullptr;
+            }
+        });
         SPDLOG_INFO("[OoTMM] Loaded seed startup state {}", sGameState.GetSeedId());
     } else if (!sGameState.GetLastError().empty()) {
         SPDLOG_ERROR("[OoTMM] {}", sGameState.GetLastError());
@@ -1108,6 +1234,7 @@ extern "C" int32_t OotmmSession_RedirectBossWarp(uint32_t bossId) {
     if (!OotmmSession_IsActive() || gPlayState == nullptr) {
         return 0;
     }
+    OotmmRegionState_ApplyBossWarp(static_cast<int>(bossId));
     const auto destination = sGameState.ResolveBossWarp(bossId, false);
     if (!destination.has_value()) {
         return 0;
@@ -1152,6 +1279,10 @@ extern "C" int32_t OotmmSession_IsSceneMasterQuest(int32_t sceneNum) {
     }
     const char* member = MasterQuestMember(sceneNum);
     return member != nullptr && sGameState.WorldFlagContains("mqDungeons", member) ? 1 : 0;
+}
+
+extern "C" int32_t OotmmSession_BoolSetting(const char* key) {
+    return OotmmSession_IsActive() && sGameState.GetBoolSetting(key, false) ? 1 : 0;
 }
 
 const Ship::OotmmGameState& OotmmSession_GetState() {

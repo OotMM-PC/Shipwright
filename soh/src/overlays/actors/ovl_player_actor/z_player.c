@@ -7171,8 +7171,15 @@ void func_8083DF68(Player* this, f32 arg1, s16 arg2) {
 
 void func_8083DFE0(Player* this, f32* arg1, s16* arg2) {
     s16 yawDiff = this->yaw - *arg2;
+    f32 step = 1.0f;
+    f32 stepInverse = 0.1f;
 
-    if (this->meleeWeaponState == 0) {
+    if (OotmmSession_BoolSetting("mmStyleAirMovementOot")) {
+        if ((this->unk_880 * 1.5f) < fabsf(this->linearVelocity)) {
+            step *= 4.0f;
+            stepInverse *= 4.0f;
+        }
+    } else if (this->meleeWeaponState == 0) {
         float maxSpeed = R_RUN_SPEED_LIMIT / 100.0f;
 
         if (CVarGetInteger(CVAR_ENHANCEMENT("MMBunnyHood"), BUNNY_HOOD_VANILLA) == BUNNY_HOOD_FAST_AND_JUMP &&
@@ -7199,11 +7206,11 @@ void func_8083DFE0(Player* this, f32* arg1, s16* arg2) {
     }
 
     if (ABS(yawDiff) > 0x6000) {
-        if (Math_StepToF(&this->linearVelocity, 0.0f, 1.0f)) {
+        if (Math_StepToF(&this->linearVelocity, 0.0f, step)) {
             this->yaw = *arg2;
         }
     } else {
-        Math_AsymStepToF(&this->linearVelocity, *arg1, 0.05f, 0.1f);
+        Math_AsymStepToF(&this->linearVelocity, *arg1, 0.05f, stepInverse);
         Math_ScaledStepToS(&this->yaw, *arg2, 200);
     }
 }
@@ -8902,7 +8909,8 @@ void Player_Action_80842180(Player* this, PlayState* play) {
 
         if (!func_8083C484(this, &sp2C, &sp2A)) {
 
-            if (CVarGetInteger(CVAR_ENHANCEMENT("MMBunnyHood"), BUNNY_HOOD_VANILLA) != BUNNY_HOOD_VANILLA &&
+            if ((CVarGetInteger(CVAR_ENHANCEMENT("MMBunnyHood"), BUNNY_HOOD_VANILLA) != BUNNY_HOOD_VANILLA ||
+                 OotmmSession_BoolSetting("fastBunnyHood")) &&
                 this->currentMask == PLAYER_MASK_BUNNY) {
                 sp2C *= 1.5f;
             }

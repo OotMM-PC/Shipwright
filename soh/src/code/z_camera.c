@@ -8,6 +8,7 @@
 
 #include "soh/frame_interpolation.h"
 #include "soh/Enhancements/controls/Mouse.h"
+#include "soh/OotmmSession.h"
 
 s16 Camera_ChangeSettingFlags(Camera* camera, s16 setting, s16 flags);
 s32 Camera_ChangeModeFlags(Camera* camera, s16 mode, u8 flags);
@@ -1772,7 +1773,7 @@ s32 Camera_Normal1(Camera* camera) {
         *eye = *eyeNext;
     }
 
-    spA0 = (gSaveContext.health <= 16 ? 0.8f : 1.0f);
+    spA0 = (gSaveContext.health <= 16 && !OotmmSession_BoolSetting("critWiggleDisable") ? 0.8f : 1.0f);
     camera->fov = Camera_LERPCeilF(norm1->fovTarget * spA0, camera->fov, camera->fovUpdateRate, 1.0f);
     camera->roll = Camera_LERPCeilS(0, camera->roll, 0.5f, 0xA);
     camera->atLERPStepScale = Camera_ClampLERPScale(camera, norm1->atLERPScaleMax);

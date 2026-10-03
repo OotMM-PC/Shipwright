@@ -282,6 +282,9 @@ void TimeSaverOnVanillaBehaviorHandler(GIVanillaBehavior id, bool* should, va_li
                         if (actor->id == ACTOR_BG_MORI_HINERI) {
                             break;
                         }
+                        if (actor->id == ACTOR_BG_HAKA_SHIP && OotmmSession_BoolSetting("shadowFastBoat")) {
+                            break;
+                        }
                         // This is handled in the FasterHeavyBlockLift enhancement
                         if (actor->id == ACTOR_BG_HEAVY_BLOCK) {
                             break;

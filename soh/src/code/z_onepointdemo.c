@@ -8,6 +8,11 @@ static s16 sUnused = -1;
 s32 sPrevFrameCs1100 = -4096;
 
 #include "z_onepointdemo_data.inc"
+#include "soh/OotmmSession.h"
+
+static OnePointCsFull sOotmmFastShipCs[1] = {
+    { 0x0F, 0xFF, 0x2121, 80, 0, 70.0f, 1.0f, { 0.0f, 0.0f, 0.0f }, { 50.0f, 30.0f, -200.0f } },
+};
 
 void OnePointCutscene_AddVecSphToVec3f(Vec3f* dst, Vec3f* src, VecSph* vecSph) {
     Vec3f out;
@@ -663,8 +668,13 @@ s32 OnePointCutscene_SetInfo(PlayState* play, s16 camIdx, s16 csId, Actor* actor
         case 3390:
             player->actor.shape.rot.y = player->actor.world.rot.y = player->yaw = -0x3FD9;
 
-            csInfo->keyFrames = D_80121DB4;
-            csInfo->keyFrameCnt = 9;
+            if (OotmmSession_BoolSetting("shadowFastBoat")) {
+                csInfo->keyFrames = sOotmmFastShipCs;
+                csInfo->keyFrameCnt = 1;
+            } else {
+                csInfo->keyFrames = D_80121DB4;
+                csInfo->keyFrameCnt = 9;
+            }
 
             Player_SetCsActionWithHaltedActors(play, NULL, 8);
             func_800C0808(play, camIdx, player, CAM_SET_CS_C);

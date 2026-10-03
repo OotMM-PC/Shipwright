@@ -10,6 +10,7 @@
 #include "objects/object_kingdodongo/object_kingdodongo.h"
 #include "soh/OTRGlobals.h"
 #include "soh/Enhancements/game-interactor/GameInteractor.h"
+#include "soh/OotmmSession.h"
 #include "soh/Enhancements/game-interactor/GameInteractor_Hooks.h"
 
 #define FLAGS ACTOR_FLAG_UPDATE_CULLING_DISABLED
@@ -109,7 +110,8 @@ void BgBreakwall_Init(Actor* thisx, PlayState* play) {
     s32 wallType = ((this->dyna.actor.params >> 13) & 3) & 0xFF;
 
     // Initialize this with the mud wall, so it can't be affected by toggling while the actor is loaded
-    blueFireArrowsEnabledOnMudwallLoad = CVarGetInteger(CVAR_ENHANCEMENT("BlueFireArrows"), 0);
+    blueFireArrowsEnabledOnMudwallLoad =
+        CVarGetInteger(CVAR_ENHANCEMENT("BlueFireArrows"), 0) || OotmmSession_BoolSetting("blueFireArrows");
 
     Actor_ProcessInitChain(&this->dyna.actor, sInitChain);
     DynaPolyActor_Init(&this->dyna, DPM_UNK);

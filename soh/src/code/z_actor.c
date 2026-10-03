@@ -14,6 +14,7 @@
 #include "soh/Enhancements/cosmetics/cosmeticsTypes.h"
 #include "soh/Enhancements/game-interactor/GameInteractor.h"
 #include "soh/OotmmCustomItemsPlayer.h"
+#include "soh/OotmmActorSpawn.h"
 #include "soh/OotmmSouls.h"
 #include "soh/Enhancements/game-interactor/GameInteractor_Hooks.h"
 #include "soh/Enhancements/nametag.h"
@@ -3344,7 +3345,7 @@ Actor* Actor_Spawn(ActorContext* actorCtx, PlayState* play, s16 actorId, f32 pos
     s32 objBankIndex;
     u32 temp;
 
-    if (OotmmSouls_SuppressSpawn(play, actorId, params)) {
+    if (!OotmmActorSpawn_Rewrite(play, &actorId, &params) || OotmmSouls_SuppressSpawn(play, actorId, params)) {
         return NULL;
     }
 

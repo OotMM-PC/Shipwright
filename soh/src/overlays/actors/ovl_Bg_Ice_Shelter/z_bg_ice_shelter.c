@@ -1,4 +1,5 @@
 #include "z_bg_ice_shelter.h"
+#include "soh/OotmmSession.h"
 #include "soh/OotmmXflags.h"
 #include "objects/object_ice_objects/object_ice_objects.h"
 #include "soh/OTRGlobals.h"
@@ -107,7 +108,8 @@ void func_80890740(BgIceShelter* this, PlayState* play) {
     s32 type = (this->dyna.actor.params >> 8) & 7;
 
     // Initialize this with the red ice, so it can't be affected by toggling while the actor is loaded
-    blueFireArrowsEnabledOnRedIceLoad = CVarGetInteger(CVAR_ENHANCEMENT("BlueFireArrows"), 0);
+    blueFireArrowsEnabledOnRedIceLoad =
+        CVarGetInteger(CVAR_ENHANCEMENT("BlueFireArrows"), 0) || OotmmSession_BoolSetting("blueFireArrows");
 
     Collider_InitCylinder(play, &this->cylinder1);
     // If "Blue Fire Arrows" is enabled, set up a collider on the red ice that responds to them

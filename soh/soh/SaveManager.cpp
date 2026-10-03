@@ -424,6 +424,7 @@ void SaveManager::InitFileNormal() {
     gSaveContext.ship.maskMemory = PLAYER_MASK_NONE;
     gSaveContext.ship.ootmmKegAmmo = 0;
     gSaveContext.ship.ootmmKegGranted = 0;
+    gSaveContext.ship.ootmmWispLake = 0;
     memset(&gSaveContext.ship.ootmmPondFish, 0, sizeof(gSaveContext.ship.ootmmPondFish));
 
     // Init with normal quest unless only an MQ rom is provided
@@ -1857,6 +1858,7 @@ void SaveManager::LoadBaseVersion4() {
     SaveManager::Instance->LoadData("maskMemory", gSaveContext.ship.maskMemory);
     SaveManager::Instance->LoadData("ootmmKegAmmo", gSaveContext.ship.ootmmKegAmmo);
     SaveManager::Instance->LoadData("ootmmKegGranted", gSaveContext.ship.ootmmKegGranted);
+    SaveManager::Instance->LoadData("ootmmWispLake", gSaveContext.ship.ootmmWispLake);
     SaveManager::Instance->LoadStruct("ootmmPondFish", []() {
         SaveManager::Instance->LoadData("childCount", gSaveContext.ship.ootmmPondFish.childCount);
         SaveManager::Instance->LoadData("adultCount", gSaveContext.ship.ootmmPondFish.adultCount);
@@ -2043,6 +2045,7 @@ void SaveManager::SaveBase(SaveContext* saveContext, int sectionID, bool fullSav
     SaveManager::Instance->SaveData("maskMemory", saveContext->ship.maskMemory);
     SaveManager::Instance->SaveData("ootmmKegAmmo", saveContext->ship.ootmmKegAmmo);
     SaveManager::Instance->SaveData("ootmmKegGranted", saveContext->ship.ootmmKegGranted);
+    SaveManager::Instance->SaveData("ootmmWispLake", saveContext->ship.ootmmWispLake);
     SaveManager::Instance->SaveStruct("ootmmPondFish", [&]() {
         SaveManager::Instance->SaveData("childCount", saveContext->ship.ootmmPondFish.childCount);
         SaveManager::Instance->SaveData("adultCount", saveContext->ship.ootmmPondFish.adultCount);

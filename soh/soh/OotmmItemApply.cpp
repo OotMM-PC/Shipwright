@@ -614,7 +614,7 @@ void ApplyOne(PlayState* play, const std::string& itemId, uint32_t count) {
                 break;
             }
             case Ship::OotmmGrantKind::DungeonItem: {
-                const int scene = DungeonSceneOf(op.Slot);
+                const int scene = op.Slot == "BOSS_KEY_GANON" ? SCENE_GANONS_TOWER : DungeonSceneOf(op.Slot);
                 if (scene < 0 ||
                     scene >= static_cast<int>(ARRAY_COUNT(gSaveContext.inventory.dungeonItems))) {
                     break;

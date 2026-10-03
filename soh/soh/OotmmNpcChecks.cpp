@@ -31,6 +31,7 @@ extern "C" {
 #include "src/overlays/actors/ovl_En_Go2/z_en_go2.h"
 #include "src/overlays/actors/ovl_En_Kz/z_en_kz.h"
 #include "src/overlays/actors/ovl_En_Niw_Lady/z_en_niw_lady.h"
+#include "src/overlays/actors/ovl_En_Ssh/z_en_ssh.h"
 #include "src/overlays/actors/ovl_En_Sth/z_en_sth.h"
 
 extern PlayState* gPlayState;
@@ -39,7 +40,7 @@ extern PlayState* gPlayState;
 namespace {
 
 const Ship::OotmmPlacement* Find(const char* nativeId) {
-    return OotmmSession_GetState().FindCheck(Ship::OotmmGame::Oot, "npc", nativeId);
+    return nativeId != nullptr ? OotmmSession_GetState().FindCheck(Ship::OotmmGame::Oot, "npc", nativeId) : nullptr;
 }
 
 bool IsCollected(const Ship::OotmmPlacement& placement) {
@@ -346,7 +347,13 @@ void BuildSkulltulaHouseText(uint16_t*, bool* loadFromMessageTable) {
         return;
     }
     const int32_t params = player->talkActor->params;
-    const std::string reward = RewardName(SkulltulaSite(params));
+    const char* site = SkulltulaSite(params);
+    if (site == nullptr || (params == ENSSH_FATHER && Find(site) == nullptr)) {
+        return;
+    }
+    const auto& hinted = OotmmSession_GetState().GetHints().StaticReward(
+        static_cast<Ship::OotmmStaticReward>(static_cast<size_t>(Ship::OotmmStaticReward::Gs100) + params));
+    const std::string reward = hinted.empty() ? RewardName(site) : hinted;
     if (reward.empty()) {
         return;
     }

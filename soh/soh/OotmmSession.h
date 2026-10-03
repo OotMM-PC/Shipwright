@@ -29,6 +29,7 @@ int32_t OotmmSession_RedirectBossWarp(uint32_t bossId);
 int32_t OotmmSession_PrepareSongWarp(uint32_t songId);
 /// True when the seed's mqDungeons world flag marks this scene Master Quest; 0 without a seed.
 int32_t OotmmSession_IsSceneMasterQuest(int32_t sceneNum);
+int32_t OotmmSession_BoolSetting(const char* key);
 
 #ifdef __cplusplus
 }

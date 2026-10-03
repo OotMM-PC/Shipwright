@@ -8,6 +8,7 @@
 #include "objects/object_haka_objects/object_haka_objects.h"
 
 #include "soh/Enhancements/game-interactor/GameInteractor_Hooks.h"
+#include "soh/OotmmSession.h"
 
 #define FLAGS (ACTOR_FLAG_UPDATE_CULLING_DISABLED | ACTOR_FLAG_DRAW_CULLING_DISABLED)
 
@@ -94,7 +95,7 @@ void BgHakaShip_WaitForSong(BgHakaShip* this, PlayState* play) {
             this->counter--;
         }
         if (this->counter == 0) {
-            this->counter = 130;
+            this->counter = OotmmSession_BoolSetting("shadowFastBoat") ? 1 : 130;
             this->actionFunc = BgHakaShip_CutsceneStationary;
             osSyncPrintf("シーン 外輪船 ...  アァクション！！\n");
             OnePointCutscene_Init(play, 3390, 999, &this->dyna.actor, MAIN_CAM);
@@ -136,7 +137,11 @@ void BgHakaShip_Move(BgHakaShip* this, PlayState* play) {
         Message_StartTextbox(play, 0x5071, NULL);
         this->actionFunc = BgHakaShip_SetupCrash;
     } else if (GameInteractor_Should(VB_SHADOW_SHIP_SET_SPEED, true, this, play)) {
-        Math_StepToF(&this->dyna.actor.speedXZ, 4.0f, 0.2f);
+        if (OotmmSession_BoolSetting("shadowFastBoat")) {
+            Math_StepToF(&this->dyna.actor.speedXZ, 1000.0f, 200.8f);
+        } else {
+            Math_StepToF(&this->dyna.actor.speedXZ, 4.0f, 0.2f);
+        }
     }
     child = this->dyna.actor.child;
     if (child != NULL && child->update != NULL) {

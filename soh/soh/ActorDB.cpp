@@ -628,9 +628,26 @@ static ActorDBInit OotmmPuppetInit = {
     nullptr,
 };
 
+#include "soh/OotmmRegionState.h"
+
+static ActorDBInit OotmmCustomWarpInit = {
+    "Ootmm_Custom_Warp",
+    "OoTMM Region Wisp",
+    ACTORCAT_ITEMACTION,
+    (ACTOR_FLAG_ATTENTION_ENABLED | ACTOR_FLAG_UPDATE_CULLING_DISABLED),
+    OBJECT_GAMEPLAY_KEEP,
+    sizeof(Actor),
+    (ActorFunc)OotmmCustomWarp_Init,
+    nullptr,
+    (ActorFunc)OotmmCustomWarp_Update,
+    (ActorFunc)OotmmCustomWarp_Draw,
+    nullptr,
+};
+
 void ActorDB::AddBuiltInCustomActors() {
     gEnPartnerId = ActorDB::Instance->AddEntry(EnPartnerInit).entry.id;
     gOotmmPuppetId = ActorDB::Instance->AddEntry(OotmmPuppetInit).entry.id;
+    gOotmmCustomWarpId = ActorDB::Instance->AddEntry(OotmmCustomWarpInit).entry.id;
 }
 
 extern "C" ActorDBEntry* ActorDB_Retrieve(const int id) {
