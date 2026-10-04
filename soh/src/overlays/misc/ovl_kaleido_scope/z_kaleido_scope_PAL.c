@@ -1,4 +1,5 @@
 #include "soh/OotmmItemPage.h"
+#include "soh/OotmmPauseInfo.h"
 #include "soh/OotmmScales.h"
 #include "soh/OotmmSaveMenu.h"
 #include "soh/OotmmSession.h"
@@ -1658,17 +1659,19 @@ void KaleidoScope_DrawPages(PlayState* play, GraphicsContext* gfxCtx) {
             POLY_OPA_DISP =
                 KaleidoScope_DrawPageSections(POLY_OPA_DISP, pauseCtx->mapPageVtx, sMapTexs[gSaveContext.language]);
 
-            if (sInDungeonScene) {
-                KaleidoScope_DrawDungeonMap(play, gfxCtx);
-                Gfx_SetupDL_42Opa(gfxCtx);
+            if (!OotmmPauseInfo_Draw(play)) {
+                if (sInDungeonScene) {
+                    KaleidoScope_DrawDungeonMap(play, gfxCtx);
+                    Gfx_SetupDL_42Opa(gfxCtx);
 
-                gDPSetCombineMode(POLY_OPA_DISP++, G_CC_MODULATEIA_PRIM, G_CC_MODULATEIA_PRIM);
+                    gDPSetCombineMode(POLY_OPA_DISP++, G_CC_MODULATEIA_PRIM, G_CC_MODULATEIA_PRIM);
 
-                if (CHECK_DUNGEON_ITEM(DUNGEON_COMPASS, gSaveContext.mapIndex)) {
-                    PauseMapMark_Draw(play);
+                    if (CHECK_DUNGEON_ITEM(DUNGEON_COMPASS, gSaveContext.mapIndex)) {
+                        PauseMapMark_Draw(play);
+                    }
+                } else {
+                    KaleidoScope_DrawWorldMap(play, gfxCtx);
                 }
-            } else {
-                KaleidoScope_DrawWorldMap(play, gfxCtx);
             }
         }
 
@@ -1700,21 +1703,23 @@ void KaleidoScope_DrawPages(PlayState* play, GraphicsContext* gfxCtx) {
                 POLY_OPA_DISP =
                     KaleidoScope_DrawPageSections(POLY_OPA_DISP, pauseCtx->mapPageVtx, sMapTexs[gSaveContext.language]);
 
-                if (sInDungeonScene) {
-                    KaleidoScope_DrawDungeonMap(play, gfxCtx);
-                    Gfx_SetupDL_42Opa(gfxCtx);
+                if (!OotmmPauseInfo_Draw(play)) {
+                    if (sInDungeonScene) {
+                        KaleidoScope_DrawDungeonMap(play, gfxCtx);
+                        Gfx_SetupDL_42Opa(gfxCtx);
 
-                    gDPSetCombineMode(POLY_OPA_DISP++, G_CC_MODULATEIA_PRIM, G_CC_MODULATEIA_PRIM);
+                        gDPSetCombineMode(POLY_OPA_DISP++, G_CC_MODULATEIA_PRIM, G_CC_MODULATEIA_PRIM);
 
-                    if (pauseCtx->cursorSpecialPos == 0) {
-                        KaleidoScope_DrawCursor(play, PAUSE_MAP);
+                        if (pauseCtx->cursorSpecialPos == 0) {
+                            KaleidoScope_DrawCursor(play, PAUSE_MAP);
+                        }
+
+                        if (CHECK_DUNGEON_ITEM(DUNGEON_COMPASS, gSaveContext.mapIndex)) {
+                            PauseMapMark_Draw(play);
+                        }
+                    } else {
+                        KaleidoScope_DrawWorldMap(play, gfxCtx);
                     }
-
-                    if (CHECK_DUNGEON_ITEM(DUNGEON_COMPASS, gSaveContext.mapIndex)) {
-                        PauseMapMark_Draw(play);
-                    }
-                } else {
-                    KaleidoScope_DrawWorldMap(play, gfxCtx);
                 }
                 break;
 

@@ -14,6 +14,7 @@
 #include "OotmmItemPresentation.h"
 #include "OotmmItemProbe.h"
 #include "OotmmScales.h"
+#include "OotmmAgony.h"
 #include "OotmmRegionState.h"
 #include "OotmmSpecialConds.h"
 #include "OotmmBrokenActors.h"
@@ -1023,6 +1024,7 @@ void OotmmSession_Init() {
         OotmmItemApply_Init();
         OotmmCustomItems_Init();
         OotmmScales_Init();
+        OotmmAgony_Init();
         OotmmPresence_Init();
         OotmmSpecialConds_Init();
         OotmmRegionState_Init();
