@@ -1,6 +1,7 @@
 #include "soh/Enhancements/game-interactor/GameInteractor_Hooks.h"
 #include "soh/ShipInit.hpp"
 #include "soh/ResourceManagerHelpers.h"
+#include "soh/OotmmAgeless.h"
 
 extern "C" {
 #include "macros.h"
@@ -26,6 +27,10 @@ static void ResetAdultHands() {
     ResourceMgr_UnpatchGfxByName(gLinkAdultLeftHandHoldingBgsNearDL, "childBiggoronSword2");
     ResourceMgr_UnpatchGfxByName(gLinkAdultHandHoldingBrokenGiantsKnifeDL, "childBrokenGiantsKnife1");
     ResourceMgr_UnpatchGfxByName(gLinkAdultHandHoldingBrokenGiantsKnifeDL, "childBrokenGiantsKnife2");
+    ResourceMgr_UnpatchGfxByName(gLinkAdultRightHandHoldingBowFirstPersonDL, "childBowFirstPerson1");
+    ResourceMgr_UnpatchGfxByName(gLinkAdultRightHandHoldingBowFirstPersonDL, "childBowFirstPerson2");
+    ResourceMgr_UnpatchGfxByName(gLinkAdultRightHandHoldingHookshotFarDL, "childHookshotFirstPerson1");
+    ResourceMgr_UnpatchGfxByName(gLinkAdultRightHandHoldingHookshotFarDL, "childHookshotFirstPerson2");
 }
 
 static void ResetChildHands() {
@@ -33,6 +38,10 @@ static void ResetChildHands() {
     ResourceMgr_UnpatchGfxByName(gLinkChildRightHandHoldingSlingshotNearDL, "adultSlingshot");
     ResourceMgr_UnpatchGfxByName(gLinkChildLeftFistAndBoomerangNearDL, "adultBoomerang");
     ResourceMgr_UnpatchGfxByName(gLinkChildRightFistAndDekuShieldNearDL, "adultDekuShield");
+    ResourceMgr_UnpatchGfxByName(gLinkChildRightArmStretchedSlingshotDL, "adultSlingshotFirstPerson1");
+    ResourceMgr_UnpatchGfxByName(gLinkChildRightArmStretchedSlingshotDL, "adultSlingshotFirstPerson2");
+    ResourceMgr_UnpatchGfxByName(gLinkChildRightHandHoldingFairyOcarinaNearDL, "adultFairyOcarina1");
+    ResourceMgr_UnpatchGfxByName(gLinkChildRightHandHoldingFairyOcarinaNearDL, "adultFairyOcarina2");
 }
 
 static void MakeEquipmentAlwaysVisible() {
@@ -58,6 +67,14 @@ static void MakeEquipmentAlwaysVisible() {
                                    gsSPDisplayListOTRFilePath(gLinkChildLeftFistNearDL));
         ResourceMgr_PatchGfxByName(gLinkAdultHandHoldingBrokenGiantsKnifeDL, "childBrokenGiantsKnife2", 77,
                                    gsSPEndDisplayList());
+        ResourceMgr_PatchGfxByName(gLinkAdultRightHandHoldingBowFirstPersonDL, "childBowFirstPerson1", 58,
+                                   gsSPDisplayListOTRFilePath(gLinkChildRightHandClosedNearDL));
+        ResourceMgr_PatchGfxByName(gLinkAdultRightHandHoldingBowFirstPersonDL, "childBowFirstPerson2", 59,
+                                   gsSPEndDisplayList());
+        ResourceMgr_PatchGfxByName(gLinkAdultRightHandHoldingHookshotFarDL, "childHookshotFirstPerson1", 114,
+                                   gsSPDisplayListOTRFilePath(gLinkChildRightHandClosedNearDL));
+        ResourceMgr_PatchGfxByName(gLinkAdultRightHandHoldingHookshotFarDL, "childHookshotFirstPerson2", 115,
+                                   gsSPEndDisplayList());
         ResetChildHands();
     } else {
         ResourceMgr_PatchGfxByName(gLinkChildLeftFistAndKokiriSwordNearDL, "adultKokiriSword", 13,
@@ -68,6 +85,14 @@ static void MakeEquipmentAlwaysVisible() {
                                    gsSPDisplayListOTRFilePath(gLinkAdultLeftHandClosedNearDL));
         ResourceMgr_PatchGfxByName(gLinkChildRightFistAndDekuShieldNearDL, "adultDekuShield", 49,
                                    gsSPDisplayListOTRFilePath(gLinkAdultRightHandClosedNearDL));
+        ResourceMgr_PatchGfxByName(gLinkChildRightArmStretchedSlingshotDL, "adultSlingshotFirstPerson1", 30,
+                                   gsSPDisplayListOTRFilePath(gLinkAdultRightHandNearDL));
+        ResourceMgr_PatchGfxByName(gLinkChildRightArmStretchedSlingshotDL, "adultSlingshotFirstPerson2", 31,
+                                   gsSPEndDisplayList());
+        ResourceMgr_PatchGfxByName(gLinkChildRightHandHoldingFairyOcarinaNearDL, "adultFairyOcarina1", 37,
+                                   gsSPDisplayListOTRFilePath(gLinkAdultRightHandNearDL));
+        ResourceMgr_PatchGfxByName(gLinkChildRightHandHoldingFairyOcarinaNearDL, "adultFairyOcarina2", 38,
+                                   gsSPEndDisplayList());
         ResetAdultHands();
     }
 }
@@ -80,7 +105,14 @@ static void RegisterAgeDependentEquipmentHook() {
         ResetChildHands();
     }
 
-    COND_HOOK(OnSceneInit, CVAR_AGE_EQUIPMENT_VALUE, [](int32_t) { MakeEquipmentAlwaysVisible(); });
+    COND_HOOK(OnSceneInit, true, [](int32_t) {
+        if (OotmmAgeless_EquipmentVisible()) {
+            MakeEquipmentAlwaysVisible();
+        } else {
+            ResetAdultHands();
+            ResetChildHands();
+        }
+    });
 }
 
 static RegisterShipInitFunc initFunc(RegisterAgeDependentEquipmentHook, { CVAR_AGE_EQUIPMENT_NAME });

@@ -1,3 +1,4 @@
+#include "soh/OotmmAgeless.h"
 #include "soh/OotmmItemApply.h"
 #include "soh/OotmmSession.h"
 #include "global.h"
@@ -1467,7 +1468,12 @@ s16 func_8001F404(s16 dropId) {
         (dropId == ITEM00_BOMBS_A || dropId == ITEM00_BOMBS_B || dropId == ITEM00_BOMBS_SPECIAL)) {
         return OotmmItemApply_SelectBombDrop(dropId, ITEM00_BOMBCHU);
     }
-    if (LINK_IS_ADULT) {
+    if (OotmmSession_IsActive()) {
+        dropId = OotmmAgeless_FixDrop(dropId);
+        if (dropId < 0) {
+            return -1;
+        }
+    } else if (LINK_IS_ADULT) {
         if (dropId == ITEM00_SEEDS) {
             dropId = ITEM00_ARROWS_SMALL;
         } else if (GameInteractor_Should(VB_PREVENT_ADULT_STICK, dropId == ITEM00_STICK)) {

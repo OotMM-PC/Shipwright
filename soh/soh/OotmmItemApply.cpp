@@ -261,6 +261,9 @@ std::vector<uint8_t> LadderTiers(std::string_view suffix) {
         tiers.push_back(ITEM_SCALE_GOLDEN);
         return tiers;
     }
+    if (suffix == "SWORD" && OotmmSession_GetState().GetBoolSetting("extraChildSwordsOot", false)) {
+        return { ITEM_SWORD_KOKIRI, ITEM_NONE, ITEM_NONE };
+    }
     if (const Ladder* ladder = FindLadder(suffix)) {
         return ladder->Tiers;
     }
@@ -340,7 +343,14 @@ void ApplyOnce(PlayState* play, const std::string& key, uint8_t item) {
         return;
     }
     // gItemSlots only covers inventory items, so SLOT()/INV_CONTENT() read past its end for equipment.
-    Item_Give(play, item);
+    if (item == ITEM_SWORD_KNIFE || item == ITEM_SWORD_BGS) {
+        Item_Give(play, ITEM_SWORD_BGS);
+        if (item == ITEM_SWORD_BGS) {
+            gSaveContext.bgsFlag = 1;
+        }
+    } else {
+        Item_Give(play, item);
+    }
     SPDLOG_INFO("[OoTMM grant] gave {} (item {})", key, static_cast<int>(item));
 }
 
@@ -1032,8 +1042,6 @@ void UpdateTraps() {
 
 } // namespace
 
-// TODO: the Master Sword is randomized, so owning it does not mean the pedestal check was completed;
-// this needs the check system to gate the final fight on actually having pulled it.
 extern "C" int32_t OotmmItemApply_FoundMasterSword(void) {
     if (!OotmmSession_IsActive()) {
         return 0;

@@ -2,6 +2,7 @@
 
 #include "Enhancements/custom-message/CustomMessageManager.h"
 #include "Enhancements/game-interactor/GameInteractor.h"
+#include "OotmmExtraSwords.h"
 #include "OotmmIpc.h"
 #include "OotmmItemPresentation.h"
 #include "OotmmNpcChecks.h"
@@ -283,6 +284,9 @@ constexpr std::array<int16_t, 34> kStoneMaskBlindActors = { {
 } };
 
 // The blast mask display lists branch through segments 0x08 and 0x09; OoT binds neither.
+constexpr int16_t kKegFuseFrames = 200;
+int16_t sKegFuse = 0;
+
 Gfx sEmptyDList[] = {
     gsSPEndDisplayList(),
 };
@@ -301,20 +305,28 @@ extern "C" void OotmmCustomItems_SetTunicEnvColor(u8 r, u8 g, u8 b) {
     sTunicEnvColor[2] = b;
 }
 
-extern "C" Gfx* OotmmCustomItems_GreatFairySwordHand(PlayState* play, Gfx* handDList) {
-    Gfx* list = static_cast<Gfx*>(Graph_Alloc(play->state.gfxCtx, 5 * sizeof(Gfx)));
+extern "C" Gfx* OotmmCustomItems_EquipmentDList(PlayState* play, Gfx* base, const char* const* parts, int count) {
+    Gfx* list = static_cast<Gfx*>(Graph_Alloc(play->state.gfxCtx, (count + 4) * sizeof(Gfx)));
     if (list == nullptr) {
-        return handDList;
+        return base;
     }
 
     Gfx* head = list;
-    gSPDisplayList(head++, handDList);
-    gSPDisplayList(head++,
-                   ResourceMgr_LoadGfxByName("__OTR__objects/mm_obj_link_child/gLinkHumanGreatFairysSwordDL"));
+    if (base != nullptr) {
+        gSPDisplayList(head++, base);
+    }
+    for (int i = 0; i < count; i++) {
+        gSPDisplayList(head++, ResourceMgr_LoadGfxByName(parts[i]));
+    }
     gDPPipeSync(head++);
     gDPSetEnvColor(head++, sTunicEnvColor[0], sTunicEnvColor[1], sTunicEnvColor[2], 0);
     gSPEndDisplayList(head);
     return list;
+}
+
+extern "C" Gfx* OotmmCustomItems_GreatFairySwordHand(PlayState* play, Gfx* handDList) {
+    static const char* const kParts[] = { "__OTR__objects/mm_obj_link_child/gLinkHumanGreatFairysSwordDL" };
+    return OotmmCustomItems_EquipmentDList(play, handDList, kParts, 1);
 }
 
 extern "C" int OotmmCustomItems_ActorIgnoresPlayer(Actor* actor, Player* player) {
@@ -416,10 +428,25 @@ extern "C" void OotmmCustomItems_MarkExplosive(Actor* spawned, int explosiveType
     bomb->isPowderKeg = explosiveType == 2 ? 1 : 0;
     if (explosiveType == 2) {
         bomb->explosionColliderItems[0].info.toucher.dmgFlags |= DMG_HAMMER_JUMP;
+        if (sKegFuse == 0) {
+            sKegFuse = kKegFuseFrames;
+        }
+        bomb->timer = sKegFuse;
     }
     if (explosiveType == 2 && spawned->scale.x != 0.0f) {
         Actor_SetScale(spawned, OotmmCustomItems_ExplosiveScale(spawned));
     }
+}
+
+extern "C" void OotmmCustomItems_TrackKegFuse(Actor* actor, int held) {
+    EnBom* bomb = reinterpret_cast<EnBom*>(actor);
+    if (bomb->isPowderKeg) {
+        sKegFuse = held ? bomb->timer : 0;
+    }
+}
+
+extern "C" int OotmmCustomItems_KegFusePaused(PlayState* play, Actor* actor) {
+    return reinterpret_cast<EnBom*>(actor)->isPowderKeg && Play_InCsMode(play) ? 1 : 0;
 }
 
 extern "C" float OotmmCustomItems_ExplosiveScale(Actor* actor) {
@@ -457,6 +484,9 @@ extern "C" void* OotmmCustomItems_BButtonIcon(uint8_t item) {
         if (worn != nullptr && worn->Item != ITEM_OOTMM_MASK_STONE) {
             return const_cast<char*>(worn->Icon);
         }
+    }
+    if (const char* sword = OotmmExtraSwords_Icon(item)) {
+        return const_cast<char*>(sword);
     }
     return OotmmCustomItems_ButtonIcon(item);
 }

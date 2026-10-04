@@ -7,6 +7,7 @@ extern "C" {
 #endif
 
 void OotmmCustomItems_SetTunicEnvColor(u8 r, u8 g, u8 b);
+Gfx* OotmmCustomItems_EquipmentDList(PlayState* play, Gfx* base, const char* const* parts, int count);
 Gfx* OotmmCustomItems_GreatFairySwordHand(PlayState* play, Gfx* handDList);
 /// Draws a worn cross-game mask at an explicit head-limb matrix, for remote-player puppets.
 void OotmmCustomItems_DrawMaskWithMatrix(PlayState* play, uint8_t mask, Mtx* matrix);
@@ -28,6 +29,9 @@ int OotmmCustomItems_ExplosiveAmmo(int explosiveType);
 
 void OotmmCustomItems_MarkExplosive(Actor* spawned, int explosiveType);
 float OotmmCustomItems_ExplosiveScale(Actor* actor);
+/// Remembers a held keg's fuse so a keg put away and taken out again resumes it, as og does.
+void OotmmCustomItems_TrackKegFuse(Actor* actor, int held);
+int OotmmCustomItems_KegFusePaused(PlayState* play, Actor* actor);
 /// Returns 1 when it drew the keg in place of the bomb model.
 int OotmmCustomItems_DrawPowderKeg(PlayState* play, Actor* actor);
 

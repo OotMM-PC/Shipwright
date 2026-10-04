@@ -2,6 +2,7 @@
 
 #include "Enhancements/audio/AudioCollection.h"
 #include "Enhancements/custom-message/CustomMessageManager.h"
+#include "OotmmFaroresWind.h"
 #include "OotmmIpc.h"
 #include "OotmmSession.h"
 #include "cvar_prefixes.h"
@@ -19,6 +20,8 @@ extern "C" {
 #include "z64.h"
 
 #include "OotmmSoaringMap.h"
+#include "overlays/actors/ovl_Obj_Timeblock/z_obj_timeblock.h"
+#include "overlays/actors/ovl_Obj_Warp2block/z_obj_warp2block.h"
 #include "OotmmSongsPlayer.h"
 
 extern PlayState* gPlayState;
@@ -89,6 +92,8 @@ int32_t sMenuCursor = 0;
 int32_t sMenuStickHeld = 0;
 int32_t sHandoffFrames = -1;
 bool sDoubleTimeAsked = false;
+bool sAgeChangeAsked = false;
+constexpr uint8_t kAgeChangePrompt = OOTMM_SONG_MAX;
 std::vector<uint8_t> sMenuEntries;
 
 const SongDef& Def(int32_t song) {
@@ -103,6 +108,19 @@ bool OwnsSong(int32_t song) {
     const auto& inventory = OotmmIpc_GetInventory();
     if (inventory.Has(def.ItemId) || inventory.Has(def.SharedItemId)) {
         return true;
+    }
+    if (song == OOTMM_SONG_GORON) {
+        const auto& state = OotmmSession_GetState();
+        uint32_t halves = 0;
+        if (state.GetStringSetting("progressiveGoronLullabyOot", "progressive") == "progressive") {
+            halves += inventory.Count("OOT_SONG_GORON_HALF");
+        }
+        if (state.GetStringSetting("progressiveGoronLullabyMm", "progressive") == "progressive") {
+            halves += inventory.Count("SHARED_SONG_GORON_HALF");
+        }
+        if (halves >= 2) {
+            return true;
+        }
     }
     if (song == OOTMM_SONG_GORON_HALF &&
         OotmmSession_GetState().GetStringSetting("progressiveGoronLullabyOot", "progressive") != "progressive") {
@@ -191,6 +209,7 @@ void EndOcarina(PlayState* play) {
     sActiveSong = OOTMM_SONG_NONE;
     sMenuOpen = false;
     sDoubleTimeAsked = false;
+    sAgeChangeAsked = false;
     ReleasePlayer(play);
     play->msgCtx.ocarinaMode = OCARINA_MODE_04;
 }
@@ -416,6 +435,104 @@ void ApplyDoubleTime(PlayState* play) {
     gSaveContext.natureAmbienceId = NATURE_ID_DISABLED;
 }
 
+bool AgeChangeBlockedScene(int16_t scene) {
+    switch (scene) {
+        case SCENE_GANONS_TOWER_COLLAPSE_INTERIOR:
+        case SCENE_INSIDE_GANONS_CASTLE_COLLAPSE:
+        case SCENE_TREASURE_BOX_SHOP:
+        case SCENE_BOMBCHU_BOWLING_ALLEY:
+        case SCENE_DEKU_TREE_BOSS:
+        case SCENE_DODONGOS_CAVERN_BOSS:
+        case SCENE_JABU_JABU_BOSS:
+        case SCENE_FOREST_TEMPLE_BOSS:
+        case SCENE_FIRE_TEMPLE_BOSS:
+        case SCENE_WATER_TEMPLE_BOSS:
+        case SCENE_SPIRIT_TEMPLE_BOSS:
+        case SCENE_SHADOW_TEMPLE_BOSS:
+        case SCENE_GANONDORF_BOSS:
+        case SCENE_GANONS_TOWER_COLLAPSE_EXTERIOR:
+        case SCENE_GROTTOS:
+        case SCENE_FAIRYS_FOUNTAIN:
+        case SCENE_CASTLE_COURTYARD_GUARDS_DAY:
+        case SCENE_CASTLE_COURTYARD_GUARDS_NIGHT:
+        case SCENE_CASTLE_COURTYARD_ZELDA:
+        case SCENE_GANON_BOSS:
+        case SCENE_HYRULE_CASTLE:
+        case SCENE_OUTSIDE_GANONS_CASTLE:
+        case SCENE_MARKET_ENTRANCE_DAY:
+        case SCENE_MARKET_ENTRANCE_NIGHT:
+        case SCENE_MARKET_ENTRANCE_RUINS:
+        case SCENE_BACK_ALLEY_DAY:
+        case SCENE_BACK_ALLEY_NIGHT:
+        case SCENE_MARKET_DAY:
+        case SCENE_MARKET_NIGHT:
+        case SCENE_MARKET_RUINS:
+        case SCENE_TEMPLE_OF_TIME_EXTERIOR_DAY:
+        case SCENE_TEMPLE_OF_TIME_EXTERIOR_NIGHT:
+        case SCENE_TEMPLE_OF_TIME_EXTERIOR_RUINS:
+        case SCENE_GRAVEKEEPERS_HUT:
+        case SCENE_FISHING_POND:
+            return true;
+        default:
+            return false;
+    }
+}
+
+bool TimeBlockPlaying(PlayState* play) {
+    for (Actor* actor = play->actorCtx.actorLists[ACTORCAT_ITEMACTION].head; actor != nullptr; actor = actor->next) {
+        if ((actor->id == ACTOR_OBJ_TIMEBLOCK && reinterpret_cast<ObjTimeblock*>(actor)->demoEffectTimer != 0) ||
+            (actor->id == ACTOR_OBJ_WARP2BLOCK && reinterpret_cast<ObjWarp2block*>(actor)->unk_16C != 0)) {
+            return true;
+        }
+    }
+    return false;
+}
+
+bool CanChangeAge(PlayState* play) {
+    const std::string setting = OotmmSession_GetState().GetStringSetting("ageChange", "none");
+    if (setting == "none" || !Flags_GetEventChkInf(EVENTCHKINF_ENTERED_MASTER_SWORD_CHAMBER) ||
+        !Flags_GetEventChkInf(EVENTCHKINF_PULLED_MASTER_SWORD_FROM_PEDESTAL)) {
+        return false;
+    }
+    if (setting == "oot" && INV_CONTENT(ITEM_OCARINA_TIME) != ITEM_OCARINA_TIME) {
+        return false;
+    }
+    return play->msgCtx.ocarinaAction == OCARINA_ACTION_FREE_PLAY_DONE && !AgeChangeBlockedScene(play->sceneNum) &&
+           !TimeBlockPlaying(play);
+}
+
+void ChangeAge(PlayState* play) {
+    play->linkAgeOnLoad = gSaveContext.linkAge == LINK_AGE_ADULT ? LINK_AGE_CHILD : LINK_AGE_ADULT;
+    Play_SetupRespawnPoint(play, RESPAWN_MODE_RETURN, 0xDFF);
+    gSaveContext.respawnFlag = 2;
+    play->transitionTrigger = TRANS_TRIGGER_START;
+    play->nextEntranceIndex = gSaveContext.entranceIndex;
+    play->transitionType = TRANS_TYPE_CIRCLE(TCA_RIPPLE, TCC_WHITE, TCS_FAST);
+    OotmmFaroresWind_SwapAge();
+}
+
+void UpdateAgeChange(PlayState* play) {
+    if (Message_GetState(&play->msgCtx) != TEXT_STATE_CHOICE) {
+        if (sAgeChangeAsked) {
+            EndOcarina(play);
+        }
+        return;
+    }
+    sAgeChangeAsked = true;
+    if (!Message_ShouldAdvance(play)) {
+        return;
+    }
+
+    const u8 choice = play->msgCtx.choiceIndex;
+    Message_CloseTextbox(play);
+    EndOcarina(play);
+    if (choice == 0) {
+        ChangeAge(play);
+    } else {
+        Sfx_PlaySfxCentered(NA_SE_SY_CANCEL);
+    }
+}
+
 void UpdateDoubleTime(PlayState* play) {
     if (Message_GetState(&play->msgCtx) != TEXT_STATE_CHOICE) {
         if (sDoubleTimeAsked) {
@@ -559,7 +676,21 @@ extern "C" void OotmmSongs_Update(PlayState* play, Player* player) {
         case OOTMM_SONG_DOUBLE_TIME:
             UpdateDoubleTime(play);
             break;
+        case kAgeChangePrompt:
+            UpdateAgeChange(play);
+            break;
     }
+}
+
+extern "C" int32_t OotmmSongs_OfferAgeChange(PlayState* play) {
+    if (play == nullptr || !OotmmSession_IsActive() || !CanChangeAge(play)) {
+        return 0;
+    }
+    Message_StartTextbox(play, 0x88D, NULL);
+    LoadMessage(std::string("Become ") + (gSaveContext.linkAge == LINK_AGE_ADULT ? "a %rchild" : "an %radult") +
+                "%w?" + CustomMessage::TWO_WAY_CHOICE() + "%gOK&No%w");
+    sActiveSong = kAgeChangePrompt;
+    return 1;
 }
 
 extern "C" void OotmmSongs_DrawMenu(PlayState* play) {

@@ -7,6 +7,7 @@
 #include "soh/OTRGlobals.h"
 
 #include "soh/Enhancements/game-interactor/GameInteractor_Hooks.h"
+#include "soh/OotmmAgeless.h"
 
 u8 gAmmoItems[] = {
     ITEM_STICK,   ITEM_NUT,  ITEM_BOMB, ITEM_BOW,  ITEM_NONE, ITEM_NONE, ITEM_SLINGSHOT, ITEM_NONE,
@@ -358,17 +359,18 @@ void KaleidoScope_HandleItemCycles(PlayState* play) {
     // in case it currently holds a mask
     // to allow adult link to wear it if the setting is enabled
     gSlotAgeReqs[SLOT_TRADE_CHILD] =
-        (CVarGetInteger(CVAR_ENHANCEMENT("AdultMasks"), 0) || CVarGetInteger(CVAR_CHEAT("TimelessEquipment"), 0)) &&
-                INV_CONTENT(ITEM_TRADE_CHILD) >= ITEM_MASK_KEATON && INV_CONTENT(ITEM_TRADE_CHILD) <= ITEM_MASK_TRUTH
+        OotmmAgeless_ChildTrade() ||
+                ((CVarGetInteger(CVAR_ENHANCEMENT("AdultMasks"), 0) || CVarGetInteger(CVAR_CHEAT("TimelessEquipment"), 0)) &&
+                 INV_CONTENT(ITEM_TRADE_CHILD) >= ITEM_MASK_KEATON && INV_CONTENT(ITEM_TRADE_CHILD) <= ITEM_MASK_TRUTH)
             ? AGE_REQ_NONE
             : AGE_REQ_CHILD;
 
     // also update the age requirements for the masks itself
     for (int i = ITEM_MASK_KEATON; i <= ITEM_MASK_TRUTH; i += 1) {
-        gItemAgeReqs[i] =
-            CVarGetInteger(CVAR_ENHANCEMENT("AdultMasks"), 0) || CVarGetInteger(CVAR_CHEAT("TimelessEquipment"), 0)
-                ? AGE_REQ_NONE
-                : AGE_REQ_CHILD;
+        gItemAgeReqs[i] = OotmmAgeless_ChildTrade() || CVarGetInteger(CVAR_ENHANCEMENT("AdultMasks"), 0) ||
+                                  CVarGetInteger(CVAR_CHEAT("TimelessEquipment"), 0)
+                              ? AGE_REQ_NONE
+                              : AGE_REQ_CHILD;
     }
 
 }

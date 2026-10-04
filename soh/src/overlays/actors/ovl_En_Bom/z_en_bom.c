@@ -187,8 +187,11 @@ void EnBom_Move(EnBom* this, PlayState* play) {
 void EnBom_WaitForRelease(EnBom* this, PlayState* play) {
     // if parent is NULL bomb has been released
     if (Actor_HasNoParent(&this->actor, play)) {
+        OotmmCustomItems_TrackKegFuse(&this->actor, false);
         EnBom_SetupAction(this, EnBom_Move);
         EnBom_Move(this, play);
+    } else {
+        OotmmCustomItems_TrackKegFuse(&this->actor, true);
     }
 }
 
@@ -262,7 +265,7 @@ void EnBom_Update(Actor* thisx, PlayState* play2) {
 
     thisx->gravity = -1.2f;
 
-    if (this->timer != 0) {
+    if (this->timer != 0 && (this->actionFunc == EnBom_Explode || !OotmmCustomItems_KegFusePaused(play, thisx))) {
         this->timer--;
     }
 

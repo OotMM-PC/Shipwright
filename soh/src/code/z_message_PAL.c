@@ -4809,6 +4809,9 @@ void Message_Update(PlayState* play) {
                 }
             }
             if (msgCtx->ocarinaAction != OCARINA_ACTION_CHECK_NOWARP_DONE) {
+                if (sLastPlayedSong == OCARINA_SONG_TIME) {
+                    OotmmSongs_OfferAgeChange(play);
+                }
                 if (sLastPlayedSong == OCARINA_SONG_SARIAS) {
                     //! @bug The last played song is not unset often, and if something interrupts the message system
                     //       before it reaches this point after playing Saria's song, the song will be "stored".

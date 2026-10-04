@@ -8,6 +8,8 @@
 #include "objects/object_toki_objects/object_toki_objects.h"
 #include "soh/OTRGlobals.h"
 #include "soh/Enhancements/game-interactor/GameInteractor_Hooks.h"
+#include "soh/OotmmMasterSword.h"
+#include "soh/OotmmNpcChecks.h"
 
 #define FLAGS ACTOR_FLAG_UPDATE_CULLING_DISABLED
 
@@ -106,7 +108,7 @@ void func_808BAF40(BgTokiSwd* this, PlayState* play) {
         }
     }
 
-    if (!LINK_IS_ADULT || Flags_GetEventChkInf(EVENTCHKINF_LEARNED_PRELUDE_OF_LIGHT)) {
+    if (OotmmMasterSword_PedestalReady(&this->actor, play)) {
         if (Actor_HasParent(&this->actor, play)) {
             if (!LINK_IS_ADULT) {
                 if (GameInteractor_Should(VB_GIVE_ITEM_MASTER_SWORD, true)) {
@@ -124,7 +126,11 @@ void func_808BAF40(BgTokiSwd* this, PlayState* play) {
         } else {
             Player* player = GET_PLAYER(play);
             if (Actor_IsFacingPlayer(&this->actor, 0x2000)) {
-                Actor_OfferCarry(&this->actor, play);
+                if (OotmmMasterSword_CanTimeTravel()) {
+                    Actor_OfferCarry(&this->actor, play);
+                } else if (!LINK_IS_ADULT) {
+                    OotmmNpcChecks_TryCollectFreestanding(&this->actor, play, "OOT_MASTER_SWORD", 200.0f, 50.0f);
+                }
             }
         }
     }

@@ -27,6 +27,7 @@
 #include "soh/ObjectExtension/ActorMaximumHealth.h"
 
 #include "message_data_static.h"
+#include "soh/OotmmMasterSword.h"
 extern MessageTableEntry* sNesMessageEntryTablePtr;
 extern MessageTableEntry* sGerMessageEntryTablePtr;
 extern MessageTableEntry* sFraMessageEntryTablePtr;
@@ -1390,6 +1391,10 @@ Gfx* Gfx_TextureI8(Gfx* displayListHead, void* texture, s16 textureWidth, s16 te
 void Inventory_SwapAgeEquipment(void) {
     s16 i;
     u16 shieldEquipValue;
+
+    if (OotmmMasterSword_SwapAgeEquipment()) {
+        return;
+    }
 
     if (LINK_AGE_IN_YEARS == YEARS_CHILD) {
         for (i = 0; i < ARRAY_COUNT(gSaveContext.equips.buttonItems); i++) {

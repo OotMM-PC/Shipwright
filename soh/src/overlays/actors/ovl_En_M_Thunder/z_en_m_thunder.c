@@ -1,6 +1,7 @@
 #include "z_en_m_thunder.h"
 #include "objects/gameplay_keep/gameplay_keep.h"
 #include "soh/OotmmSpinUpgrade.h"
+#include "soh/OotmmExtraSwords.h"
 
 #define FLAGS 0
 
@@ -103,11 +104,11 @@ void EnMThunder_Init(Actor* thisx, PlayState* play2) {
             player->unk_858 = 1.0f;
             this->collider.info.toucher.dmgFlags = D_80AA0458[this->unk_1C7];
             this->unk_1C6 = 0;
-            this->unk_1C9 = ((this->unk_1C7 == 1) ? 4 : 8);
+            this->unk_1C9 = ((this->unk_1C7 == 1) ? OotmmExtraSwords_KokiriSpinDamage(true) : 8);
         } else {
             this->collider.info.toucher.dmgFlags = D_80AA044C[this->unk_1C7];
             this->unk_1C6 = 1;
-            this->unk_1C9 = ((this->unk_1C7 == 1) ? 2 : 4);
+            this->unk_1C9 = ((this->unk_1C7 == 1) ? OotmmExtraSwords_KokiriSpinDamage(false) : 4);
         }
         func_80A9EFE0(this, func_80A9F9B4);
         this->unk_1C4 = 8;
@@ -208,14 +209,14 @@ void func_80A9F408(EnMThunder* this, PlayState* play) {
             if (spinLevel < 0 ? (player->unk_858 < 0.85f) : (spinLevel == 0)) {
                 this->collider.info.toucher.dmgFlags = D_80AA044C[this->unk_1C7];
                 this->unk_1C6 = 1;
-                this->unk_1C9 = ((this->unk_1C7 == 1) ? 2 : 4);
+                this->unk_1C9 = ((this->unk_1C7 == 1) ? OotmmExtraSwords_KokiriSpinDamage(false) : 4);
             } else {
                 if (spinLevel > 0) {
                     player->unk_858 = 1.0f;
                 }
                 this->collider.info.toucher.dmgFlags = D_80AA0458[this->unk_1C7];
                 this->unk_1C6 = 0;
-                this->unk_1C9 = ((this->unk_1C7 == 1) ? 4 : 8);
+                this->unk_1C9 = ((this->unk_1C7 == 1) ? OotmmExtraSwords_KokiriSpinDamage(true) : 8);
             }
 
             func_80A9EFE0(this, func_80A9F9B4);

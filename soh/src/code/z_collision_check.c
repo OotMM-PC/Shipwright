@@ -2,6 +2,7 @@
 #include "vt.h"
 #include "overlays/effects/ovl_Effect_Ss_HitMark/z_eff_ss_hitmark.h"
 #include "soh/Enhancements/game-interactor/GameInteractor.h"
+#include "soh/OotmmExtraSwords.h"
 #include <assert.h>
 
 typedef s32 (*ColChkResetFunc)(PlayState*, Collider*);
@@ -3649,6 +3650,8 @@ u8 CollisionCheck_GetSwordDamage(s32 dmgFlags, PlayState* play) {
     } else if (dmgFlags & 0x04000000) {
         damage = 8;
     }
+
+    damage = OotmmExtraSwords_SwordDamage(dmgFlags, damage);
 
     if (CVarGetInteger(CVAR_ENHANCEMENT("IvanCoopModeEnabled"), 0)) {
         damage *= GET_PLAYER(play)->ivanDamageMultiplier;

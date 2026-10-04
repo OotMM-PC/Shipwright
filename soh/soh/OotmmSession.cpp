@@ -15,9 +15,12 @@
 #include "OotmmItemProbe.h"
 #include "OotmmScales.h"
 #include "OotmmAgony.h"
+#include "OotmmExtraSwords.h"
 #include "OotmmRegionState.h"
 #include "OotmmSpecialConds.h"
 #include "OotmmBrokenActors.h"
+#include "OotmmAgeless.h"
+#include "OotmmMasterSword.h"
 #include "OotmmSunlightArrows.h"
 #include "OotmmPresence.h"
 #include "OotmmXflags.h"
@@ -483,10 +486,7 @@ void ApplyEnhancements() {
     CVarSetInteger(CVAR_ENHANCEMENT("TimeSavers.SkipMiscInteractions"), 1);
     CVarSetInteger(CVAR_ENHANCEMENT("TimeSavers.SkipTowerEscape"), 1);
 
-    const std::string ageChange = sGameState.GetStringSetting("ageChange", "none");
-    CVarSetInteger(CVAR_ENHANCEMENT("TimeTravel"),
-                   ageChange == "oot" ? TIME_TRAVEL_OOT_MS
-                                      : ageChange == "always" ? TIME_TRAVEL_ANY_MS : TIME_TRAVEL_DISABLED);
+    CVarSetInteger(CVAR_ENHANCEMENT("TimeTravel"), TIME_TRAVEL_DISABLED);
     CVarSetInteger(CVAR_CHEAT("HookshotEverything"),
                    sGameState.GetStringSetting("hookshotAnywhereOot", "off") != "off" ? 1 : 0);
     CVarSetInteger(CVAR_CHEAT("ClimbEverything"),
@@ -914,6 +914,7 @@ void InitializeNewSave() {
     gSaveContext.cutsceneIndex = 0;
     gSaveContext.savedSceneNum = -1;
     ApplySaveFlags();
+    OotmmMasterSword_InitializeNewSave();
     OotmmRegionState_InitializeNewSave();
     ApplySeedSpawn();
     ApplyBootEntrance();
@@ -1025,12 +1026,15 @@ void OotmmSession_Init() {
         OotmmCustomItems_Init();
         OotmmScales_Init();
         OotmmAgony_Init();
+        OotmmExtraSwords_Init();
         OotmmPresence_Init();
         OotmmSpecialConds_Init();
         OotmmRegionState_Init();
         OotmmSunlightArrows_Init();
         OotmmBrokenActors_Init();
         OotmmDeathLink_Init();
+        OotmmAgeless_Init();
+        OotmmMasterSword_Init();
         GameInteractor::Instance->RegisterGameHook<GameInteractor::OnLoadGame>(
             [](int32_t fileNum) {
                 RecordActiveSaveFile(fileNum);

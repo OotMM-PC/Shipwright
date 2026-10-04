@@ -21,6 +21,7 @@ uint16_t OotmmSongs_EffectActorParams(void);
 
 /// Starts the song's effect once its textbox is done; owns msgCtx.ocarinaMode from here on.
 void OotmmSongs_Begin(PlayState* play);
+int32_t OotmmSongs_OfferAgeChange(PlayState* play);
 void OotmmSongs_Update(PlayState* play, Player* player);
 void OotmmSongs_DrawMenu(PlayState* play);
 

@@ -7,7 +7,10 @@
 #include "overlays/actors/ovl_Demo_Effect/z_demo_effect.h"
 
 #include "soh/Enhancements/game-interactor/GameInteractor.h"
+#include "soh/OotmmAgeless.h"
+#include "soh/OotmmChildGauntlets.h"
 #include "soh/OotmmCustomItemsPlayer.h"
+#include "soh/OotmmExtraSwords.h"
 #include "soh/OotmmPresence.h"
 #include "soh/Enhancements/game-interactor/GameInteractor_Hooks.h"
 #include "soh/ResourceManagerHelpers.h"
@@ -553,10 +556,10 @@ void Player_SetModelsForHoldingShield(Player* this) {
              !Player_HoldsTwoHandedWeapon(this)) &&
             !Player_IsChildWithHylianShield(this)) {
             this->rightHandType = PLAYER_MODELTYPE_RH_SHIELD;
-            if (LINK_IS_CHILD && (CVarGetInteger(CVAR_ENHANCEMENT("EquipmentAlwaysVisible"), 0)) &&
+            if (LINK_IS_CHILD && (OotmmAgeless_EquipmentVisible()) &&
                 (this->currentShield == PLAYER_SHIELD_MIRROR)) {
                 this->rightHandDLists = &sPlayerDListGroups[PLAYER_MODELTYPE_RH_SHIELD][0];
-            } else if (LINK_IS_ADULT && (CVarGetInteger(CVAR_ENHANCEMENT("EquipmentAlwaysVisible"), 0)) &&
+            } else if (LINK_IS_ADULT && (OotmmAgeless_EquipmentVisible()) &&
                        (this->currentShield == PLAYER_SHIELD_DEKU)) {
                 this->rightHandDLists = &sPlayerDListGroups[PLAYER_MODELTYPE_RH_SHIELD][1];
             } else {
@@ -568,10 +571,10 @@ void Player_SetModelsForHoldingShield(Player* this) {
                 this->sheathType = PLAYER_MODELTYPE_SHEATH_17;
             }
             this->sheathDLists = &sPlayerDListGroups[this->sheathType][gSaveContext.linkAge];
-            if ((CVarGetInteger(CVAR_ENHANCEMENT("EquipmentAlwaysVisible"), 0)) && LINK_IS_CHILD &&
+            if ((OotmmAgeless_EquipmentVisible()) && LINK_IS_CHILD &&
                 gSaveContext.equips.buttonItems[0] != ITEM_SWORD_KOKIRI) {
                 this->sheathDLists = &sPlayerDListGroups[this->sheathType][0];
-            } else if ((CVarGetInteger(CVAR_ENHANCEMENT("EquipmentAlwaysVisible"), 0)) && LINK_IS_ADULT &&
+            } else if ((OotmmAgeless_EquipmentVisible()) && LINK_IS_ADULT &&
                        gSaveContext.equips.buttonItems[0] == ITEM_SWORD_KOKIRI) {
                 this->sheathDLists = &sPlayerDListGroups[this->sheathType][1];
             }
@@ -586,7 +589,7 @@ void Player_SetModels(Player* this, s32 modelGroup) {
     this->leftHandType = gPlayerModelTypes[modelGroup][PLAYER_MODELGROUPENTRY_LEFT_HAND];
     this->leftHandDLists = &sPlayerDListGroups[this->leftHandType][gSaveContext.linkAge];
 
-    if (CVarGetInteger(CVAR_ENHANCEMENT("EquipmentAlwaysVisible"), 0)) {
+    if (OotmmAgeless_EquipmentVisible()) {
         if (LINK_IS_CHILD &&
             (this->leftHandType == PLAYER_MODELTYPE_LH_HAMMER ||
              ((this->leftHandType == PLAYER_MODELTYPE_LH_SWORD || this->leftHandType == PLAYER_MODELTYPE_LH_BGS) &&
@@ -608,19 +611,20 @@ void Player_SetModels(Player* this, s32 modelGroup) {
     this->rightHandType = gPlayerModelTypes[modelGroup][PLAYER_MODELGROUPENTRY_RIGHT_HAND];
     this->rightHandDLists = &sPlayerDListGroups[this->rightHandType][gSaveContext.linkAge];
 
-    if (CVarGetInteger(CVAR_ENHANCEMENT("EquipmentAlwaysVisible"), 0)) {
+    if (OotmmAgeless_EquipmentVisible()) {
         if (LINK_IS_CHILD &&
             (this->rightHandType == PLAYER_MODELTYPE_RH_HOOKSHOT ||
              (this->rightHandType == PLAYER_MODELTYPE_RH_SHIELD && this->currentShield == PLAYER_SHIELD_MIRROR))) {
             this->rightHandDLists = &sPlayerDListGroups[this->rightHandType][0];
         }
         if (LINK_IS_ADULT &&
-            (this->rightHandType == PLAYER_MODELTYPE_RH_SHIELD && this->currentShield == PLAYER_SHIELD_DEKU)) {
+            ((this->rightHandType == PLAYER_MODELTYPE_RH_SHIELD && this->currentShield == PLAYER_SHIELD_DEKU) ||
+             this->rightHandType == PLAYER_MODELTYPE_RH_OCARINA)) {
             this->rightHandDLists = &sPlayerDListGroups[this->rightHandType][1];
         }
     }
     if ((CVarGetInteger(CVAR_ENHANCEMENT("BowSlingshotAmmoFix"), 0) ||
-         CVarGetInteger(CVAR_ENHANCEMENT("EquipmentAlwaysVisible"), 0)) &&
+         OotmmAgeless_EquipmentVisible()) &&
         this->rightHandType == 11) { // If holding Bow/Slingshot
         this->rightHandDLists = &sPlayerDListGroups[this->rightHandType][Player_HoldsSlingshot(this)];
     }
@@ -629,7 +633,7 @@ void Player_SetModels(Player* this, s32 modelGroup) {
     this->sheathType = gPlayerModelTypes[modelGroup][PLAYER_MODELGROUPENTRY_SHEATH];
     this->sheathDLists = &sPlayerDListGroups[this->sheathType][gSaveContext.linkAge];
 
-    if (CVarGetInteger(CVAR_ENHANCEMENT("EquipmentAlwaysVisible"), 0)) {
+    if (OotmmAgeless_EquipmentVisible()) {
         if (LINK_IS_CHILD && (this->currentShield == PLAYER_SHIELD_HYLIAN &&
                                   ((gSaveContext.equips.buttonItems[0] == ITEM_SWORD_MASTER) ||
                                    (gSaveContext.equips.buttonItems[0] == ITEM_SWORD_BGS)) ||
@@ -786,7 +790,7 @@ s32 Player_GetStrength(void) {
         return PLAYER_STR_NONE;
     }
 
-    if (CVarGetInteger(CVAR_CHEAT("TimelessEquipment"), 0) || LINK_IS_ADULT) {
+    if (CVarGetInteger(CVAR_CHEAT("TimelessEquipment"), 0) || LINK_IS_ADULT || OotmmAgeless_Strength()) {
         return strengthUpgrade;
     } else if (strengthUpgrade != 0) {
         return PLAYER_STR_BRACELET;
@@ -1154,6 +1158,18 @@ void Player_DrawImpl(PlayState* play, void** skeleton, Vec3s* jointTable, s32 dL
             if (Player_GetStrength() > PLAYER_STR_NONE) {
                 gSPDisplayList(POLY_OPA_DISP++, gLinkChildGoronBraceletDL);
             }
+            if (OotmmSession_IsActive() && boots != 0) {
+                Gfx** bootDLists = sBootDListGroups[boots - 1];
+
+                gSPDisplayList(POLY_OPA_DISP++, bootDLists[0]);
+                gSPDisplayList(POLY_OPA_DISP++, bootDLists[1]);
+            }
+            if (OotmmAgeless_Strength() && CUR_UPG_VALUE(UPG_STRENGTH) >= 2) {
+                gDPPipeSync(POLY_OPA_DISP++);
+                color = &sGauntletColors[CUR_UPG_VALUE(UPG_STRENGTH) >= 3 ? 1 : 0];
+                gDPSetEnvColor(POLY_OPA_DISP++, color->r, color->g, color->b, 0);
+                OotmmChildGauntlets_Draw(play);
+            }
         }
     }
 
@@ -1271,7 +1287,7 @@ s32 Player_OverrideLimbDrawGameplayCommon(PlayState* play, s32 limbIndex, Gfx** 
                                           void* thisx) {
     Player* this = (Player*)thisx;
 
-    if (CVarGetInteger(CVAR_ENHANCEMENT("EquipmentAlwaysVisible"), 0) &&
+    if (OotmmAgeless_EquipmentVisible() &&
         CVarGetInteger(CVAR_ENHANCEMENT("ScaleAdultEquipmentAsChild"), 0) && LINK_IS_CHILD) {
         if (limbIndex == PLAYER_LIMB_L_HAND) {
             if ((gSaveContext.equips.buttonItems[0] != ITEM_SWORD_KOKIRI &&
@@ -1411,6 +1427,14 @@ s32 Player_OverrideLimbDrawGameplayDefault(PlayState* play, s32 limbIndex, Gfx**
                     play, ResourceMgr_LoadGfxByName(gPlayerLeftHandClosedDLs[gSaveContext.linkAge]));
             } else {
                 *dList = ResourceMgr_LoadGfxByName(dLists[sDListsLodOffset]);
+                if ((this == GET_PLAYER(play)) &&
+                    ((sLeftHandType == PLAYER_MODELTYPE_LH_SWORD) || (sLeftHandType == PLAYER_MODELTYPE_LH_SWORD_2))) {
+                    Gfx* upgraded = OotmmExtraSwords_Hand(
+                        play, ResourceMgr_LoadGfxByName(gPlayerLeftHandClosedDLs[gSaveContext.linkAge]));
+                    if (upgraded != NULL) {
+                        *dList = upgraded;
+                    }
+                }
             }
 
             if (this == GET_PLAYER(play)) {
@@ -1443,8 +1467,8 @@ s32 Player_OverrideLimbDrawGameplayDefault(PlayState* play, s32 limbIndex, Gfx**
                     (gSaveContext.equips.buttonItems[0] != ITEM_SWORD_KOKIRI)) {
                     dLists += PLAYER_SHIELD_MAX * 4;
                 }
-            } else if (!CVarGetInteger(CVAR_ENHANCEMENT("EquipmentAlwaysVisible"), 0) ||
-                       (CVarGetInteger(CVAR_ENHANCEMENT("EquipmentAlwaysVisible"), 0) &&
+            } else if (!OotmmAgeless_EquipmentVisible() ||
+                       (OotmmAgeless_EquipmentVisible() &&
                         ((gSaveContext.equips.buttonItems[0] != ITEM_SWORD_MASTER &&
                           gSaveContext.equips.buttonItems[0] != ITEM_SWORD_BGS) &&
                          this->currentShield == PLAYER_SHIELD_DEKU))) {
@@ -1460,6 +1484,17 @@ s32 Player_OverrideLimbDrawGameplayDefault(PlayState* play, s32 limbIndex, Gfx**
                 *dList = ResourceMgr_LoadGfxByName(dLists[sDListsLodOffset]);
             } else {
                 *dList = NULL;
+            }
+
+            Gfx* upgradedSheath =
+                (this == GET_PLAYER(play))
+                    ? OotmmExtraSwords_Sheath(play, this->currentShield,
+                                              this->rightHandType != PLAYER_MODELTYPE_RH_SHIELD,
+                                              (sLeftHandType == PLAYER_MODELTYPE_LH_SWORD) ||
+                                                  (sLeftHandType == PLAYER_MODELTYPE_LH_SWORD_2))
+                    : NULL;
+            if (upgradedSheath != NULL) {
+                *dList = upgradedSheath;
             }
 
             if (this == GET_PLAYER(play)) {
@@ -1500,7 +1535,7 @@ s32 Player_OverrideLimbDrawGameplayFirstPerson(PlayState* play, s32 limbIndex, G
         } else if (limbIndex == PLAYER_LIMB_L_HAND) {
             s32 handOutDlIndex = gSaveContext.linkAge;
             if ((CVarGetInteger(CVAR_ENHANCEMENT("BowSlingshotAmmoFix"), 0) ||
-                 CVarGetInteger(CVAR_ENHANCEMENT("EquipmentAlwaysVisible"), 0)) &&
+                 OotmmAgeless_EquipmentVisible()) &&
                 LINK_IS_ADULT && Player_HoldsSlingshot(this)) {
                 handOutDlIndex = 1;
             }
@@ -1508,11 +1543,14 @@ s32 Player_OverrideLimbDrawGameplayFirstPerson(PlayState* play, s32 limbIndex, G
         } else if (limbIndex == PLAYER_LIMB_R_SHOULDER) {
             *dList = sFirstPersonRightShoulderDLs[gSaveContext.linkAge];
         } else if (limbIndex == PLAYER_LIMB_R_FOREARM) {
-            *dList = sFirstPersonForearmDLs[gSaveContext.linkAge];
+            if (!(LINK_IS_CHILD && OotmmAgeless_EquipmentVisible() &&
+                  (Player_HoldsBow(this) || Player_HoldsHookshot(this)))) {
+                *dList = sFirstPersonForearmDLs[gSaveContext.linkAge];
+            }
         } else if (limbIndex == PLAYER_LIMB_R_HAND) {
             s32 firstPersonWeaponIndex = gSaveContext.linkAge;
             if (CVarGetInteger(CVAR_ENHANCEMENT("BowSlingshotAmmoFix"), 0) ||
-                CVarGetInteger(CVAR_ENHANCEMENT("EquipmentAlwaysVisible"), 0)) {
+                OotmmAgeless_EquipmentVisible()) {
                 if (Player_HoldsBow(this)) {
                     firstPersonWeaponIndex = 0;
                 } else if (Player_HoldsSlingshot(this)) {
@@ -1801,6 +1839,9 @@ void Player_PostLimbDrawGameplay(PlayState* play, s32 limbIndex, Gfx** dList, Ve
                 D_80126080.x = 1500.0f;
             } else {
                 D_80126080.x = sMeleeWeaponLengths[Player_GetMeleeWeaponHeld(this)];
+                if (Player_GetMeleeWeaponHeld(this) == PLAYER_IA_SWORD_KOKIRI - PLAYER_IA_FISHING_POLE) {
+                    D_80126080.x = OotmmExtraSwords_KokiriLength(D_80126080.x);
+                }
                 EffectBlure_ChangeType(Effect_GetByIndex(this->meleeWeaponEffectIndex),
                                        sSwordTypes[Player_GetMeleeWeaponHeld(this)]);
             }
@@ -1853,7 +1894,7 @@ void Player_PostLimbDrawGameplay(PlayState* play, s32 limbIndex, Gfx** dList, Ve
                    (this->rightHandType == PLAYER_MODELTYPE_RH_BOW_SLINGSHOT_2)) {
             s32 stringModelToUse = gSaveContext.linkAge;
             if (CVarGetInteger(CVAR_ENHANCEMENT("BowSlingshotAmmoFix"), 0) ||
-                CVarGetInteger(CVAR_ENHANCEMENT("EquipmentAlwaysVisible"), 0)) {
+                OotmmAgeless_EquipmentVisible()) {
                 stringModelToUse = Player_HoldsSlingshot(this);
             }
             BowStringData* stringData = &sBowStringData[stringModelToUse];
@@ -2044,6 +2085,20 @@ s32 Player_OverrideLimbDrawPause(PlayState* play, s32 limbIndex, Gfx** dList, Ve
 
     dLists = &sPlayerDListGroups[type][gSaveContext.linkAge];
     *dList = dLists[dListOffset];
+
+    if (playerSwordAndShield[0] == PLAYER_SWORD_KOKIRI) {
+        Gfx* upgraded = NULL;
+        if (limbIndex == PLAYER_LIMB_L_HAND && type == PLAYER_MODELTYPE_LH_SWORD) {
+            upgraded =
+                OotmmExtraSwords_Hand(play, ResourceMgr_LoadGfxByName(gPlayerLeftHandClosedDLs[gSaveContext.linkAge]));
+        } else if (limbIndex == PLAYER_LIMB_SHEATH) {
+            upgraded = OotmmExtraSwords_Sheath(play, playerSwordAndShield[1],
+                                               playerSwordAndShield[1] >= PLAYER_SHIELD_HYLIAN, true);
+        }
+        if (upgraded != NULL) {
+            *dList = upgraded;
+        }
+    }
 
     return 0;
 }
