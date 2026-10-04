@@ -1177,7 +1177,47 @@ bool DrawSilverRupee(PlayState* play) {
     return true;
 }
 
+void DrawTintedToken(PlayState* play, const uint8_t* skull, const uint8_t* flame) {
+    const int32_t frames = static_cast<int32_t>(play->state.frames);
+    GraphicsContext* gfxCtx = play->state.gfxCtx;
+
+    Gfx_SetupDL_25Opa(gfxCtx);
+    gSPMatrix(gfxCtx->polyOpa.p++, Matrix_NewMtx(gfxCtx, (char*)__FILE__, __LINE__),
+              G_MTX_NOPUSH | G_MTX_LOAD);
+    if (skull != nullptr) {
+        gDPSetGrayscaleColor(gfxCtx->polyOpa.p++, skull[0], skull[1], skull[2], 255);
+        gSPGrayscale(gfxCtx->polyOpa.p++, true);
+    }
+    gSPDisplayList(gfxCtx->polyOpa.p++, (Gfx*)gGiSkulltulaTokenDL);
+    if (skull != nullptr) {
+        gSPGrayscale(gfxCtx->polyOpa.p++, false);
+    }
+
+    Gfx_SetupDL_25Xlu(gfxCtx);
+    gSPSegment(gfxCtx->polyXlu.p++, 0x08,
+               (uintptr_t)Gfx_TwoTexScrollEx(gfxCtx, 0, 0, -(frames * 5), 32, 32, 1, 0, 0, 32, 64, 0,
+                                             -5, 0, 0));
+    gSPMatrix(gfxCtx->polyXlu.p++, Matrix_NewMtx(gfxCtx, (char*)__FILE__, __LINE__),
+              G_MTX_NOPUSH | G_MTX_LOAD);
+    gDPSetGrayscaleColor(gfxCtx->polyXlu.p++, flame[0], flame[1], flame[2], 255);
+    gSPGrayscale(gfxCtx->polyXlu.p++, true);
+    gSPDisplayList(gfxCtx->polyXlu.p++, (Gfx*)gGiSkulltulaTokenFlameDL);
+    gSPGrayscale(gfxCtx->polyXlu.p++, false);
+    if (Gfx* overlay = LoadOptionalGfx("__OTR__objects/object_gi_sutaru/gGiSkulltulaTokenSkullDL")) {
+        gDPPipeSync(gfxCtx->polyXlu.p++);
+        if (skull != nullptr) {
+            gDPSetGrayscaleColor(gfxCtx->polyXlu.p++, skull[0], skull[1], skull[2], 255);
+            gSPGrayscale(gfxCtx->polyXlu.p++, true);
+        }
+        gSPDisplayList(gfxCtx->polyXlu.p++, overlay);
+        if (skull != nullptr) {
+            gSPGrayscale(gfxCtx->polyXlu.p++, false);
+        }
+    }
+}
+
 bool DrawSoul(PlayState* play, std::string_view id) {
+    constexpr uint8_t kSkull[] = { 0xd5, 0xd5, 0xd5 };
     constexpr uint8_t kEnemy[] = { 0xff, 0x00, 0x00 };
     constexpr uint8_t kBoss[] = { 0x88, 0x00, 0xff };
     constexpr uint8_t kNpc[] = { 0x00, 0xff, 0x00 };
@@ -1188,34 +1228,7 @@ bool DrawSoul(PlayState* play, std::string_view id) {
                           : id.find("_NPC_") != std::string_view::npos  ? kNpc
                           : id.find("_ANIMAL_") != std::string_view::npos ? kAnimal
                                                                          : kMisc;
-    const int32_t frames = static_cast<int32_t>(play->state.frames);
-    GraphicsContext* gfxCtx = play->state.gfxCtx;
-
-    Gfx_SetupDL_25Opa(gfxCtx);
-    gSPMatrix(gfxCtx->polyOpa.p++, Matrix_NewMtx(gfxCtx, (char*)__FILE__, __LINE__),
-              G_MTX_NOPUSH | G_MTX_LOAD);
-    gDPSetGrayscaleColor(gfxCtx->polyOpa.p++, 0xd5, 0xd5, 0xd5, 255);
-    gSPGrayscale(gfxCtx->polyOpa.p++, true);
-    gSPDisplayList(gfxCtx->polyOpa.p++, (Gfx*)gGiSkulltulaTokenDL);
-    gSPGrayscale(gfxCtx->polyOpa.p++, false);
-
-    Gfx_SetupDL_25Xlu(gfxCtx);
-    gSPSegment(gfxCtx->polyXlu.p++, 0x08,
-               (uintptr_t)Gfx_TwoTexScrollEx(gfxCtx, 0, 0, -(frames * 5), 32, 32, 1, 0, 0, 32, 64, 0,
-                                             -5, 0, 0));
-    gSPMatrix(gfxCtx->polyXlu.p++, Matrix_NewMtx(gfxCtx, (char*)__FILE__, __LINE__),
-              G_MTX_NOPUSH | G_MTX_LOAD);
-    gDPSetGrayscaleColor(gfxCtx->polyXlu.p++, tint[0], tint[1], tint[2], 255);
-    gSPGrayscale(gfxCtx->polyXlu.p++, true);
-    gSPDisplayList(gfxCtx->polyXlu.p++, (Gfx*)gGiSkulltulaTokenFlameDL);
-    gSPGrayscale(gfxCtx->polyXlu.p++, false);
-    if (Gfx* skull = LoadOptionalGfx("__OTR__objects/object_gi_sutaru/gGiSkulltulaTokenSkullDL")) {
-        gDPPipeSync(gfxCtx->polyXlu.p++);
-        gDPSetGrayscaleColor(gfxCtx->polyXlu.p++, 0xd5, 0xd5, 0xd5, 255);
-        gSPGrayscale(gfxCtx->polyXlu.p++, true);
-        gSPDisplayList(gfxCtx->polyXlu.p++, skull);
-        gSPGrayscale(gfxCtx->polyXlu.p++, false);
-    }
+    DrawTintedToken(play, kSkull, tint);
     return true;
 }
 
@@ -1232,6 +1245,28 @@ void HueToRgb(float hue, uint8_t& r, uint8_t& g, uint8_t& b) {
         case 4: r = ramp; g = 0; b = 255; return;
         default: r = 255; g = 0; b = fade; return;
     }
+}
+
+bool DrawSpecialToken(PlayState* play, std::string_view id) {
+    constexpr uint8_t kSwamp[] = { 0x82, 0xff, 0x80 };
+    constexpr uint8_t kOcean[] = { 0x7d, 0x83, 0xff };
+    if (id.ends_with("_GS_TOKEN_SWAMP")) {
+        DrawTintedToken(play, nullptr, kSwamp);
+        return true;
+    }
+    if (id.ends_with("_GS_TOKEN_OCEAN")) {
+        DrawTintedToken(play, nullptr, kOcean);
+        return true;
+    }
+    if (!id.ends_with("_PLATINUM_TOKEN")) {
+        return false;
+    }
+    uint8_t skull[3];
+    uint8_t flame[3];
+    HueToRgb(static_cast<float>(play->state.frames % 60) / 60.0f, skull[0], skull[1], skull[2]);
+    HueToRgb(static_cast<float>(play->state.frames % 45) / 45.0f, flame[0], flame[1], flame[2]);
+    DrawTintedToken(play, skull, flame);
+    return true;
 }
 
 bool DrawMagicalRupee(PlayState* play) {
@@ -1396,7 +1431,7 @@ bool OotmmItemModel_Draw(PlayState* play, const Ship::OotmmItemDefinition& item)
         case Ship::OotmmItemModelKind::Soul:
             return DrawSoul(play, item.Id);
         case Ship::OotmmItemModelKind::PlatinumToken:
-            return DrawNative(play, GID_SKULL_TOKEN);
+            return DrawSpecialToken(play, item.Id);
         case Ship::OotmmItemModelKind::Key:
             return DrawTintedKey(play, item.Id);
         case Ship::OotmmItemModelKind::Song:
@@ -1482,6 +1517,9 @@ bool OotmmItemModel_Draw(PlayState* play, const Ship::OotmmItemDefinition& item)
 
 bool OotmmItemModel_DrawById(PlayState* play, const std::string& itemId, const std::string& itemName) {
     if (Ship::OotmmItemCatalog::IsNothing(itemId)) {
+        return true;
+    }
+    if (DrawSpecialToken(play, itemId)) {
         return true;
     }
     const auto item = Ship::OotmmItemCatalog::DescribeModel(itemId, itemName);

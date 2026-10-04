@@ -2633,6 +2633,7 @@ s32 Health_ChangeBy(PlayState* play, s16 healthChange) {
 }
 
 void Rupees_ChangeBy(s16 rupeeChange) {
+    rupeeChange = OotmmWallet_ScaleRupees(rupeeChange);
     if (gPlayState == NULL) {
         gSaveContext.rupees += rupeeChange;
     } else {
@@ -4776,7 +4777,6 @@ void Interface_Draw(PlayState* play) {
     static s16 D_80125B1C[][3] = {
         { 0, 150, 0 }, { 100, 255, 0 }, { 255, 255, 255 }, { 0, 0, 0 }, { 255, 255, 255 },
     };
-    static s16 rupeeDigitsFirst[] = { 1, 0, 0, 0 };
     static s16 rupeeDigitsCount[] = { 2, 3, 3, 3 };
 
     // courtesy of https://github.com/TestRunnerSRL/OoT-Randomizer/blob/Dev/ASM/c/hud_colors.c
@@ -4855,9 +4855,9 @@ void Interface_Draw(PlayState* play) {
         if (fullUi) {
             s16 PosX_RC;
             s16 PosY_RC;
-            if (GameInteractor_Should(VB_RENDER_RUPEE_COUNTER, true)) {
+            if (GameInteractor_Should(VB_RENDER_RUPEE_COUNTER, OotmmWallet_HasWallet())) {
                 // Rupee Icon
-                if (CVarGetInteger(CVAR_ENHANCEMENT("DynamicWalletIcon"), 0)) {
+                if (CVarGetInteger(CVAR_ENHANCEMENT("DynamicWalletIcon"), 0) || OotmmSession_IsActive()) {
                     switch (CUR_UPG_VALUE(UPG_WALLET)) {
                         case 0:
                             if (CVarGetInteger(CVAR_COSMETIC("Consumable.GreenRupee.Changed"), 0)) {
@@ -4891,6 +4891,9 @@ void Interface_Draw(PlayState* play) {
                                 rColor = rupeeWalletColors[3];
                             }
                             break;
+                    }
+                    if (OotmmWallet_Bottomless()) {
+                        rColor = (Color_RGB8){ 0xE0, 0xE0, 0xE0 };
                     }
                 } else {
                     if (CVarGetInteger(CVAR_COSMETIC("Consumable.GreenRupee.Changed"), rupeeWalletColors)) {
@@ -5039,7 +5042,7 @@ void Interface_Draw(PlayState* play) {
                 }
             }
 
-            if (GameInteractor_Should(VB_RENDER_RUPEE_COUNTER, true)) {
+            if (GameInteractor_Should(VB_RENDER_RUPEE_COUNTER, OotmmWallet_HasWallet())) {
                 // Rupee Counter
                 gDPPipeSync(OVERLAY_DISP++);
 
@@ -5054,29 +5057,16 @@ void Interface_Draw(PlayState* play) {
                 gDPSetCombineLERP(OVERLAY_DISP++, 0, 0, 0, PRIMITIVE, TEXEL0, 0, PRIMITIVE, 0, 0, 0, 0, PRIMITIVE,
                                   TEXEL0, 0, PRIMITIVE, 0);
 
-                interfaceCtx->counterDigits[0] = interfaceCtx->counterDigits[1] = 0;
-                interfaceCtx->counterDigits[2] = gSaveContext.rupees;
+                s16 rupeeValue = CLAMP(gSaveContext.rupees, 0, 9999);
+                s16 rupeeDigits[4] = { rupeeValue / 1000, (rupeeValue / 100) % 10, (rupeeValue / 10) % 10,
+                                       rupeeValue % 10 };
 
-                if ((interfaceCtx->counterDigits[2] > 9999) || (interfaceCtx->counterDigits[2] < 0)) {
-                    interfaceCtx->counterDigits[2] &= 0xDDD;
-                }
-
-                while (interfaceCtx->counterDigits[2] >= 100) {
-                    interfaceCtx->counterDigits[0]++;
-                    interfaceCtx->counterDigits[2] -= 100;
-                }
-
-                while (interfaceCtx->counterDigits[2] >= 10) {
-                    interfaceCtx->counterDigits[1]++;
-                    interfaceCtx->counterDigits[2] -= 10;
-                }
-
-                svar2 = rupeeDigitsFirst[CUR_UPG_VALUE(UPG_WALLET)];
-                svar5 = rupeeDigitsCount[CUR_UPG_VALUE(UPG_WALLET)];
+                svar5 = OotmmWallet_Bottomless() ? 4 : rupeeDigitsCount[CUR_UPG_VALUE(UPG_WALLET)];
+                svar2 = 4 - svar5;
 
                 for (svar1 = 0, svar3 = 16; svar1 < svar5; svar1++, svar2++, svar3 += 8) {
-                    OVERLAY_DISP = Gfx_TextureI8(OVERLAY_DISP, ((u8*)digitTextures[interfaceCtx->counterDigits[svar2]]),
-                                                 8, 16, PosX_RC + svar3, PosY_RC, 8, 16, 1 << 10, 1 << 10);
+                    OVERLAY_DISP = Gfx_TextureI8(OVERLAY_DISP, ((u8*)digitTextures[rupeeDigits[svar2]]), 8, 16,
+                                                 PosX_RC + svar3, PosY_RC, 8, 16, 1 << 10, 1 << 10);
                 }
             }
         } else {

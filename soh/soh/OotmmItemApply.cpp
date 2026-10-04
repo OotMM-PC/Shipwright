@@ -60,8 +60,8 @@ const std::vector<Ladder> kLadders = {
 };
 
 const std::vector<std::pair<std::string_view, uint8_t>> kAmmoSlots = {
-    { "ARROWS", ITEM_BOW },    { "BOMBS", ITEM_BOMB },   { "BOMBCHU", ITEM_BOMBCHU },
-    { "NUTS", ITEM_NUT },      { "STICKS", ITEM_STICK }, { "SEEDS", ITEM_SLINGSHOT },
+    { "ARROW", ITEM_BOW },    { "BOMBCHU", ITEM_BOMBCHU }, { "BOMB", ITEM_BOMB },
+    { "NUT", ITEM_NUT },      { "STICK", ITEM_STICK },     { "SEED", ITEM_SLINGSHOT },
 };
 
 const std::unordered_map<std::string, uint8_t> kQuestFlags = {
@@ -312,6 +312,18 @@ void ApplyOnce(PlayState* play, const std::string& key, uint8_t item) {
     // gItemSlots only covers inventory items, so SLOT()/INV_CONTENT() read past its end for equipment.
     Item_Give(play, item);
     SPDLOG_INFO("[OoTMM grant] gave {} (item {})", key, static_cast<int>(item));
+}
+
+bool IsConsumable(uint8_t item) {
+    return item == ITEM_STICK || item == ITEM_NUT || item == ITEM_BOMB;
+}
+
+void GiveUnits(PlayState* play, const std::string& itemId, uint8_t item, uint32_t already, uint32_t count) {
+    for (uint32_t unit = already; unit < count && unit - already < 255; unit++) {
+        Item_Give(play, item);
+    }
+    sLedger.SetApplied(itemId, count);
+    SPDLOG_INFO("[OoTMM grant] gave {} x{} (item {})", itemId, count - already, static_cast<int>(item));
 }
 
 bool IsCustomItemBacked(const std::string& itemId) {
@@ -600,6 +612,59 @@ bool RestoreSharedResources() {
     return true;
 }
 
+struct WalletState {
+    bool HasWallet = true;
+    uint8_t Level = 0;
+    bool Bottomless = false;
+    uint32_t Owned = 0;
+};
+
+WalletState sWallet;
+
+WalletState ComputeWallet() {
+    const auto& state = OotmmSession_GetState();
+    const auto& inventory = OotmmIpc_GetInventory();
+    WalletState wallet;
+    wallet.Owned = inventory.Count("OOT_WALLET") + inventory.Count("SHARED_WALLET");
+    uint32_t upgrades = wallet.Owned;
+    if (state.GetBoolSetting("childWallets", false)) {
+        wallet.HasWallet = upgrades > 0;
+        upgrades = upgrades > 0 ? upgrades - 1 : 0;
+    }
+    const bool colossal = state.GetBoolSetting("colossalWallets", false);
+    const uint32_t maxLevel = colossal ? 3 : 2;
+    wallet.Level = static_cast<uint8_t>(std::min(upgrades, maxLevel));
+    wallet.Bottomless = colossal && state.GetBoolSetting("bottomlessWallets", false) && upgrades > maxLevel;
+    return wallet;
+}
+
+void RefreshWallet() {
+    sWallet = ComputeWallet();
+    gUpgradeCapacities[UPG_WALLET][0] = sWallet.HasWallet ? 99 : 0;
+    gUpgradeCapacities[UPG_WALLET][3] = sWallet.Bottomless ? 9999 : 999;
+    if (CUR_UPG_VALUE(UPG_WALLET) != sWallet.Level) {
+        Inventory_ChangeUpgrade(UPG_WALLET, sWallet.Level);
+    }
+    if (gSaveContext.rupees > CUR_CAPACITY(UPG_WALLET)) {
+        gSaveContext.rupees = CUR_CAPACITY(UPG_WALLET);
+    }
+}
+
+void ApplyWallet() {
+    RefreshWallet();
+    const bool fill = OotmmSession_GetState().GetBoolSetting("fillWallets", false);
+    for (uint32_t tier = 0; tier < sWallet.Owned; tier++) {
+        const std::string key = "WALLET_TIER:" + std::to_string(tier);
+        if (sLedger.Has(key)) {
+            continue;
+        }
+        sLedger.SetApplied(key, 1);
+        if (fill) {
+            Rupees_ChangeBy(static_cast<s16>(CUR_CAPACITY(UPG_WALLET)));
+        }
+    }
+}
+
 void ApplyOne(PlayState* play, const std::string& itemId, uint32_t count) {
     if (count == 0 || IsCustomItemBacked(itemId)) {
         return;
@@ -614,6 +679,10 @@ void ApplyOne(PlayState* play, const std::string& itemId, uint32_t count) {
             case Ship::OotmmGrantKind::Upgrade:
             case Ship::OotmmGrantKind::Mask:
             case Ship::OotmmGrantKind::Bottle: {
+                if (op.Slot == "WALLET") {
+                    ApplyWallet();
+                    break;
+                }
                 if (op.Slot == "BOMBCHU_BAG") {
                     gSaveContext.inventory.items[SLOT_BOMBCHU] = ITEM_BOMBCHU;
                     if (count > already) {
@@ -648,6 +717,13 @@ void ApplyOne(PlayState* play, const std::string& itemId, uint32_t count) {
                     const std::string key = itemId + ":" + std::to_string(tier);
                     if (!sLedger.Has(key)) {
                         ApplyOnce(play, key, tiers[tier]);
+                    }
+                    break;
+                }
+                if (const auto found = kNativeItems.find(itemId);
+                    found != kNativeItems.end() && IsConsumable(found->second)) {
+                    if (count > already) {
+                        GiveUnits(play, itemId, found->second, already, count);
                     }
                     break;
                 }
@@ -820,11 +896,17 @@ void ApplyOne(PlayState* play, const std::string& itemId, uint32_t count) {
                 break;
             }
             case Ship::OotmmGrantKind::Token: {
-                if (count > already) {
-                    gSaveContext.inventory.questItems |= gBitFlags[QUEST_SKULL_TOKEN];
-                    gSaveContext.inventory.gsTokens += static_cast<s16>(count - already);
-                    sLedger.SetApplied(itemId, count);
+                if (count <= already) {
+                    break;
                 }
+                if (op.Slot == "PLATINUM_TOKEN") {
+                    gSaveContext.inventory.gsTokens = 100;
+                } else {
+                    gSaveContext.inventory.questItems |= gBitFlags[QUEST_SKULL_TOKEN];
+                    gSaveContext.inventory.gsTokens =
+                        static_cast<s16>(std::min<int>(100, gSaveContext.inventory.gsTokens + (count - already)));
+                }
+                sLedger.SetApplied(itemId, count);
                 break;
             }
             case Ship::OotmmGrantKind::SilverRupee: {
@@ -1028,6 +1110,7 @@ void OotmmItemApply_Reconcile() {
         return;
     }
     sRetryMagicApplication = false;
+    RefreshWallet();
     for (const auto& [itemId, count] : inventory.GetValues()) {
         if (Ship::OotmmItemGrant::SuffixOf(itemId) == "BOMB_BAG" ||
             (Ship::OotmmItemGrant::GameOf(itemId) == Ship::OotmmGrantGame::Shared && !SharedReward(itemId))) {
@@ -1057,6 +1140,29 @@ void OotmmItemApply_Reconcile() {
         }
         sUnhandled.clear();
     }
+}
+
+int16_t OotmmWallet_ScaleRupees(int16_t amount) {
+    if (amount <= 0 || !OotmmSession_IsActive() || !OotmmSession_GetState().GetBoolSetting("rupeeScaling", false)) {
+        return amount;
+    }
+    const int extra = (CUR_UPG_VALUE(UPG_WALLET) == 3 ? 1 : 0) + (sWallet.Bottomless ? 1 : 0);
+    int32_t value = amount;
+    if (extra >= 1) {
+        value *= 2;
+    }
+    if (extra >= 2) {
+        value *= 10;
+    }
+    return static_cast<int16_t>(std::min(value, 9999));
+}
+
+int32_t OotmmWallet_HasWallet(void) {
+    return !OotmmSession_IsActive() || sWallet.HasWallet;
+}
+
+int32_t OotmmWallet_Bottomless(void) {
+    return OotmmSession_IsActive() && sWallet.Bottomless;
 }
 
 uint32_t OotmmItemApply_LedgerGet(const std::string& key) {

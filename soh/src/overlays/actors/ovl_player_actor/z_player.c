@@ -2687,6 +2687,10 @@ s32 func_80834380(PlayState* play, Player* this, s32* itemPtr, s32* typePtr) {
     if (CVarGetInteger(CVAR_ENHANCEMENT("BowSlingshotAmmoFix"), 0)) {
         useBow = this->heldItemAction != PLAYER_IA_SLINGSHOT;
     }
+    if (OotmmSession_IsActive()) {
+        useBow = this->heldItemAction != PLAYER_IA_SLINGSHOT &&
+                 !(LINK_IS_CHILD && play->sceneNum == SCENE_SHOOTING_GALLERY);
+    }
     if (useBow) {
         *itemPtr = ITEM_BOW;
         if (this->stateFlags1 & PLAYER_STATE1_ON_HORSE) {
