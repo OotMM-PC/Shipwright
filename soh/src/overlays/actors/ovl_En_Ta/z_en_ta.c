@@ -916,10 +916,12 @@ void func_80B15FE8(EnTa* this, PlayState* play) {
                         this->unk_2E0 |= 2;
                         EnTa_SetupAction(this, EnTa_GiveItemInLonLonHouse, EnTa_AnimRunToEnd);
                         Rupees_ChangeBy(-30);
-                        GetItemEntry itemEntry = ItemTable_Retrieve(GI_MILK);
-                        gSaveContext.ship.pendingSale = itemEntry.itemId;
-                        gSaveContext.ship.pendingSaleMod = itemEntry.modIndex;
-                        Actor_OfferGetItem(&this->actor, play, GI_MILK, 10000.0f, 50.0f);
+                        if (GameInteractor_Should(VB_GIVE_ITEM_FROM_TALONS_CHICKENS, true, &this->actor)) {
+                            GetItemEntry itemEntry = ItemTable_Retrieve(GI_MILK);
+                            gSaveContext.ship.pendingSale = itemEntry.itemId;
+                            gSaveContext.ship.pendingSaleMod = itemEntry.modIndex;
+                            Actor_OfferGetItem(&this->actor, play, GI_MILK, 10000.0f, 50.0f);
+                        }
                         break;
                 }
                 break;

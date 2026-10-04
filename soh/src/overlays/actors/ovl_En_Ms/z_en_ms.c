@@ -6,6 +6,7 @@
 
 #include "z_en_ms.h"
 #include "objects/object_ms/object_ms.h"
+#include "soh/OotmmSession.h"
 #include "soh/ResourceManagerHelpers.h"
 #include "soh/Enhancements/game-interactor/GameInteractor_Hooks.h"
 
@@ -60,10 +61,14 @@ static InitChainEntry sInitChain[] = {
     ICHAIN_F32(targetArrowOffset, 500, ICHAIN_STOP),
 };
 
+static s16 EnMs_BeanPrice(void) {
+    return OotmmSession_IsActive() ? 60 : sPrices[BEANS_BOUGHT];
+}
+
 void EnMs_SetOfferText(EnMs* this, PlayState* play) {
     this->actor.textId = Text_GetFaceReaction(play, 0x1B);
     if (this->actor.textId == 0) {
-        if (BEANS_BOUGHT >= 10) {
+        if (BEANS_BOUGHT >= (OotmmSession_IsActive() ? 1 : 10)) {
             this->actor.textId = 0x406B;
         } else {
             this->actor.textId = sOfferTextIDs[BEANS_BOUGHT];
@@ -130,7 +135,7 @@ void EnMs_Talk(EnMs* this, PlayState* play) {
         switch (play->msgCtx.choiceIndex) {
             case 0: // yes
                 if (!GameInteractor_Should(VB_BE_ELIGIBLE_FOR_MAGIC_BEANS_PURCHASE,
-                                           (gSaveContext.rupees >= sPrices[BEANS_BOUGHT]), this)) {
+                                           (gSaveContext.rupees >= EnMs_BeanPrice()), this)) {
                     Message_ContinueTextbox(play, 0x4069); // not enough rupees text
                     return;
                 }
@@ -138,6 +143,11 @@ void EnMs_Talk(EnMs* this, PlayState* play) {
                 if (GameInteractor_Should(VB_GIVE_ITEM_FROM_MAGIC_BEAN_SALESMAN, true, this)) {
                     Actor_OfferGetItem(&this->actor, play, GI_BEAN, 90.0f, 10.0f);
                     this->actionFunc = EnMs_Sell;
+                } else {
+                    if (GameInteractor_Should(VB_MAGIC_BEAN_SALESMAN_TAKE_MONEY, true, this)) {
+                        Rupees_ChangeBy(-EnMs_BeanPrice());
+                    }
+                    this->actionFunc = EnMs_TalkAfterPurchase;
                 }
                 return;
             case 1: // no
@@ -151,7 +161,7 @@ void EnMs_Talk(EnMs* this, PlayState* play) {
 void EnMs_Sell(EnMs* this, PlayState* play) {
     if (Actor_HasParent(&this->actor, play)) {
         if (GameInteractor_Should(VB_MAGIC_BEAN_SALESMAN_TAKE_MONEY, true, this)) {
-            Rupees_ChangeBy(-sPrices[BEANS_BOUGHT]);
+            Rupees_ChangeBy(-EnMs_BeanPrice());
         }
         this->actor.parent = NULL;
         this->actionFunc = EnMs_TalkAfterPurchase;

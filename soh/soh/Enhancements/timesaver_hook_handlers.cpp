@@ -3,6 +3,7 @@
 #include "soh/Enhancements/game-interactor/GameInteractor_Hooks.h"
 #include "soh/Enhancements/enhancementTypes.h"
 #include "soh/Enhancements/item-tables/ItemTableManager.h"
+#include "soh/OotmmSession.h"
 #include "soh/ShipInit.hpp"
 
 extern "C" {
@@ -368,10 +369,13 @@ void TimeSaverOnVanillaBehaviorHandler(GIVanillaBehavior id, bool* should, va_li
                         *should = false;
                         break;
                     }
+                    case ACTOR_EN_DNT_NOMAL:
+                    case ACTOR_EN_DNT_DEMO: {
+                        *should = OotmmSession_IsActive();
+                        break;
+                    }
                     case ACTOR_BG_HIDAN_FWBIG:
                     case ACTOR_EN_EX_ITEM:
-                    case ACTOR_EN_DNT_NOMAL:
-                    case ACTOR_EN_DNT_DEMO:
                     case ACTOR_BG_HAKA_ZOU: {
                         *should = false;
                         break;
@@ -1015,7 +1019,8 @@ void TimeSaverOnActorInitHandler(void* actorRef) {
             });
     }
 
-    if (actor->id == ACTOR_EN_DNT_DEMO && CVarGetInteger(CVAR_ENHANCEMENT("TimeSavers.SkipMiscInteractions"), 0)) {
+    if (actor->id == ACTOR_EN_DNT_DEMO && !OotmmSession_IsActive() &&
+        CVarGetInteger(CVAR_ENHANCEMENT("TimeSavers.SkipMiscInteractions"), 0)) {
         EnDntDemo* enDntDemo = static_cast<EnDntDemo*>(actorRef);
         enDntDemo->actionFunc = EnDntDemo_JudgeSkipToReward;
     }
@@ -1177,11 +1182,16 @@ void TimeSaverOnFlagSetHandler(int16_t flagType, int16_t flag) {
             case FLAG_ITEM_GET_INF:
                 switch (flag) {
                     case ITEMGETINF_OBTAINED_STICK_UPGRADE_FROM_STAGE: {
-                        TimeSaverQueueItem(CUR_UPG_VALUE(UPG_STICKS) == 2 ? GI_STICK_UPGRADE_30 : GI_STICK_UPGRADE_20);
+                        if (!OotmmSession_IsActive()) {
+                            TimeSaverQueueItem(CUR_UPG_VALUE(UPG_STICKS) == 2 ? GI_STICK_UPGRADE_30
+                                                                            : GI_STICK_UPGRADE_20);
+                        }
                         break;
                     }
                     case ITEMGETINF_OBTAINED_NUT_UPGRADE_FROM_STAGE: {
-                        TimeSaverQueueItem(CUR_UPG_VALUE(UPG_NUTS) == 2 ? GI_NUT_UPGRADE_40 : GI_NUT_UPGRADE_30);
+                        if (!OotmmSession_IsActive()) {
+                            TimeSaverQueueItem(CUR_UPG_VALUE(UPG_NUTS) == 2 ? GI_NUT_UPGRADE_40 : GI_NUT_UPGRADE_30);
+                        }
                         break;
                     }
                 }

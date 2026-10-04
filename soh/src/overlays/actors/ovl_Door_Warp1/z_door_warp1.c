@@ -1,6 +1,8 @@
 #include "z_door_warp1.h"
 #include "objects/object_warp1/object_warp1.h"
 #include "soh/Enhancements/game-interactor/GameInteractor_Hooks.h"
+#include "soh/OotmmNpcChecks.h"
+#include "soh/OotmmSession.h"
 
 #define FLAGS 0
 
@@ -30,6 +32,29 @@ void DoorWarp1_RutoWarpOut(DoorWarp1* this, PlayState* play);
 void DoorWarp1_AdultWarpIdle(DoorWarp1* this, PlayState* play);
 void func_8099A508(DoorWarp1* this, PlayState* play);
 void DoorWarp1_AdultWarpOut(DoorWarp1* this, PlayState* play);
+
+static s32 DoorWarp1_GetOotmmBossId(PlayState* play) {
+    switch (play->sceneNum) {
+        case SCENE_DEKU_TREE_BOSS:
+            return 0;
+        case SCENE_DODONGOS_CAVERN_BOSS:
+            return 1;
+        case SCENE_JABU_JABU_BOSS:
+            return 2;
+        case SCENE_FOREST_TEMPLE_BOSS:
+            return 3;
+        case SCENE_FIRE_TEMPLE_BOSS:
+            return 4;
+        case SCENE_WATER_TEMPLE_BOSS:
+            return 5;
+        case SCENE_SHADOW_TEMPLE_BOSS:
+            return 6;
+        case SCENE_SPIRIT_TEMPLE_BOSS:
+            return 7;
+        default:
+            return -1;
+    }
+}
 void DoorWarp1_DoNothing(DoorWarp1* this, PlayState* play);
 void DoorWarp1_ChooseInitialAction(DoorWarp1* this, PlayState* play);
 void DoorWarp1_FloatPlayer(DoorWarp1* this, PlayState* play);
@@ -490,7 +515,7 @@ void DoorWarp1_ChildWarpIdle(DoorWarp1* this, PlayState* play) {
 
     Audio_PlayActorSound2(&this->actor, NA_SE_EV_WARP_HOLE - SFX_FLAG);
 
-    if (DoorWarp1_PlayerInRange(this, play)) {
+    if (DoorWarp1_PlayerInRange(this, play) && OotmmNpcChecks_BlueWarpReady(play)) {
         player = GET_PLAYER(play);
 
         Audio_PlaySoundGeneral(NA_SE_EV_LINK_WARP, &player->actor.projectedPos, 4, &gSfxDefaultFreqAndVolScale,
@@ -564,6 +589,7 @@ void DoorWarp1_ChildWarpOut(DoorWarp1* this, PlayState* play) {
         play->transitionTrigger = TRANS_TRIGGER_START;
         play->transitionType = TRANS_TYPE_FADE_WHITE_SLOW;
         gSaveContext.nextTransitionType = TRANS_TYPE_FADE_WHITE;
+        OotmmSession_RedirectBossWarp(DoorWarp1_GetOotmmBossId(play));
     }
 
     Math_StepToF(&this->unk_194, 2.0f, 0.01f);
@@ -580,7 +606,8 @@ void DoorWarp1_ChildWarpOut(DoorWarp1* this, PlayState* play) {
 void DoorWarp1_RutoWarpIdle(DoorWarp1* this, PlayState* play) {
     Audio_PlayActorSound2(&this->actor, NA_SE_EV_WARP_HOLE - SFX_FLAG);
 
-    if (this->rutoWarpState != WARP_BLUE_RUTO_STATE_INITIAL && DoorWarp1_PlayerInRange(this, play)) {
+    if (this->rutoWarpState != WARP_BLUE_RUTO_STATE_INITIAL && DoorWarp1_PlayerInRange(this, play) &&
+        OotmmNpcChecks_BlueWarpReady(play)) {
         this->rutoWarpState = WARP_BLUE_RUTO_STATE_ENTERED;
         Player_SetCsActionWithHaltedActors(play, &this->actor, 10);
         this->unk_1B2 = 1;
@@ -655,6 +682,7 @@ void DoorWarp1_RutoWarpOut(DoorWarp1* this, PlayState* play) {
 
         play->transitionTrigger = TRANS_TRIGGER_START;
         play->transitionType = TRANS_TYPE_FADE_WHITE_SLOW;
+        OotmmSession_RedirectBossWarp(2);
     }
 
     Math_StepToF(&this->unk_194, 2.0f, 0.01f);
@@ -691,7 +719,8 @@ void DoorWarp1_AdultWarpIdle(DoorWarp1* this, PlayState* play) {
 
     Audio_PlayActorSound2(&this->actor, NA_SE_EV_WARP_HOLE - SFX_FLAG);
 
-    if (GameInteractor_Should(VB_BLUE_WARP_CONSIDER_ADULT_IN_RANGE, DoorWarp1_PlayerInRange(this, play), this)) {
+    if (GameInteractor_Should(VB_BLUE_WARP_CONSIDER_ADULT_IN_RANGE, DoorWarp1_PlayerInRange(this, play), this) &&
+        OotmmNpcChecks_BlueWarpReady(play)) {
         player = GET_PLAYER(play);
 
         OnePointCutscene_Init(play, 0x25E8, 999, &this->actor, MAIN_CAM);
@@ -844,6 +873,7 @@ void DoorWarp1_AdultWarpOut(DoorWarp1* this, PlayState* play) {
         play->transitionTrigger = TRANS_TRIGGER_START;
         play->transitionType = TRANS_TYPE_FADE_WHITE;
         gSaveContext.nextTransitionType = TRANS_TYPE_FADE_WHITE_SLOW;
+        OotmmSession_RedirectBossWarp(DoorWarp1_GetOotmmBossId(play));
     }
     if (this->warpTimer >= 141) {
         f32 screenFillAlpha;
@@ -1110,6 +1140,7 @@ void DoorWarp1_Draw(Actor* thisx, PlayState* play) {
             DoorWarp1_DrawPurpleCrystal(this, play);
             break;
     }
+    OotmmNpcChecks_DrawBlueWarpReward(&this->actor, play);
 }
 
 void DoorWarp1_Reset(void) {

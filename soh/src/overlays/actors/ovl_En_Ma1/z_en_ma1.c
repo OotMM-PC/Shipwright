@@ -7,6 +7,7 @@
 #include "z_en_ma1.h"
 #include "objects/object_ma1/object_ma1.h"
 #include "soh/Enhancements/game-interactor/GameInteractor_Hooks.h"
+#include "soh/OotmmSession.h"
 
 #define FLAGS                                                                                  \
     (ACTOR_FLAG_ATTENTION_ENABLED | ACTOR_FLAG_FRIENDLY | ACTOR_FLAG_UPDATE_CULLING_DISABLED | \
@@ -198,17 +199,16 @@ s32 func_80AA08C4(EnMa1* this, PlayState* play) {
     if (!LINK_IS_CHILD) {
         return 0;
     }
-    // Causes Malon to appear in the market if you haven't met her yet.
     if (((play->sceneNum == SCENE_MARKET_NIGHT) || (play->sceneNum == SCENE_MARKET_DAY)) && !malonReturnedFromCastle &&
         !Flags_GetInfTable(INFTABLE_ENTERED_HYRULE_CASTLE)) {
-        return 1;
+        return !OotmmSession_IsActive();
     }
     if ((play->sceneNum == SCENE_HYRULE_CASTLE) && !malonReturnedFromCastle) {
         if (Flags_GetInfTable(INFTABLE_ENTERED_HYRULE_CASTLE)) {
             return 1;
         } else {
             Flags_SetInfTable(INFTABLE_ENTERED_HYRULE_CASTLE);
-            return 0;
+            return OotmmSession_IsActive();
         }
     }
     if ((play->sceneNum == SCENE_LON_LON_BUILDINGS) && IS_NIGHT && malonReturnedFromCastle) {

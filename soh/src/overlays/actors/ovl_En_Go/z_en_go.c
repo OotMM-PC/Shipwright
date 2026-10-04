@@ -1,4 +1,5 @@
 #include "z_en_go.h"
+#include "soh/Enhancements/game-interactor/GameInteractor_Hooks.h"
 #include "overlays/actors/ovl_En_Bom/z_en_bom.h"
 #include "objects/gameplay_keep/gameplay_keep.h"
 #include "objects/object_oF1d_map/object_oF1d_map.h"
@@ -115,13 +116,13 @@ u16 EnGo_GetTextID(PlayState* play, Actor* thisx) {
                 return 0x3053;
             }
         case 0x00:
-            if (CHECK_QUEST_ITEM(QUEST_MEDALLION_FIRE)) {
+            if (GameInteractor_Should(VB_GORONS_CONSIDER_FIRE_TEMPLE_FINISHED, CHECK_QUEST_ITEM(QUEST_MEDALLION_FIRE))) {
                 if (Flags_GetInfTable(INFTABLE_10F)) {
                     return 0x3042;
                 } else {
                     return 0x3041;
                 }
-            } else if (CHECK_OWNED_EQUIP(EQUIP_TYPE_TUNIC, EQUIP_INV_TUNIC_GORON) ||
+            } else if (GameInteractor_Should(VB_GORONS_CONSIDER_TUNIC_COLLECTED, CHECK_OWNED_EQUIP(EQUIP_TYPE_TUNIC, EQUIP_INV_TUNIC_GORON)) ||
                        (Flags_GetInfTable(INFTABLE_10D))) {
                 if (Flags_GetInfTable(INFTABLE_SPOKE_TO_GORON_LINK)) {
                     return 0x3038;
@@ -146,7 +147,7 @@ u16 EnGo_GetTextID(PlayState* play, Actor* thisx) {
                 return 0x3051;
             }
         case 0x20:
-            if (CHECK_QUEST_ITEM(QUEST_GORON_RUBY)) {
+            if (GameInteractor_Should(VB_GORONS_CONSIDER_DODONGOS_CAVERN_FINISHED, CHECK_QUEST_ITEM(QUEST_GORON_RUBY))) {
                 return 0x3027;
             } else if (Flags_GetEventChkInf(EVENTCHKINF_BOMBED_DODONGOS_CAVERN_ENTRANCE)) {
                 return 0x3021;
@@ -156,7 +157,7 @@ u16 EnGo_GetTextID(PlayState* play, Actor* thisx) {
                 return 0x3008;
             }
         case 0x30:
-            if (CHECK_QUEST_ITEM(QUEST_GORON_RUBY)) {
+            if (GameInteractor_Should(VB_GORONS_CONSIDER_DODONGOS_CAVERN_FINISHED, CHECK_QUEST_ITEM(QUEST_GORON_RUBY))) {
                 return 0x3027;
             } else if (Flags_GetEventChkInf(EVENTCHKINF_BOMBED_DODONGOS_CAVERN_ENTRANCE)) {
                 return 0x3026;
@@ -164,7 +165,7 @@ u16 EnGo_GetTextID(PlayState* play, Actor* thisx) {
                 return 0x3009;
             }
         case 0x40:
-            if (CHECK_QUEST_ITEM(QUEST_GORON_RUBY)) {
+            if (GameInteractor_Should(VB_GORONS_CONSIDER_DODONGOS_CAVERN_FINISHED, CHECK_QUEST_ITEM(QUEST_GORON_RUBY))) {
                 return 0x3027;
             } else if (Flags_GetEventChkInf(EVENTCHKINF_BOMBED_DODONGOS_CAVERN_ENTRANCE)) {
                 return 0x3026;
@@ -172,7 +173,7 @@ u16 EnGo_GetTextID(PlayState* play, Actor* thisx) {
                 return 0x300A;
             }
         case 0x50:
-            if (CHECK_QUEST_ITEM(QUEST_GORON_RUBY)) {
+            if (GameInteractor_Should(VB_GORONS_CONSIDER_DODONGOS_CAVERN_FINISHED, CHECK_QUEST_ITEM(QUEST_GORON_RUBY))) {
                 return 0x3027;
             } else if (Flags_GetInfTable(INFTABLE_F0)) {
                 return 0x3015;
@@ -180,7 +181,7 @@ u16 EnGo_GetTextID(PlayState* play, Actor* thisx) {
                 return 0x3014;
             }
         case 0x60:
-            if (CHECK_QUEST_ITEM(QUEST_GORON_RUBY)) {
+            if (GameInteractor_Should(VB_GORONS_CONSIDER_DODONGOS_CAVERN_FINISHED, CHECK_QUEST_ITEM(QUEST_GORON_RUBY))) {
                 return 0x3027;
             } else if (Flags_GetInfTable(INFTABLE_F4)) {
                 return 0x3017;
@@ -188,7 +189,7 @@ u16 EnGo_GetTextID(PlayState* play, Actor* thisx) {
                 return 0x3016;
             }
         case 0x70:
-            if (CHECK_QUEST_ITEM(QUEST_GORON_RUBY)) {
+            if (GameInteractor_Should(VB_GORONS_CONSIDER_DODONGOS_CAVERN_FINISHED, CHECK_QUEST_ITEM(QUEST_GORON_RUBY))) {
                 return 0x3027;
             } else if (Flags_GetInfTable(INFTABLE_F8)) {
                 return 0x3019;
@@ -653,7 +654,7 @@ void EnGo_Init(Actor* thisx, PlayState* play) {
     switch (this->actor.params & 0xF0) {
         case 0x00:
             Actor_SetScale(&this->actor, 0.008f);
-            if (CHECK_OWNED_EQUIP(EQUIP_TYPE_TUNIC, EQUIP_INV_TUNIC_GORON)) {
+            if (GameInteractor_Should(VB_GORONS_CONSIDER_TUNIC_COLLECTED, CHECK_OWNED_EQUIP(EQUIP_TYPE_TUNIC, EQUIP_INV_TUNIC_GORON))) {
                 EnGo_SetMovedPos(this, play);
                 EnGo_SetupAction(this, EnGo_CurledUp);
             } else {

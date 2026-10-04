@@ -405,6 +405,8 @@ void func_80ABA9B8(EnNiwLady* this, PlayState* play) {
                 if (GameInteractor_Should(VB_GIVE_ITEM_FROM_ANJU_AS_ADULT, true, this)) {
                     Actor_OfferGetItem(&this->actor, play, GI_POCKET_EGG, 200.0f, 100.0f);
                     this->actionFunc = func_80ABAC00;
+                } else {
+                    this->actionFunc = func_80ABAC84;
                 }
 
                 break;
@@ -436,6 +438,8 @@ void func_80ABAB08(EnNiwLady* this, PlayState* play) {
                 if (GameInteractor_Should(VB_TRADE_POCKET_CUCCO, true, this)) {
                     Actor_OfferGetItem(&this->actor, play, GI_COJIRO, 200.0f, 100.0f);
                     this->actionFunc = func_80ABAC00;
+                } else {
+                    this->actionFunc = func_80ABAC84;
                 }
                 break;
             case 1:

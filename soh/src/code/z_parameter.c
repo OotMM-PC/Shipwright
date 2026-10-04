@@ -18,6 +18,8 @@
 #include "soh/Enhancements/game-interactor/GameInteractor.h"
 #include "soh/Enhancements/game-interactor/GameInteractor_Hooks.h"
 #include "soh/OotmmCustomItems.h"
+#include "soh/OotmmSession.h"
+#include "soh/OotmmItemApply.h"
 #include "soh/OotmmCustomItemsPlayer.h"
 #include "soh/OTRGlobals.h"
 #include "soh/ResourceManagerHelpers.h"
@@ -1953,6 +1955,10 @@ u8 Item_Give(PlayState* play, u8 item) {
         }
         return Return_Item(item, MOD_NONE, ITEM_NONE);
     } else if (item == ITEM_BOMBCHU) {
+        if (OotmmSession_IsActive()) {
+            OotmmItemApply_AddBombchuAmmo(10);
+            return Return_Item(item, MOD_NONE, ITEM_NONE);
+        }
         if (gSaveContext.inventory.items[slot] == ITEM_NONE) {
             INV_CONTENT(ITEM_BOMBCHU) = ITEM_BOMBCHU;
             AMMO(ITEM_BOMBCHU) = 10;
@@ -1966,6 +1972,10 @@ u8 Item_Give(PlayState* play, u8 item) {
         }
         return Return_Item(item, MOD_NONE, ITEM_NONE);
     } else if ((item == ITEM_BOMBCHUS_5) || (item == ITEM_BOMBCHUS_20)) {
+        if (OotmmSession_IsActive()) {
+            OotmmItemApply_AddBombchuAmmo(sAmmoRefillCounts[item - ITEM_BOMBCHUS_5 + 8]);
+            return Return_Item(item, MOD_NONE, ITEM_NONE);
+        }
         if (gSaveContext.inventory.items[slot] == ITEM_NONE) {
             INV_CONTENT(ITEM_BOMBCHU) = ITEM_BOMBCHU;
             AMMO(ITEM_BOMBCHU) += sAmmoRefillCounts[item - ITEM_BOMBCHUS_5 + 8];
@@ -2668,6 +2678,13 @@ void GameplayStats_UpdateAmmoUsed(s16 item, s16 ammoUsed) {
 }
 
 void Inventory_ChangeAmmo(s16 item, s16 ammoChange) {
+    if (item == ITEM_BOMBCHU && OotmmSession_IsActive()) {
+        OotmmItemApply_AddBombchuAmmo(ammoChange);
+        if (ammoChange < 0) {
+            GameplayStats_UpdateAmmoUsed(item, -ammoChange);
+        }
+        return;
+    }
     // "Item = (%d)    Amount = (%d + %d)"
     osSyncPrintf("アイテム = (%d)    数 = (%d + %d)  ", item, AMMO(item), ammoChange);
 

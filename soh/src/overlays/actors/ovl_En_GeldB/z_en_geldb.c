@@ -7,6 +7,7 @@
 #include "z_en_geldb.h"
 #include "objects/object_geldb/object_geldb.h"
 #include "soh/Enhancements/game-interactor/GameInteractor_Hooks.h"
+#include "soh/OotmmChecks.h"
 #include "soh/ResourceManagerHelpers.h"
 
 #define FLAGS (ACTOR_FLAG_ATTENTION_ENABLED | ACTOR_FLAG_HOSTILE | ACTOR_FLAG_UPDATE_CULLING_DISABLED)
@@ -256,7 +257,8 @@ void EnGeldB_Init(Actor* thisx, PlayState* play) {
     Effect_Add(play, &this->blureIndex, EFFECT_BLURE1, 0, 0, &blureInit);
     Actor_SetScale(thisx, 0.012499999f);
     EnGeldB_SetupWait(this);
-    if ((this->keyFlag != 0) && Flags_GetCollectible(play, this->keyFlag >> 8)) {
+    if ((this->keyFlag != 0) &&
+        OotmmChecks_CollectibleDone(play, this->keyFlag >> 8, Flags_GetCollectible(play, this->keyFlag >> 8))) {
         Actor_Kill(thisx);
     }
 }
@@ -1383,7 +1385,15 @@ void EnGeldB_CollisionCheck(EnGeldB* this, PlayState* play) {
                 Actor_SetColorFilter(&this->actor, 0x4000, 0xFF, 0, 8);
                 if (Actor_ApplyDamage(&this->actor) == 0) {
                     if (this->keyFlag != 0) {
-                        key = Item_DropCollectible(play, &this->actor.world.pos, this->keyFlag | ITEM00_SMALL_KEY);
+                        Actor* drop = NULL;
+                        if (OotmmChecks_SpawnCollectibleDrop(play, this->keyFlag >> 8, this->actor.world.pos.x,
+                                                            this->actor.world.pos.y, this->actor.world.pos.z,
+                                                            &drop)) {
+                            key = (EnItem00*)drop;
+                        } else {
+                            key = Item_DropCollectible(play, &this->actor.world.pos,
+                                                       this->keyFlag | ITEM00_SMALL_KEY);
+                        }
                         if (key != NULL) {
                             key->actor.world.rot.y = Math_Vec3f_Yaw(&key->actor.world.pos, &this->actor.home.pos);
                             key->actor.speedXZ = 6.0f;

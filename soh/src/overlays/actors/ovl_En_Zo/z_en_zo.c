@@ -5,6 +5,7 @@
  */
 
 #include "z_en_zo.h"
+#include "soh/OotmmNpcChecks.h"
 #include "objects/object_zo/object_zo.h"
 
 #include "soh/frame_interpolation.h"
@@ -381,7 +382,7 @@ u16 EnZo_GetTextId(PlayState* play, Actor* thisx) {
             return 0x4021;
 
         case 0:
-            if (CHECK_QUEST_ITEM(QUEST_ZORA_SAPPHIRE)) {
+            if (OotmmNpcChecks_DungeonBeaten(EVENTCHKINF_USED_JABU_JABUS_BELLY_BLUE_WARP, CHECK_QUEST_ITEM(QUEST_ZORA_SAPPHIRE))) {
                 return 0x402D;
             }
             if (Flags_GetEventChkInf(EVENTCHKINF_SPOKE_TO_A_ZORA)) {
@@ -390,7 +391,7 @@ u16 EnZo_GetTextId(PlayState* play, Actor* thisx) {
             break;
 
         case 1:
-            if (CHECK_QUEST_ITEM(QUEST_ZORA_SAPPHIRE)) {
+            if (OotmmNpcChecks_DungeonBeaten(EVENTCHKINF_USED_JABU_JABUS_BELLY_BLUE_WARP, CHECK_QUEST_ITEM(QUEST_ZORA_SAPPHIRE))) {
                 return 0x402E;
             }
 
@@ -400,7 +401,7 @@ u16 EnZo_GetTextId(PlayState* play, Actor* thisx) {
             break;
 
         case 2:
-            if (CHECK_QUEST_ITEM(QUEST_ZORA_SAPPHIRE)) {
+            if (OotmmNpcChecks_DungeonBeaten(EVENTCHKINF_USED_JABU_JABUS_BELLY_BLUE_WARP, CHECK_QUEST_ITEM(QUEST_ZORA_SAPPHIRE))) {
                 return 0x402D;
             }
             if (Flags_GetEventChkInf(EVENTCHKINF_OBTAINED_RUTOS_LETTER)) {
@@ -412,7 +413,7 @@ u16 EnZo_GetTextId(PlayState* play, Actor* thisx) {
             break;
 
         case 3:
-            if (CHECK_QUEST_ITEM(QUEST_ZORA_SAPPHIRE)) {
+            if (OotmmNpcChecks_DungeonBeaten(EVENTCHKINF_USED_JABU_JABUS_BELLY_BLUE_WARP, CHECK_QUEST_ITEM(QUEST_ZORA_SAPPHIRE))) {
                 return 0x402E;
             }
             if (Flags_GetEventChkInf(EVENTCHKINF_SPOKE_TO_A_ZORA)) {
@@ -421,7 +422,7 @@ u16 EnZo_GetTextId(PlayState* play, Actor* thisx) {
             break;
 
         case 4:
-            if (CHECK_QUEST_ITEM(QUEST_ZORA_SAPPHIRE)) {
+            if (OotmmNpcChecks_DungeonBeaten(EVENTCHKINF_USED_JABU_JABUS_BELLY_BLUE_WARP, CHECK_QUEST_ITEM(QUEST_ZORA_SAPPHIRE))) {
                 return 0x402D;
             }
 
@@ -436,7 +437,7 @@ u16 EnZo_GetTextId(PlayState* play, Actor* thisx) {
             break;
 
         case 5:
-            if (CHECK_QUEST_ITEM(QUEST_ZORA_SAPPHIRE)) {
+            if (OotmmNpcChecks_DungeonBeaten(EVENTCHKINF_USED_JABU_JABUS_BELLY_BLUE_WARP, CHECK_QUEST_ITEM(QUEST_ZORA_SAPPHIRE))) {
                 return 0x402E;
             }
             if (Flags_GetEventChkInf(EVENTCHKINF_SPOKE_TO_A_ZORA)) {

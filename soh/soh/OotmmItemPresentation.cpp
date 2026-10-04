@@ -4,10 +4,12 @@
 #include "Enhancements/game-interactor/GameInteractor.h"
 #include "Enhancements/game-interactor/GameInteractor_Hooks.h"
 #include "OotmmItemModels.h"
+#include "OotmmIpc.h"
 #include "OTRGlobals.h"
 
 #include <spdlog/spdlog.h>
 
+#include <algorithm>
 #include <deque>
 #include <optional>
 #include <string>
@@ -22,6 +24,8 @@ extern "C" {
 extern PlayState* gPlayState;
 GetItemEntry ItemTable_Retrieve(int16_t getItemId);
 s32 Player_ActionHandler_2(Player* player, PlayState* play);
+void Player_Action_8084E6D4(Player* player, PlayState* play);
+void Player_SetupActionPreserveAnimMovement(PlayState* play, Player* player, PlayerActionFunc actionFunc, s32 flags);
 }
 
 namespace {
@@ -30,21 +34,23 @@ constexpr uint16_t kPresentationTextId = 0xF120;
 constexpr uint16_t kGrounded = 1;
 std::deque<Ship::GameIpcItemPresentation> sQueue;
 std::optional<Ship::GameIpcItemPresentation> sCurrent;
+std::optional<std::pair<std::string, uint32_t>> sDeliveredCheck;
 
 std::string GameName(const std::string& game) {
-    return game == "oot" ? "Ocarina of Time" : "Majora's Mask";
+    return OotmmItemPresentation_GameName(game);
 }
 
 std::string BuildMessage(const Ship::GameIpcItemPresentation& presentation) {
     const bool isTrap = Ship::OotmmItemCatalog::IsTrap(presentation.ItemId);
-    const bool crossGame = !isTrap && presentation.DestinationGame != "oot";
+    const bool isShared = presentation.ItemId.rfind("SHARED_", 0) == 0;
+    const bool crossGame = !isTrap && !isShared && presentation.DestinationGame != "oot";
     const std::string itemName =
         Ship::OotmmItemCatalog::TrimGameSuffix(presentation.ItemName);
     std::string message = "You got %g" + itemName;
     if (presentation.SourcePlayer != 0 && presentation.SourcePlayer != presentation.RecipientPlayer) {
         if (presentation.ViewerPlayer == presentation.SourcePlayer) {
             message += "%w! It was sent to %bPlayer " + std::to_string(presentation.RecipientPlayer);
-            message += isTrap ? std::string("%w.")
+            message += isTrap || isShared ? std::string("%w.")
                               : "'s %r" + GameName(presentation.DestinationGame) + "%w.";
             return message;
         } else {
@@ -83,7 +89,24 @@ void OpenPresentationText(uint16_t* textId, bool* loadFromMessageTable) {
     *loadFromMessageTable = false;
 }
 
+GetItemEntry PresentationEntry() {
+    GetItemEntry entry = ItemTable_Retrieve(GI_RUPEE_GREEN);
+    entry.textId = kPresentationTextId;
+    entry.getItemFrom = ITEM_FROM_OOTMM_PRESENTATION;
+    entry.drawFunc = DrawPresentation;
+    return entry;
+}
+
 void PumpPresentation() {
+    if (gPlayState != nullptr && sDeliveredCheck.has_value() &&
+        sDeliveredCheck->second != gPlayState->gameplayFrames) {
+        const Player* player = GET_PLAYER(gPlayState);
+        if (Message_GetState(&gPlayState->msgCtx) == TEXT_STATE_NONE &&
+            !(player->stateFlags1 & (PLAYER_STATE1_GETTING_ITEM | PLAYER_STATE1_TALKING | PLAYER_STATE1_IN_CUTSCENE))) {
+            OotmmIpc_CompleteCheckPresentation(sDeliveredCheck->first);
+            sDeliveredCheck.reset();
+        }
+    }
     if (gPlayState == nullptr || sQueue.empty()) {
         return;
     }
@@ -106,10 +129,7 @@ void PumpPresentation() {
         return;
     }
 
-    GetItemEntry entry = ItemTable_Retrieve(GI_RUPEE_GREEN);
-    entry.textId = kPresentationTextId;
-    entry.getItemFrom = ITEM_FROM_OOTMM_PRESENTATION;
-    entry.drawFunc = DrawPresentation;
+    GetItemEntry entry = PresentationEntry();
     sCurrent = sQueue.front();
 
     if ((player->actor.bgCheckFlags & kGrounded) && !(player->stateFlags1 & PLAYER_STATE1_IN_WATER)) {
@@ -118,6 +138,9 @@ void PumpPresentation() {
         player->interactRangeActor = &player->actor;
         player->getItemDirection = player->actor.shape.rot.y;
         if (Player_ActionHandler_2(player, gPlayState)) {
+            if (!sCurrent->CheckKey.empty()) {
+                sDeliveredCheck = std::make_pair(sCurrent->CheckKey, gPlayState->gameplayFrames);
+            }
             sQueue.pop_front();
         } else {
             sCurrent.reset();
@@ -130,6 +153,9 @@ void PumpPresentation() {
     Audio_PlaySoundGeneral(NA_SE_SY_GET_ITEM, &gSfxDefaultPos, 4, &gSfxDefaultFreqAndVolScale,
                            &gSfxDefaultFreqAndVolScale, &gSfxDefaultReverb);
     Message_StartTextbox(gPlayState, kPresentationTextId, nullptr);
+    if (!sCurrent->CheckKey.empty()) {
+        sDeliveredCheck = std::make_pair(sCurrent->CheckKey, gPlayState->gameplayFrames);
+    }
 }
 
 } // namespace
@@ -139,9 +165,37 @@ void OotmmItemPresentation_Init() {
     GameInteractor::Instance->RegisterGameHook<GameInteractor::OnPlayerUpdate>(PumpPresentation);
 }
 
+std::string OotmmItemPresentation_GameName(const std::string& game) {
+    return game == "oot" ? "Ocarina of Time" : "Majora's Mask";
+}
+
+extern "C" int OotmmItemPresentation_IsPending(void) {
+    return sQueue.empty() ? 0 : 1;
+}
+
 void OotmmItemPresentation_Queue(Ship::GameIpcItemPresentation presentation) {
-    if (sQueue.size() >= 32) {
-        sQueue.pop_front();
-    }
     sQueue.emplace_back(std::move(presentation));
+}
+
+bool OotmmItemPresentation_ContinueChest(PlayState* play, Player* player, const std::string& checkId) {
+    if (play == nullptr || player == nullptr || checkId.empty() || sDeliveredCheck.has_value()) {
+        return false;
+    }
+    const std::string checkKey = "oot:" + checkId;
+    const auto queued = std::find_if(sQueue.begin(), sQueue.end(), [&](const auto& presentation) {
+        return presentation.CheckKey == checkKey;
+    });
+    if (queued == sQueue.end()) {
+        return false;
+    }
+    sCurrent = std::move(*queued);
+    sQueue.erase(queued);
+    const GetItemEntry entry = PresentationEntry();
+    player->getItemEntry = entry;
+    player->getItemId = entry.getItemId;
+    player->interactRangeActor = &player->actor;
+    Player_SetupActionPreserveAnimMovement(play, player, Player_Action_8084E6D4, 0);
+    player->stateFlags1 |= PLAYER_STATE1_GETTING_ITEM | PLAYER_STATE1_CARRYING_ACTOR | PLAYER_STATE1_IN_CUTSCENE;
+    sDeliveredCheck = std::make_pair(checkKey, play->gameplayFrames);
+    return true;
 }

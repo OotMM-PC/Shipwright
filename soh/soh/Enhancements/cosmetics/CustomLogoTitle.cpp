@@ -1,5 +1,6 @@
 #include "soh/Enhancements/game-interactor/GameInteractor_Hooks.h"
 #include "soh/ShipInit.hpp"
+#include "soh/OotmmSession.h"
 
 #include "textures/nintendo_rogo_static/nintendo_rogo_static.h"
 #include "assets/objects/gameplay_keep/gameplay_keep.h"
@@ -145,6 +146,10 @@ extern "C" void CustomLogoTitle_Main(TitleContext* titleContext) {
     Gfx_SetupFrame(titleContext->state.gfxCtx, 0, 0, 0);
     Title_Calc(titleContext);
     CustomLogoTitle_Draw(titleContext, logoToDraw);
+
+    if (OotmmSession_TryBootDirectly(&titleContext->state)) {
+        titleContext->exit = false;
+    }
 
     if (titleContext->exit) {
         gSaveContext.seqId = (u8)NA_BGM_DISABLED;

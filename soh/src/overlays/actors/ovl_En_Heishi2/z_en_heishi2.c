@@ -14,6 +14,7 @@
 #include "soh/ResourceManagerHelpers.h"
 #include "soh/Enhancements/game-interactor/GameInteractor.h"
 #include "soh/Enhancements/game-interactor/GameInteractor_Hooks.h"
+#include "soh/OotmmNpcChecks.h"
 
 #define FLAGS (ACTOR_FLAG_ATTENTION_ENABLED | ACTOR_FLAG_FRIENDLY)
 
@@ -562,7 +563,9 @@ void func_80A540C0(EnHeishi2* this, PlayState* play) {
                 Player_UnsetMask(play);
                 Flags_SetInfTable(INFTABLE_GATE_GUARD_PUT_ON_KEATON_MASK);
                 Flags_SetItemGetInf(ITEMGETINF_38);
-                Item_Give(play, ITEM_SOLD_OUT);
+                if (!OotmmNpcChecks_Collect("OOT_MASK_SELL_KEATON")) {
+                    Item_Give(play, ITEM_SOLD_OUT);
+                }
                 if (this->unk_30A != 0) {
                     this->unk_30A = 2;
                     this->unk_30E = 1;

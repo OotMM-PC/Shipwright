@@ -5,6 +5,7 @@
  */
 
 #include "z_bg_spot03_taki.h"
+#include "soh/OotmmSession.h"
 #include "objects/object_spot03_object/object_spot03_object.h"
 #include "soh/ResourceManagerHelpers.h"
 
@@ -92,9 +93,11 @@ void BgSpot03Taki_HandleWaterfallState(BgSpot03Taki* this, PlayState* play) {
             }
         }
     } else if (this->state == WATERFALL_OPENED) {
-        this->timer--;
-        if (this->timer < 0) {
-            this->state = WATERFALL_CLOSING;
+        if (!OotmmSession_IsActive()) {
+            this->timer--;
+            if (this->timer < 0) {
+                this->state = WATERFALL_CLOSING;
+            }
         }
     } else if (this->state == WATERFALL_CLOSING) {
         if (this->openingAlpha < 255.0f) {

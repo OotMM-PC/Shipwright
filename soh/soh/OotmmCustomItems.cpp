@@ -4,6 +4,7 @@
 #include "Enhancements/game-interactor/GameInteractor.h"
 #include "OotmmIpc.h"
 #include "OotmmItemPresentation.h"
+#include "OotmmNpcChecks.h"
 #include "ResourceManagerHelpers.h"
 #include "OotmmSession.h"
 
@@ -508,9 +509,8 @@ extern "C" int OotmmCustomItems_MedigoronKegPrice(void) {
 }
 
 extern "C" int OotmmCustomItems_MedigoronSellsKeg(void) {
-    // TODO: the Giant's Knife is randomized, so owning it does not mean this check was completed;
-    // this needs to ask the check system whether Medigoron's check is done before selling kegs.
-    return CHECK_OWNED_EQUIP_ALT(EQUIP_TYPE_SWORD, EQUIP_INV_SWORD_BIGGORON) &&
+    return OotmmNpcChecks_Done("OOT_MEDIGORON",
+                               CHECK_OWNED_EQUIP_ALT(EQUIP_TYPE_SWORD, EQUIP_INV_SWORD_BIGGORON)) &&
                    OotmmCustomItems_Owned(ITEM_OOTMM_POWDER_KEG) && OotmmCustomItems_KegAmmo() == 0
                ? 1
                : 0;

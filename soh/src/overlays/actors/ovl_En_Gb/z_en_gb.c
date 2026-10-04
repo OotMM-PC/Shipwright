@@ -6,6 +6,7 @@
 
 #include "z_en_gb.h"
 #include "objects/object_ps/object_ps.h"
+#include "soh/OotmmSession.h"
 #include "soh/frame_interpolation.h"
 #include "soh/ResourceManagerHelpers.h"
 #include "soh/Enhancements/game-interactor/GameInteractor_Hooks.h"
@@ -341,7 +342,7 @@ void func_80A2FA50(EnGb* this, PlayState* play) {
         Player_UpdateBottleHeld(play, GET_PLAYER(play), ITEM_BOTTLE, PLAYER_IA_BOTTLE);
         Rupees_ChangeBy(50);
         HIGH_SCORE(HS_POE_POINTS) += 100;
-        if (HIGH_SCORE(HS_POE_POINTS) != 1000) {
+        if (HIGH_SCORE(HS_POE_POINTS) != (OotmmSession_IsActive() ? 100 : 1000)) {
             if (HIGH_SCORE(HS_POE_POINTS) > 1100) {
                 HIGH_SCORE(HS_POE_POINTS) = 1100;
             }
@@ -362,6 +363,8 @@ void func_80A2FB40(EnGb* this, PlayState* play) {
         if (GameInteractor_Should(VB_GIVE_ITEM_FROM_POE_COLLECTOR, true, this)) {
             Actor_OfferGetItem(&this->dyna.actor, play, GI_BOTTLE, 100.0f, 10.0f);
             this->actionFunc = func_80A2FBB0;
+        } else {
+            this->actionFunc = func_80A2FC0C;
         }
     }
 }

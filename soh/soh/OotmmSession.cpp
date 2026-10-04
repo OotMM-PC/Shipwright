@@ -1,9 +1,12 @@
 #include "OotmmSession.h"
+#include "OotmmCheckLedger.h"
 #include "OotmmChecks.h"
+#include "OotmmNpcChecks.h"
 #include "OotmmDrops.h"
 #include "OotmmCustomItems.h"
 #include "OotmmDebugChecks.h"
 #include "OotmmItemApply.h"
+#include "OotmmItemModels.h"
 #include "OotmmItemPresentation.h"
 #include "OotmmItemProbe.h"
 #include "OotmmScales.h"
@@ -30,18 +33,32 @@ void Sram_InitNewSave(void);
 
 #include <filesystem>
 #include <fstream>
+#include <string>
 
 namespace {
 
 Ship::OotmmGameState sGameState;
 bool sBootedIntoGame = false;
+constexpr int kBootInventoryWaitFrames = 300;
+int sBootInventoryWait = 0;
+
+bool AwaitingBootInventory() {
+    if (OotmmIpc_GetInventory().GetRevision() != 0 || sBootInventoryWait >= kBootInventoryWaitFrames) {
+        return false;
+    }
+    sBootInventoryWait++;
+    return true;
+}
 bool sBootEntranceApplied = false;
 bool sBootRespawnPending = false;
 std::optional<uint32_t> sLoadSpawnDestination;
-std::optional<uint32_t> sLoadSpawnCrossGameSource;
+std::optional<Ship::OotmmEntranceMapping> sLoadSpawnCrossGame;
 bool sLoadSpawnHandoffReady = false;
 bool sPlayerExitPending = false;
 bool sCrossGamePending = false;
+Ship::OotmmEntranceMapping sCrossGameRequest;
+std::optional<Ship::OotmmEntranceMapping> sCrossGameRetry;
+uint32_t sCrossGameRetryFrames = 0;
 bool sCrossGameAccepted = false;
 uint32_t sCrossGameWaitFrames = 0;
 std::optional<uint32_t> sPendingExtendedSource;
@@ -419,6 +436,8 @@ void ApplySaveFlags() {
     Flags_SetEventChkInf(EVENTCHKINF_RENTED_HORSE_FROM_INGO);
     Flags_SetInfTable(INFTABLE_SPOKE_TO_POE_COLLECTOR_IN_RUINED_MARKET);
     Flags_SetEventChkInf(EVENTCHKINF_WATCHED_GANONS_CASTLE_COLLAPSE_CAUGHT_BY_GERUDO);
+    Flags_SetEventChkInf(EVENTCHKINF_ZELDA_FLED_HYRULE_CASTLE);
+    Flags_SetEventChkInf(EVENTCHKINF_DRAWBRIDGE_OPENED_AFTER_ZELDA_FLED);
     gSaveContext.sceneFlags[SCENE_WATER_TEMPLE].swch |= 1 << 0x10;
 
     if (sGameState.GetStringSetting("dekuTree", "open") == "open") {
@@ -452,7 +471,6 @@ void ApplySaveFlags() {
     }
 
     if (sGameState.GetBoolSetting("skipZelda", false)) {
-        Flags_SetEventChkInf(EVENTCHKINF_OBTAINED_POCKET_EGG);
         Flags_SetEventChkInf(EVENTCHKINF_TALON_WOKEN_IN_CASTLE);
         Flags_SetEventChkInf(EVENTCHKINF_TALON_RETURNED_FROM_CASTLE);
         Flags_SetEventChkInf(EVENTCHKINF_OBTAINED_ZELDAS_LETTER);
@@ -541,7 +559,7 @@ void ApplyBootEntrance() {
     sBootEntranceApplied = true;
     sBootRespawnPending = false;
     sLoadSpawnDestination.reset();
-    sLoadSpawnCrossGameSource.reset();
+    sLoadSpawnCrossGame.reset();
     sLoadSpawnHandoffReady = false;
     sGrottoExitSource = 0;
     gSaveContext.respawnFlag = 0;
@@ -585,24 +603,43 @@ bool SeedHasEntranceShuffle() {
 }
 
 void ApplySpawnForCurrentAge() {
+    constexpr uint32_t kForeignEntrance = 0x80000000;
     const uint32_t source = CurrentAgeSpawnSource();
     const auto* mapping = sGameState.FindEntrance(Ship::OotmmGame::Oot, source);
-    if (mapping != nullptr && mapping->ToGame == Ship::OotmmGame::Mm) {
+    const auto seedSpawn = sGameState.GetSpawnEntrance(static_cast<uint32_t>(gSaveContext.linkAge));
+    uint32_t destination = seedSpawn.value_or(
+        mapping != nullptr && mapping->ToNativeId.has_value()
+            ? *mapping->ToNativeId | (mapping->ToGame == Ship::OotmmGame::Mm ? kForeignEntrance : 0)
+            : source);
+
+    if ((destination & kForeignEntrance) != 0) {
+        destination &= ~kForeignEntrance;
         sLoadSpawnDestination.reset();
-        sLoadSpawnCrossGameSource = source;
-        SPDLOG_INFO("[OoTMM] Current-age spawn 0x{:X} crosses to MM", source);
+        if (mapping != nullptr && mapping->ToGame == Ship::OotmmGame::Mm &&
+            mapping->ToNativeId == destination) {
+            sLoadSpawnCrossGame = *mapping;
+        } else {
+            sLoadSpawnCrossGame = Ship::OotmmEntranceMapping{
+                Ship::OotmmGame::Oot,
+                gSaveContext.linkAge == LINK_AGE_ADULT ? "OOT_SPAWN_ADULT" : "OOT_SPAWN_CHILD",
+                source,
+                Ship::OotmmGame::Mm,
+                "MM spawn",
+                destination,
+            };
+        }
+        SPDLOG_INFO("[OoTMM] Generator spawn for age {} crosses to MM 0x{:X}", gSaveContext.linkAge,
+                    destination);
         return;
     }
 
-    const uint32_t destination =
-        mapping != nullptr && mapping->ToNativeId.has_value() ? *mapping->ToNativeId : source;
     if (const auto target = ResolveOotEntrance(destination); target.has_value()) {
         gSaveContext.entranceIndex = static_cast<int16_t>(*target);
         sBootRespawnPending = gSaveContext.respawnFlag != 0;
         sLoadSpawnDestination = destination;
-        sLoadSpawnCrossGameSource.reset();
-        SPDLOG_INFO("[OoTMM] Current-age spawn 0x{:X} maps to 0x{:X} (resolved 0x{:X})", source, destination,
-                    *target);
+        sLoadSpawnCrossGame.reset();
+        SPDLOG_INFO("[OoTMM] Generator spawn for age {} is 0x{:X} (resolved 0x{:X})", gSaveContext.linkAge,
+                    destination, *target);
     } else {
         SPDLOG_ERROR("[OoTMM] Unsupported OoT spawn target {}", destination);
     }
@@ -625,39 +662,88 @@ void RestoreLoadSpawn() {
     }
 }
 
-void UpdateEntranceTransition() {
-    if (gPlayState == nullptr) {
-        return;
+std::string sCrossGameWaitReason;
+
+void QueueCrossGameRetry(const Ship::OotmmEntranceMapping& mapping, const char* reason) {
+    sCrossGameRetry = mapping;
+    sCrossGameRetryFrames = 0;
+    if (gPlayState != nullptr) {
+        gPlayState->transitionTrigger = TRANS_TRIGGER_OFF;
     }
-    if (sLoadSpawnCrossGameSource.has_value()) {
-        const auto* mapping =
-            sGameState.FindEntrance(Ship::OotmmGame::Oot, *sLoadSpawnCrossGameSource);
-        if (mapping == nullptr || mapping->ToGame != Ship::OotmmGame::Mm || !mapping->ToNativeId.has_value()) {
-            SPDLOG_ERROR("[OoTMM] Cross-game load spawn mapping is no longer available");
-            sLoadSpawnCrossGameSource.reset();
-            sCrossGameWaitFrames = 0;
-            return;
+    if (sCrossGameWaitReason != reason) {
+        sCrossGameWaitReason = reason;
+        Ship::Context::GetInstance()->GetWindow()->GetGui()->GetGameOverlay()->TextDrawNotification(
+            8.0f, true, "%s", reason);
+    }
+}
+
+bool BeginSavedCrossGameTransition(const Ship::OotmmEntranceMapping& mapping) {
+    if (gPlayState != nullptr) {
+        gPlayState->transitionTrigger = TRANS_TRIGGER_OFF;
+    }
+    if (sCrossGameRetry.has_value() || sCrossGamePending) {
+        return true;
+    }
+    if (gPlayState != nullptr) {
+        Play_PerformSave(gPlayState);
+    } else {
+        Save_SaveFile();
+    }
+    SaveManager::Instance->ThreadPoolWait();
+    if (!SaveManager::Instance->LastBaseSaveSucceeded(gSaveContext.fileNum)) {
+        SPDLOG_ERROR("[OoTMM] Cross-game transition waiting for a successful source save");
+        QueueCrossGameRetry(mapping, "Could not save. Waiting to retry before switching games.");
+        return true;
+    }
+    RecordActiveSaveFile(gSaveContext.fileNum);
+    if (!OotmmIpc_SendCrossGameTransition(mapping, static_cast<uint32_t>(gSaveContext.linkAge))) {
+        SPDLOG_ERROR("[OoTMM] Cross-game transition waiting for the launcher connection");
+        QueueCrossGameRetry(mapping, "Waiting for the launcher to reconnect before switching games.");
+        return true;
+    }
+    sCrossGameRequest = mapping;
+    sCrossGamePending = true;
+    sCrossGameAccepted = false;
+    sCrossGameWaitFrames = 0;
+    return true;
+}
+
+bool UpdateCrossGameRequest() {
+    if (sCrossGameRetry.has_value()) {
+        if (gPlayState != nullptr) {
+            gPlayState->transitionTrigger = TRANS_TRIGGER_OFF;
         }
-        if (OotmmIpc_SendCrossGameTransition(*mapping, static_cast<uint32_t>(gSaveContext.linkAge))) {
-            sLoadSpawnCrossGameSource.reset();
-            sCrossGamePending = true;
-            sCrossGameAccepted = false;
-            sCrossGameWaitFrames = 0;
-        } else if (++sCrossGameWaitFrames > 120) {
-            SPDLOG_ERROR("[OoTMM] Cross-game load spawn requires the launcher IPC connection");
-            sLoadSpawnCrossGameSource.reset();
-            sCrossGameWaitFrames = 0;
+        if (++sCrossGameRetryFrames >= 60) {
+            const auto mapping = *sCrossGameRetry;
+            sCrossGameRetry.reset();
+            BeginSavedCrossGameTransition(mapping);
         }
-        return;
+        return true;
     }
     if (sCrossGamePending) {
-        gPlayState->transitionTrigger = TRANS_TRIGGER_OFF;
+        if (gPlayState != nullptr) {
+            gPlayState->transitionTrigger = TRANS_TRIGGER_OFF;
+        }
         sCrossGameAccepted |= OotmmIpc_ConsumeTransitionAccepted();
         if (!sCrossGameAccepted && ++sCrossGameWaitFrames > 120) {
-            SPDLOG_ERROR("[OoTMM] Launcher did not accept the cross-game transition");
+            SPDLOG_ERROR("[OoTMM] Launcher did not accept the cross-game transition; retrying");
+            QueueCrossGameRetry(sCrossGameRequest, "The launcher has not confirmed the switch. Retrying.");
             sCrossGamePending = false;
             sCrossGameWaitFrames = 0;
         }
+        return true;
+    }
+    return false;
+}
+
+void UpdateEntranceTransition() {
+    if (gPlayState == nullptr || UpdateCrossGameRequest()) {
+        return;
+    }
+    if (sLoadSpawnCrossGame.has_value()) {
+        const auto mapping = *sLoadSpawnCrossGame;
+        sLoadSpawnCrossGame.reset();
+        BeginSavedCrossGameTransition(mapping);
         return;
     }
     if (gPlayState->transitionTrigger != TRANS_TRIGGER_START) {
@@ -719,20 +805,9 @@ void UpdateEntranceTransition() {
 
     SPDLOG_INFO("[OoTMM] Cross-game entrance 0x{:X} -> {} (0x{:X})", source, mapping->To,
                 *mapping->ToNativeId);
-    Play_PerformSave(gPlayState);
-    SaveManager::Instance->ThreadPoolWait();
-    RecordActiveSaveFile(gSaveContext.fileNum);
-    if (!OotmmIpc_SendCrossGameTransition(*mapping, static_cast<uint32_t>(gSaveContext.linkAge))) {
-        SPDLOG_ERROR("[OoTMM] Cross-game transition requires the launcher IPC connection");
-        gPlayState->transitionTrigger = TRANS_TRIGGER_OFF;
-        return;
+    if (BeginSavedCrossGameTransition(*mapping)) {
+        sLastResolvedEntrance = source;
     }
-
-    sCrossGamePending = true;
-    sCrossGameAccepted = false;
-    sCrossGameWaitFrames = 0;
-    sLastResolvedEntrance = source;
-    gPlayState->transitionTrigger = TRANS_TRIGGER_OFF;
 }
 
 void InitializeNewSave() {
@@ -748,16 +823,19 @@ void InitializeNewSave() {
 }
 
 void BootIntoGame(GameState* gameState) {
-    // The launcher's logical slot is MM's save identity and says nothing about OoT's file number.
-    int32_t fileNum = static_cast<int32_t>(sGameState.GetBootConfig().LogicalSlot.value_or(0));
-    if (const auto active = RecordedActiveSaveFile(); active.has_value() && Save_Exist(*active) != 0) {
-        fileNum = *active;
-    }
-    if (Save_Exist(fileNum) == 0) {
-        for (int32_t slot = 0; slot < 3; slot++) {
-            if (Save_Exist(slot) != 0) {
-                fileNum = slot;
-                break;
+    SaveManager::Instance->Init();
+    const auto logicalSlot = sGameState.GetBootConfig().LogicalSlot;
+    int32_t fileNum = static_cast<int32_t>(logicalSlot.value_or(0));
+    if (!logicalSlot.has_value()) {
+        if (const auto active = RecordedActiveSaveFile(); active.has_value() && Save_Exist(*active) != 0) {
+            fileNum = *active;
+        }
+        if (Save_Exist(fileNum) == 0) {
+            for (int32_t slot = 0; slot < 3; slot++) {
+                if (Save_Exist(slot) != 0) {
+                    fileNum = slot;
+                    break;
+                }
             }
         }
     }
@@ -824,14 +902,25 @@ void BootIntoGame(GameState* gameState) {
 
 } // namespace
 
+bool OotmmSession_BeginCrossGameTransition(const Ship::OotmmEntranceMapping& mapping) {
+    return OotmmSession_IsActive() && gPlayState != nullptr && BeginSavedCrossGameTransition(mapping);
+}
+
+bool OotmmSession_IsCrossGameTransitionPending() {
+    return sCrossGamePending || sCrossGameRetry.has_value();
+}
+
 void OotmmSession_Init() {
     if (sGameState.LoadFromEnvironment()) {
         ApplyEnhancements();
         OotmmItemPresentation_Init();
+        OotmmCheckLedger_Init();
         OotmmChecks_Init();
+        OotmmNpcChecks_Init();
         OotmmDrops_Init();
         OotmmDebugChecks_Init();
         OotmmItemProbe_Init();
+        OotmmItemModels_Init();
         OotmmItemApply_Init();
         OotmmCustomItems_Init();
         OotmmScales_Init();
@@ -873,9 +962,20 @@ extern "C" int32_t OotmmSession_IsActive(void) {
 }
 
 extern "C" int32_t OotmmSession_TryBootDirectly(void* gameState) {
+    if (OotmmSession_IsActive() && sGameState.GetBootConfig().OpenFileSelect && !sBootedIntoGame && gameState != nullptr) {
+        sBootedIntoGame = true;
+        auto* menuState = static_cast<GameState*>(gameState);
+        menuState->running = false;
+        SET_NEXT_GAMESTATE(menuState, FileChoose_Init, FileChooseContext);
+        return 1;
+    }
+
     if (!OotmmSession_IsActive() || !sGameState.GetBootConfig().BootEntrance.has_value() || sBootedIntoGame ||
         gameState == nullptr) {
         return 0;
+    }
+    if (AwaitingBootInventory()) {
+        return 1;
     }
     sBootedIntoGame = true;
     BootIntoGame(static_cast<GameState*>(gameState));
@@ -893,7 +993,7 @@ extern "C" void OotmmSession_FixLoadSpawn(void) {
         return;
     }
     sLoadSpawnDestination.reset();
-    sLoadSpawnCrossGameSource.reset();
+    sLoadSpawnCrossGame.reset();
     sLoadSpawnHandoffReady = false;
     if (gSaveContext.savedSceneNum == SCENE_LINKS_HOUSE && !SeedHasEntranceShuffle()) {
         gSaveContext.entranceIndex = ENTR_LINKS_HOUSE_CHILD_SPAWN;
@@ -901,38 +1001,28 @@ extern "C" void OotmmSession_FixLoadSpawn(void) {
         return;
     }
     ApplySpawnForCurrentAge();
-    sLoadSpawnHandoffReady = sLoadSpawnCrossGameSource.has_value();
+    sLoadSpawnHandoffReady = sLoadSpawnCrossGame.has_value();
 }
 
 extern "C" int32_t OotmmSession_TryStartLoadSpawnHandoff(void) {
     if (!sLoadSpawnHandoffReady) {
         return 0;
     }
-    if (sCrossGamePending) {
+    if (sCrossGamePending || sCrossGameRetry.has_value()) {
+        if (gPlayState == nullptr) {
+            UpdateCrossGameRequest();
+        }
         return 1;
     }
-
-    const auto* mapping =
-        sLoadSpawnCrossGameSource.has_value()
-            ? sGameState.FindEntrance(Ship::OotmmGame::Oot, *sLoadSpawnCrossGameSource)
-            : nullptr;
-    if (mapping == nullptr || mapping->ToGame != Ship::OotmmGame::Mm || !mapping->ToNativeId.has_value()) {
+    if (!sLoadSpawnCrossGame.has_value()) {
         SPDLOG_ERROR("[OoTMM] Cross-game load spawn mapping is no longer available");
-        sLoadSpawnCrossGameSource.reset();
         sLoadSpawnHandoffReady = false;
         sCrossGameWaitFrames = 0;
         return 0;
     }
-
-    if (OotmmIpc_SendCrossGameTransition(*mapping, static_cast<uint32_t>(gSaveContext.linkAge))) {
-        sLoadSpawnCrossGameSource.reset();
-        sCrossGamePending = true;
-        sCrossGameAccepted = false;
-        sCrossGameWaitFrames = 0;
-        SPDLOG_INFO("[OoTMM] Waiting in File Select for MM spawn handoff");
-    } else if (++sCrossGameWaitFrames == 120) {
-        SPDLOG_ERROR("[OoTMM] Still waiting for the launcher IPC connection for MM spawn handoff");
-    }
+    const auto mapping = *sLoadSpawnCrossGame;
+    sLoadSpawnCrossGame.reset();
+    BeginSavedCrossGameTransition(mapping);
     return 1;
 }
 
@@ -958,7 +1048,7 @@ extern "C" int32_t OotmmSession_ReturnToSpawn(void) {
         return 0;
     }
     ApplySpawnForCurrentAge();
-    if (sLoadSpawnCrossGameSource.has_value()) {
+    if (sLoadSpawnCrossGame.has_value()) {
         sLoadSpawnHandoffReady = true;
         return OotmmSession_TryStartLoadSpawnHandoff();
     }
@@ -968,6 +1058,78 @@ extern "C" int32_t OotmmSession_ReturnToSpawn(void) {
     gPlayState->transitionTrigger = TRANS_TRIGGER_START;
     gPlayState->transitionType = TRANS_TYPE_FADE_BLACK;
     sLastResolvedEntrance = static_cast<uint16_t>(gSaveContext.entranceIndex);
+    return 1;
+}
+
+extern "C" int32_t OotmmSession_ApplyResolvedOotEntrance(uint32_t entrance) {
+    if (!OotmmSession_IsActive()) {
+        return -1;
+    }
+    const auto resolved = ResolveOotEntrance(entrance);
+    if (!resolved.has_value()) {
+        return -1;
+    }
+    sLastResolvedEntrance = *resolved;
+    return *resolved;
+}
+
+extern "C" int32_t OotmmSession_PrepareSongWarp(uint32_t songId) {
+    if (!OotmmSession_IsActive() || gPlayState == nullptr) {
+        return 0;
+    }
+    const auto destination = sGameState.GetSongEntrance(songId);
+    if (!destination.has_value()) {
+        return 0;
+    }
+    if ((*destination & 0x80000000u) == 0) {
+        const auto resolved = ResolveOotEntrance(*destination);
+        if (resolved.has_value()) {
+            gSaveContext.respawn[RESPAWN_MODE_RETURN].entranceIndex = static_cast<int16_t>(*resolved);
+            sLastResolvedEntrance = *resolved;
+        }
+        return 0;
+    }
+    Ship::OotmmEntranceMapping mapping;
+    mapping.FromGame = Ship::OotmmGame::Oot;
+    mapping.From = "OoT warp song";
+    mapping.ToGame = Ship::OotmmGame::Mm;
+    mapping.To = "MM song destination";
+    mapping.ToNativeId = *destination & 0x7fffffffu;
+    BeginSavedCrossGameTransition(mapping);
+    return 1;
+}
+
+extern "C" int32_t OotmmSession_RedirectBossWarp(uint32_t bossId) {
+    constexpr uint32_t kForeignEntrance = 0x80000000;
+    if (!OotmmSession_IsActive() || gPlayState == nullptr) {
+        return 0;
+    }
+    const auto destination = sGameState.ResolveBossWarp(bossId, false);
+    if (!destination.has_value()) {
+        return 0;
+    }
+
+    gSaveContext.nextCutsceneIndex = 0;
+    gSaveContext.chamberCutsceneNum = 0;
+    if ((*destination & kForeignEntrance) == 0) {
+        const auto resolved = ResolveOotEntrance(*destination);
+        if (!resolved.has_value()) {
+            SPDLOG_ERROR("[OoTMM] Unsupported OoT boss-warp target 0x{:X}", *destination);
+            return 0;
+        }
+        gPlayState->nextEntranceIndex = static_cast<int16_t>(*resolved);
+        sLastResolvedEntrance = *resolved;
+        return 1;
+    }
+
+    Ship::OotmmEntranceMapping mapping;
+    mapping.FromGame = Ship::OotmmGame::Oot;
+    mapping.From = "OoT boss warp";
+    mapping.ToGame = Ship::OotmmGame::Mm;
+    mapping.To = "MM dungeon exit";
+    mapping.ToNativeId = *destination & ~kForeignEntrance;
+    SPDLOG_INFO("[OoTMM] Boss warp {} -> MM entrance 0x{:X}", bossId, *mapping.ToNativeId);
+    BeginSavedCrossGameTransition(mapping);
     return 1;
 }
 

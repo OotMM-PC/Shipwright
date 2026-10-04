@@ -1,6 +1,7 @@
 #include "OotmmItemModels.h"
 
 #include "libultraship/bridge/OotmmItemRender.h"
+#include "soh/Enhancements/game-interactor/GameInteractor.h"
 #include "soh/ResourceManagerHelpers.h"
 
 #include <cmath>
@@ -27,6 +28,12 @@ extern "C" {
 }
 
 namespace {
+
+int32_t sSceneGeneration = 0;
+
+int32_t ModelCacheGeneration() {
+    return sSceneGeneration * 2 + (ResourceMgr_IsAltAssetsEnabled() ? 1 : 0);
+}
 
 constexpr const char* kOcarinaButtonModels[] = {
     "__OTR__objects/object_ocarina_a_button/gOcarinaAButtonDL",
@@ -669,6 +676,12 @@ bool DrawTranscendentFairy(PlayState* play, const Ship::OotmmRenderRecipe& recip
     static bool initialized = false;
     static std::string skeleton;
     static std::string animation;
+    static int32_t sGeneration = -1;
+    const int32_t generation = ModelCacheGeneration();
+    if (generation != sGeneration) {
+        sGeneration = generation;
+        initialized = false;
+    }
     if (!initialized) {
         skeleton =
             Ship::OotmmItemRenderCatalog::ResourcePath(recipe, 0, Ship::OotmmModelGame::Oot);
@@ -1075,17 +1088,28 @@ float PondFishScale(std::string_view id) {
     return actual / base;
 }
 
+struct AnimatedFish {
+    SkelAnime AnimationState{};
+    std::string Skeleton;
+    std::string Animation;
+    bool Initialized = false;
+};
+
+AnimatedFish sFishModels[2];
+
 bool DrawPondFish(PlayState* play, std::string_view id,
                   const Ship::OotmmRenderRecipe& recipe) {
-    struct AnimatedFish {
-        SkelAnime AnimationState{};
-        std::string Skeleton;
-        std::string Animation;
-        bool Initialized = false;
-    };
-    static AnimatedFish fishModels[2];
+    static int32_t sGeneration = -1;
+    const int32_t generation = ModelCacheGeneration();
+    if (generation != sGeneration) {
+        sGeneration = generation;
+        for (AnimatedFish& cached : sFishModels) {
+            cached.Initialized = false;
+        }
+    }
+
     const size_t variant = recipe.Param == 1 ? 1 : 0;
-    AnimatedFish& fish = fishModels[variant];
+    AnimatedFish& fish = sFishModels[variant];
     if (!fish.Initialized) {
         fish.Skeleton =
             Ship::OotmmItemRenderCatalog::ResourcePath(recipe, 0, Ship::OotmmModelGame::Oot);
@@ -1457,6 +1481,9 @@ bool OotmmItemModel_Draw(PlayState* play, const Ship::OotmmItemDefinition& item)
 }
 
 bool OotmmItemModel_DrawById(PlayState* play, const std::string& itemId, const std::string& itemName) {
+    if (Ship::OotmmItemCatalog::IsNothing(itemId)) {
+        return true;
+    }
     const auto item = Ship::OotmmItemCatalog::DescribeModel(itemId, itemName);
     const bool customFirst = itemId.find("_SOUL_") != std::string::npos ||
                              itemId.find("_COIN_") != std::string::npos ||
@@ -1476,4 +1503,9 @@ bool OotmmItemModel_DrawById(PlayState* play, const std::string& itemId, const s
     }
     const int32_t drawId = EquipmentDrawId(itemId);
     return drawId >= 0 && DrawNative(play, drawId);
+}
+
+void OotmmItemModels_Init() {
+    GameInteractor::Instance->RegisterGameHook<GameInteractor::OnSceneInit>(
+        [](int16_t) { sSceneGeneration++; });
 }

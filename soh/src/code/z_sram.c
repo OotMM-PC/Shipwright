@@ -78,74 +78,75 @@ void Sram_OpenSave() {
 
     Save_LoadFile();
 
-    switch (gSaveContext.savedSceneNum) {
-        case SCENE_DEKU_TREE:
-        case SCENE_DODONGOS_CAVERN:
-        case SCENE_JABU_JABU:
-        case SCENE_FOREST_TEMPLE:
-        case SCENE_FIRE_TEMPLE:
-        case SCENE_WATER_TEMPLE:
-        case SCENE_SPIRIT_TEMPLE:
-        case SCENE_SHADOW_TEMPLE:
-        case SCENE_BOTTOM_OF_THE_WELL:
-        case SCENE_ICE_CAVERN:
-        case SCENE_GANONS_TOWER:
-        case SCENE_GERUDO_TRAINING_GROUND:
-        case SCENE_THIEVES_HIDEOUT:
-        case SCENE_INSIDE_GANONS_CASTLE:
-            gSaveContext.entranceIndex = sDungeonEntrances[gSaveContext.savedSceneNum];
-            break;
-        case SCENE_DEKU_TREE_BOSS:
-            gSaveContext.entranceIndex = ENTR_DEKU_TREE_ENTRANCE;
-            break;
-        case SCENE_DODONGOS_CAVERN_BOSS:
-            gSaveContext.entranceIndex = ENTR_DODONGOS_CAVERN_ENTRANCE;
-            break;
-        case SCENE_JABU_JABU_BOSS:
-            gSaveContext.entranceIndex = ENTR_JABU_JABU_ENTRANCE;
-            break;
-        case SCENE_FOREST_TEMPLE_BOSS:
-            gSaveContext.entranceIndex = ENTR_FOREST_TEMPLE_ENTRANCE;
-            break;
-        case SCENE_FIRE_TEMPLE_BOSS:
-            gSaveContext.entranceIndex = ENTR_FIRE_TEMPLE_ENTRANCE;
-            break;
-        case SCENE_WATER_TEMPLE_BOSS:
-            gSaveContext.entranceIndex = ENTR_WATER_TEMPLE_ENTRANCE;
-            break;
-        case SCENE_SPIRIT_TEMPLE_BOSS:
-            gSaveContext.entranceIndex = ENTR_SPIRIT_TEMPLE_ENTRANCE;
-            break;
-        case SCENE_SHADOW_TEMPLE_BOSS:
-            gSaveContext.entranceIndex = ENTR_SHADOW_TEMPLE_ENTRANCE;
-            break;
-        case SCENE_GANONS_TOWER_COLLAPSE_INTERIOR:
-        case SCENE_INSIDE_GANONS_CASTLE_COLLAPSE:
-        case SCENE_GANONDORF_BOSS:
-        case SCENE_GANONS_TOWER_COLLAPSE_EXTERIOR:
-        case SCENE_GANON_BOSS:
-            gSaveContext.entranceIndex = ENTR_GANONS_TOWER_0;
-            break;
-
-        default:
-            if (OotmmSession_IsActive()) {
-                OotmmSession_FixLoadSpawn();
+    if (OotmmSession_IsActive()) {
+        OotmmSession_FixLoadSpawn();
+    } else {
+        switch (gSaveContext.savedSceneNum) {
+            case SCENE_DEKU_TREE:
+            case SCENE_DODONGOS_CAVERN:
+            case SCENE_JABU_JABU:
+            case SCENE_FOREST_TEMPLE:
+            case SCENE_FIRE_TEMPLE:
+            case SCENE_WATER_TEMPLE:
+            case SCENE_SPIRIT_TEMPLE:
+            case SCENE_SHADOW_TEMPLE:
+            case SCENE_BOTTOM_OF_THE_WELL:
+            case SCENE_ICE_CAVERN:
+            case SCENE_GANONS_TOWER:
+            case SCENE_GERUDO_TRAINING_GROUND:
+            case SCENE_THIEVES_HIDEOUT:
+            case SCENE_INSIDE_GANONS_CASTLE:
+                gSaveContext.entranceIndex = sDungeonEntrances[gSaveContext.savedSceneNum];
                 break;
-            }
-
-            // Use the saved entrance value with remember save location, except when in grottos/fairy fountains
-            if (CVarGetInteger(CVAR_ENHANCEMENT("RememberSaveLocation"), 0) &&
-                gSaveContext.savedSceneNum != SCENE_FAIRYS_FOUNTAIN && gSaveContext.savedSceneNum != SCENE_GROTTOS) {
+            case SCENE_DEKU_TREE_BOSS:
+                gSaveContext.entranceIndex = ENTR_DEKU_TREE_ENTRANCE;
                 break;
-            }
+            case SCENE_DODONGOS_CAVERN_BOSS:
+                gSaveContext.entranceIndex = ENTR_DODONGOS_CAVERN_ENTRANCE;
+                break;
+            case SCENE_JABU_JABU_BOSS:
+                gSaveContext.entranceIndex = ENTR_JABU_JABU_ENTRANCE;
+                break;
+            case SCENE_FOREST_TEMPLE_BOSS:
+                gSaveContext.entranceIndex = ENTR_FOREST_TEMPLE_ENTRANCE;
+                break;
+            case SCENE_FIRE_TEMPLE_BOSS:
+                gSaveContext.entranceIndex = ENTR_FIRE_TEMPLE_ENTRANCE;
+                break;
+            case SCENE_WATER_TEMPLE_BOSS:
+                gSaveContext.entranceIndex = ENTR_WATER_TEMPLE_ENTRANCE;
+                break;
+            case SCENE_SPIRIT_TEMPLE_BOSS:
+                gSaveContext.entranceIndex = ENTR_SPIRIT_TEMPLE_ENTRANCE;
+                break;
+            case SCENE_SHADOW_TEMPLE_BOSS:
+                gSaveContext.entranceIndex = ENTR_SHADOW_TEMPLE_ENTRANCE;
+                break;
+            case SCENE_GANONS_TOWER_COLLAPSE_INTERIOR:
+            case SCENE_INSIDE_GANONS_CASTLE_COLLAPSE:
+            case SCENE_GANONDORF_BOSS:
+            case SCENE_GANONS_TOWER_COLLAPSE_EXTERIOR:
+            case SCENE_GANON_BOSS:
+                gSaveContext.entranceIndex = ENTR_GANONS_TOWER_0;
+                break;
 
-            if (gSaveContext.savedSceneNum != SCENE_LINKS_HOUSE) {
-                gSaveContext.entranceIndex =
-                    (LINK_AGE_IN_YEARS == YEARS_CHILD) ? ENTR_LINKS_HOUSE_CHILD_SPAWN : ENTR_TEMPLE_OF_TIME_WARP_PAD;
-            } else {
-                gSaveContext.entranceIndex = ENTR_LINKS_HOUSE_CHILD_SPAWN;
-            }
-            break;
+            default:
+                // Use the saved entrance value with remember save location, except when in grottos/fairy fountains
+                if (CVarGetInteger(CVAR_ENHANCEMENT("RememberSaveLocation"), 0) &&
+                    gSaveContext.savedSceneNum != SCENE_FAIRYS_FOUNTAIN &&
+                    gSaveContext.savedSceneNum != SCENE_GROTTOS) {
+                    break;
+                }
+
+                if (gSaveContext.savedSceneNum != SCENE_LINKS_HOUSE) {
+                    gSaveContext.entranceIndex = (LINK_AGE_IN_YEARS == YEARS_CHILD)
+                                                     ? ENTR_LINKS_HOUSE_CHILD_SPAWN
+                                                     : ENTR_TEMPLE_OF_TIME_WARP_PAD;
+                } else {
+                    gSaveContext.entranceIndex = ENTR_LINKS_HOUSE_CHILD_SPAWN;
+                }
+                break;
+        }
     }
 
     if (!CVarGetInteger(CVAR_ENHANCEMENT("PersistentMasks"), 0)) {

@@ -134,6 +134,10 @@ void Title_Main(GameState* thisx) {
     Title_Calc(this);
     Title_Draw(this);
 
+    if (OotmmSession_TryBootDirectly(&this->state)) {
+        this->exit = false;
+    }
+
     if (this->exit) {
         gSaveContext.seqId = (u8)NA_BGM_DISABLED;
         gSaveContext.natureAmbienceId = 0xFF;

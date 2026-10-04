@@ -7,6 +7,8 @@
 #include "z_en_takara_man.h"
 #include "vt.h"
 #include "objects/object_ts/object_ts.h"
+#include "soh/OotmmDungeons.h"
+#include "soh/OotmmNpcChecks.h"
 #include "soh/OTRGlobals.h"
 #include "soh/ResourceManagerHelpers.h"
 
@@ -59,8 +61,10 @@ void EnTakaraMan_Init(Actor* thisx, PlayState* play) {
     osSyncPrintf("\n\n");
     // "Bun! %x" (needs a better translation)
     osSyncPrintf(VT_FGCOL(PURPLE) "☆☆☆☆☆ ばぅん！ ☆☆☆☆☆ %x\n" VT_RST, play->actorCtx.flags.chest);
-    play->actorCtx.flags.chest = 0;
-    gSaveContext.inventory.dungeonKeys[gSaveContext.mapIndex] = -1;
+    if (!OotmmDungeons_ChestGameKeepsProgress()) {
+        play->actorCtx.flags.chest = 0;
+        gSaveContext.inventory.dungeonKeys[gSaveContext.mapIndex] = -1;
+    }
     SkelAnime_InitFlex(play, &this->skelAnime, &object_ts_Skel_004FE0, &object_ts_Anim_000498, this->jointTable,
                        this->morphTable, 10);
     thisx->focus.pos = thisx->world.pos;
@@ -148,8 +152,12 @@ void func_80B17934(EnTakaraMan* this, PlayState* play) {
                     Rupees_ChangeBy(-10);
                     this->unk_214 = 1;
                     this->actor.parent = NULL;
-                    Actor_OfferGetItem(&this->actor, play, GI_DOOR_KEY, 2000.0f, 1000.0f);
-                    this->actionFunc = func_80B17A6C;
+                    if (OotmmNpcChecks_Collect("OOT_CHEST_GAME_KEY")) {
+                        this->actionFunc = func_80B17AC4;
+                    } else {
+                        Actor_OfferGetItem(&this->actor, play, GI_DOOR_KEY, 2000.0f, 1000.0f);
+                        this->actionFunc = func_80B17A6C;
+                    }
                 } else {
                     Message_CloseTextbox(play);
                     this->actor.textId = 0x85;

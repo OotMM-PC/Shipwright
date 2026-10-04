@@ -9,6 +9,7 @@
 #include "scenes/indoors/nakaniwa/nakaniwa_scene.h"
 #include "soh/ResourceManagerHelpers.h"
 #include "soh/Enhancements/game-interactor/GameInteractor_Hooks.h"
+#include "soh/OotmmNpcChecks.h"
 
 #define FLAGS (ACTOR_FLAG_ATTENTION_ENABLED | ACTOR_FLAG_FRIENDLY | ACTOR_FLAG_UPDATE_CULLING_DISABLED)
 
@@ -211,13 +212,15 @@ u16 EnZl4_GetText(PlayState* play, Actor* thisx) {
     }
 
     stoneCount = 0;
-    if (CHECK_QUEST_ITEM(QUEST_KOKIRI_EMERALD)) {
+    if (OotmmNpcChecks_DungeonBeaten(EVENTCHKINF_USED_DEKU_TREE_BLUE_WARP, CHECK_QUEST_ITEM(QUEST_KOKIRI_EMERALD))) {
         stoneCount = 1;
     }
-    if (CHECK_QUEST_ITEM(QUEST_GORON_RUBY)) {
+    if (OotmmNpcChecks_DungeonBeaten(EVENTCHKINF_USED_DODONGOS_CAVERN_BLUE_WARP,
+                                     CHECK_QUEST_ITEM(QUEST_GORON_RUBY))) {
         stoneCount++;
     }
-    if (CHECK_QUEST_ITEM(QUEST_ZORA_SAPPHIRE)) {
+    if (OotmmNpcChecks_DungeonBeaten(EVENTCHKINF_USED_JABU_JABUS_BELLY_BLUE_WARP,
+                                     CHECK_QUEST_ITEM(QUEST_ZORA_SAPPHIRE))) {
         stoneCount++;
     }
 

@@ -16,6 +16,7 @@
 #include "objects/object_os_anime/object_os_anime.h"
 #include "soh/ResourceManagerHelpers.h"
 #include "soh/Enhancements/game-interactor/GameInteractor_Hooks.h"
+#include "soh/OotmmNpcChecks.h"
 
 #define FLAGS (ACTOR_FLAG_ATTENTION_ENABLED | ACTOR_FLAG_FRIENDLY | ACTOR_FLAG_UPDATE_CULLING_DISABLED)
 
@@ -678,6 +679,10 @@ s16 func_80A70058(PlayState* play, Actor* thisx) {
                     if (GameInteractor_Should(VB_GIVE_ITEM_FROM_LOST_DOG, true, this)) {
                         func_80A6F7CC(this, play, Flags_GetInfTable(INFTABLE_191) ? GI_RUPEE_BLUE : GI_HEART_PIECE);
                         this->actionFunc = func_80A714C4;
+                    } else {
+                        gSaveContext.dogParams = 0;
+                        gSaveContext.dogIsLost = false;
+                        SET_INFTABLE(INFTABLE_191);
                     }
                     break;
             }

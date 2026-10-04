@@ -158,6 +158,9 @@ void func_80A891C4(EnJs* this, PlayState* play) {
                             Message_ContinueTextbox(play, 0x6073);
                             func_80A89008(this);
                         }
+                    } else {
+                        Rupees_ChangeBy(-200);
+                        En_Js_SetupAction(this, func_80A8910C);
                     }
                 }
                 break;

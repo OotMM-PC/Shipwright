@@ -4,6 +4,8 @@
 #include "soh/util.h"
 #include "ResourceManagerHelpers.h"
 #include "OotmmSession.h"
+#include "OotmmItemApply.h"
+#include "OotmmCheckLedger.h"
 
 #include "z64.h"
 #include "cvar_prefixes.h"
@@ -11,6 +13,7 @@
 #include "macros.h"
 #include <variables.h>
 #include <libultraship/libultraship.h>
+#include <libultraship/bridge/OotmmMagic.h>
 #include "soh/SohGui/SohGui.hpp"
 
 #define NOGDI // avoid various windows defines that conflict with things in z64.h
@@ -19,7 +22,10 @@
 #include <fstream>
 #include <filesystem>
 #include <array>
+#include <cstdlib>
 #include <mutex>
+#include <memory>
+#include <ship/utils/AtomicFile.h>
 
 extern "C" SaveContext gSaveContext;
 using namespace std::string_literals;
@@ -78,6 +84,19 @@ SaveManager::SaveManager() {
 
     GameInteractor::Instance->RegisterGameHook<GameInteractor::OnExitGame>(
         [this](uint32_t fileNum) { ThreadPoolWait(); });
+
+    GameInteractor::Instance->RegisterGameHook<GameInteractor::OnGameFrameUpdate>(
+        [this, failureNotified = false]() mutable {
+            if (!lastWriteFailed.load()) {
+                failureNotified = false;
+                return;
+            }
+            if (!failureNotified) {
+                Ship::Context::GetInstance()->GetWindow()->GetGui()->GetGameOverlay()->TextDrawNotification(
+                    30.0f, true, "Save failed. The previous save has been preserved. See the log for details.");
+                failureNotified = true;
+            }
+        });
 
     smThreadPool = std::make_shared<BS::thread_pool>(1);
 
@@ -731,77 +750,113 @@ int copy_file(const char* src, const char* dst) {
 
 // Threaded SaveFile takes copy of gSaveContext for local unmodified storage
 
-void SaveManager::SaveFileThreaded(int fileNum, SaveContext* saveContext, int sectionID) {
-    saveMtx.lock();
-    SPDLOG_INFO("Save File - fileNum: {}", fileNum);
-    // Needed for first time save, hasn't changed in forever anyway
-    saveBlock["version"] = 1;
-    saveBlock["fileType"] = FILE_TYPE_SAVE_VANILLA;
-    if (sectionID == SECTION_ID_BASE) {
-        for (auto& sectionHandlerPair : sectionSaveHandlers) {
-            auto& saveFuncInfo = sectionHandlerPair.second;
-            // Don't call SaveFuncs for sections that aren't tied to game save
-            if (!saveFuncInfo.saveWithBase) {
-                continue;
+void SaveManager::SaveFileThreaded(int fileNum, SaveContext* saveContext, int sectionID, nlohmann::json ootmmSnapshot) {
+    std::unique_ptr<SaveContext> ownedSave(saveContext);
+    std::lock_guard<std::mutex> lock(saveMtx);
+    bool written = false;
+    try {
+        if (sectionID == SECTION_ID_BASE && fileNum >= 0 && fileNum < MaxFiles) {
+            baseSaveSucceeded[fileNum].store(false);
+        }
+        SPDLOG_INFO("Save File - fileNum: {}", fileNum);
+        // Needed for first time save, hasn't changed in forever anyway
+        saveBlock["version"] = 1;
+        saveBlock["fileType"] = FILE_TYPE_SAVE_VANILLA;
+        if (sectionID == SECTION_ID_BASE) {
+            for (auto& sectionHandlerPair : sectionSaveHandlers) {
+                auto& saveFuncInfo = sectionHandlerPair.second;
+                // Don't call SaveFuncs for sections that aren't tied to game save
+                if (!saveFuncInfo.saveWithBase) {
+                    continue;
+                }
+                nlohmann::json& sectionBlock = saveBlock["sections"][saveFuncInfo.name];
+                sectionBlock["version"] = sectionHandlerPair.second.version;
+
+                currentJsonContext = &sectionBlock["data"];
+                sectionHandlerPair.second.func(saveContext, sectionID, true);
             }
-            nlohmann::json& sectionBlock = saveBlock["sections"][saveFuncInfo.name];
-            sectionBlock["version"] = sectionHandlerPair.second.version;
-
+        } else {
+            SaveFuncInfo svi = sectionSaveHandlers.find(sectionID)->second;
+            auto& sectionName = svi.name;
+            auto sectionVersion = svi.version;
+            // If section has a parentSection, it is a subsection. Load parentSection version and set sectionBlock to parent
+            // string
+            if (svi.parentSection != -1 && svi.parentSection < sectionIndex) {
+                auto parentSvi = sectionSaveHandlers.find(svi.parentSection)->second;
+                sectionName = parentSvi.name;
+                sectionVersion = parentSvi.version;
+            }
+            nlohmann::json& sectionBlock = saveBlock["sections"][sectionName];
+            sectionBlock["version"] = sectionVersion;
             currentJsonContext = &sectionBlock["data"];
-            sectionHandlerPair.second.func(saveContext, sectionID, true);
+            svi.func(saveContext, sectionID, false);
         }
-    } else {
-        SaveFuncInfo svi = sectionSaveHandlers.find(sectionID)->second;
-        auto& sectionName = svi.name;
-        auto sectionVersion = svi.version;
-        // If section has a parentSection, it is a subsection. Load parentSection version and set sectionBlock to parent
-        // string
-        if (svi.parentSection != -1 && svi.parentSection < sectionIndex) {
-            auto parentSvi = sectionSaveHandlers.find(svi.parentSection)->second;
-            sectionName = parentSvi.name;
-            sectionVersion = parentSvi.version;
+
+        if (sectionID == SECTION_ID_BASE && !ootmmSnapshot.is_null()) {
+            saveBlock["ootmmApplied"] = std::move(ootmmSnapshot["applied"]);
+            if (!ootmmSnapshot["shared"].is_null()) {
+                saveBlock["ootmmSharedResources"] = std::move(ootmmSnapshot["shared"]);
+            } else {
+                saveBlock.erase("ootmmSharedResources");
+            }
+            saveBlock["sections"]["ootmmChecks"] = {
+                {"version", 1}, {"data", {{"checks", std::move(ootmmSnapshot["checks"])}}}
+            };
         }
-        nlohmann::json& sectionBlock = saveBlock["sections"][sectionName];
-        sectionBlock["version"] = sectionVersion;
-        currentJsonContext = &sectionBlock["data"];
-        svi.func(saveContext, sectionID, false);
-    }
+        std::filesystem::path fileName = GetFileName(fileNum);
+#ifdef _WIN32
+        std::error_code error;
+        if (!Ship::WriteFileAtomically(fileName, saveBlock.dump(1) + "\n", error)) {
+            lastWriteFailed.store(true);
+            SPDLOG_ERROR("Failed to save file {}: {}. Previous save preserved.", fileNum, error.message());
+            return;
+        }
+#else
+        std::filesystem::path tempFile = GetFileTempName(fileNum);
 
-    std::filesystem::path fileName = GetFileName(fileNum);
-    std::filesystem::path tempFile = GetFileTempName(fileNum);
-
-    if (std::filesystem::exists(tempFile)) {
-        std::filesystem::remove(tempFile);
-    }
+        if (std::filesystem::exists(tempFile)) {
+            std::filesystem::remove(tempFile);
+        }
 
 #if defined(__SWITCH__) || defined(__WIIU__)
-    FILE* w = fopen(tempFile.c_str(), "w");
-    std::string json_string = saveBlock.dump(1);
-    fwrite(json_string.c_str(), sizeof(char), json_string.length(), w);
-    fclose(w);
+        FILE* w = fopen(tempFile.c_str(), "w");
+        std::string json_string = saveBlock.dump(1);
+        fwrite(json_string.c_str(), sizeof(char), json_string.length(), w);
+        fclose(w);
 #else
-    std::ofstream output(tempFile);
-    output << std::setw(1) << saveBlock << std::endl;
-    output.close();
+        std::ofstream output(tempFile);
+        output << std::setw(1) << saveBlock << std::endl;
+        output.close();
 #endif
 
 #if defined(__SWITCH__) || defined(__WIIU__)
-    if (std::filesystem::exists(fileName)) {
-        std::filesystem::remove(fileName);
-    }
-    copy_file(tempFile.c_str(), fileName.c_str());
-    if (std::filesystem::exists(tempFile)) {
-        std::filesystem::remove(tempFile);
-    }
+        if (std::filesystem::exists(fileName)) {
+            std::filesystem::remove(fileName);
+        }
+        copy_file(tempFile.c_str(), fileName.c_str());
+        if (std::filesystem::exists(tempFile)) {
+            std::filesystem::remove(tempFile);
+        }
 #else
-    std::filesystem::rename(tempFile, fileName);
+        std::filesystem::rename(tempFile, fileName);
 #endif
 
-    delete saveContext;
-    InitMeta(fileNum);
-    GameInteractor::Instance->ExecuteHooks<GameInteractor::OnSaveFile>(fileNum, sectionID);
-    SPDLOG_INFO("Save File Finish - fileNum: {}", fileNum);
-    saveMtx.unlock();
+#endif
+        written = true;
+        lastWriteFailed.store(false);
+        if (sectionID == SECTION_ID_BASE && fileNum >= 0 && fileNum < MaxFiles) {
+            baseSaveSucceeded[fileNum].store(true);
+        }
+        InitMeta(fileNum);
+        GameInteractor::Instance->ExecuteHooks<GameInteractor::OnSaveFile>(fileNum, sectionID);
+        SPDLOG_INFO("Save File Finish - fileNum: {}", fileNum);
+    } catch (const std::exception& error) {
+        if (!written) {
+            lastWriteFailed.store(true);
+        }
+        SPDLOG_ERROR("{} for file {}: {}", written ? "Post-save processing failed" : "Saving failed",
+                     fileNum, error.what());
+    }
 }
 
 // SaveSection creates a copy of gSaveContext to prevent mid-save data modification, and passes its reference to
@@ -816,12 +871,42 @@ void SaveManager::SaveSection(int fileNum, int sectionID, bool threaded) {
         SPDLOG_ERROR("SaveSection: Section ID not registered.");
         return;
     }
+    if (sectionID == SECTION_ID_BASE && fileNum >= 0 && fileNum < MaxFiles) {
+        baseSaveSucceeded[fileNum].store(false);
+    }
+    nlohmann::json appliedSnapshot;
+    if (sectionID == SECTION_ID_BASE && !OotmmItemApply_CaptureSnapshot(appliedSnapshot)) {
+        lastWriteFailed.store(true);
+        SPDLOG_ERROR("[OoTMM] Save blocked by invalid applied-item snapshot");
+        return;
+    }
+    nlohmann::json sharedSnapshot;
+    if (sectionID == SECTION_ID_BASE && !OotmmItemApply_CaptureSharedSnapshot(sharedSnapshot)) {
+        lastWriteFailed.store(true);
+        SPDLOG_ERROR("[OoTMM] Save blocked by invalid shared resources");
+        return;
+    }
+    nlohmann::json ootmmSnapshot;
+    if (!appliedSnapshot.is_null()) {
+        ootmmSnapshot = {{"applied", std::move(appliedSnapshot)},
+                         {"checks", OotmmCheckLedger_CaptureSnapshot()},
+                         {"shared", std::move(sharedSnapshot)}};
+    }
     auto saveContext = new SaveContext;
     memcpy(saveContext, &gSaveContext, sizeof(gSaveContext));
+    if (sectionID == SECTION_ID_BASE && !ootmmSnapshot.is_null()) {
+        const bool adding = saveContext->magicState == MAGIC_STATE_ADD;
+        const bool pending = adding || saveContext->magicState == MAGIC_STATE_STEP_CAPACITY ||
+                             saveContext->magicState == MAGIC_STATE_FILL ||
+                             (saveContext->isMagicAcquired && saveContext->magicLevel == 0);
+        saveContext->magic = static_cast<s8>(Ship::ResolveOotmmMagicSaveValue(
+            saveContext->magic, adding ? saveContext->magicTarget : saveContext->magicFillTarget,
+            saveContext->isMagicAcquired != 0, saveContext->isDoubleMagicAcquired != 0, pending));
+    }
     if (threaded) {
-        smThreadPool->detach_task(std::bind(&SaveManager::SaveFileThreaded, this, fileNum, saveContext, sectionID));
+        smThreadPool->detach_task(std::bind(&SaveManager::SaveFileThreaded, this, fileNum, saveContext, sectionID, ootmmSnapshot));
     } else {
-        SaveFileThreaded(fileNum, saveContext, sectionID);
+        SaveFileThreaded(fileNum, saveContext, sectionID, std::move(ootmmSnapshot));
     }
 }
 
@@ -896,6 +981,23 @@ void SaveManager::LoadFile(int fileNum) {
                 assert(false);
                 break;
         }
+        if (OotmmSession_IsActive()) {
+            if (!saveBlock.contains("ootmmApplied")) {
+                saveBlock["ootmmApplied"] = OotmmItemApply_LegacySnapshot(fileNum);
+                std::error_code error;
+                if (!saveBlock["ootmmApplied"].is_object() ||
+                    !Ship::WriteFileAtomically(fileName, saveBlock.dump(1) + "\n", error)) {
+                    OotmmItemApply_SetSaveSnapshot(fileNum, false);
+                    SPDLOG_ERROR("[OoTMM] Failed to initialize applied-item snapshot: {}", error.message());
+                } else {
+                    OotmmItemApply_SetSaveSnapshot(fileNum, saveBlock["ootmmApplied"],
+                        saveBlock.value("ootmmSharedResources", nlohmann::json(nullptr)));
+                }
+            } else {
+                OotmmItemApply_SetSaveSnapshot(fileNum, saveBlock["ootmmApplied"],
+                        saveBlock.value("ootmmSharedResources", nlohmann::json(nullptr)));
+            }
+        }
         InitMeta(fileNum);
         GameInteractor::Instance->ExecuteHooks<GameInteractor::OnLoadFile>(fileNum);
     } catch (const std::exception& e) {
@@ -922,6 +1024,14 @@ void SaveManager::ThreadPoolWait() {
     if (smThreadPool) {
         smThreadPool->wait();
     }
+}
+
+bool SaveManager::IsSaving() const {
+    return smThreadPool->get_tasks_total() != 0;
+}
+
+bool SaveManager::LastBaseSaveSucceeded(int fileNum) const {
+    return fileNum >= 0 && fileNum < MaxFiles && baseSaveSucceeded[fileNum].load();
 }
 
 bool SaveManager::SaveFile_Exist(int fileNum) {
@@ -2030,12 +2140,27 @@ void SaveManager::LoadStruct(const std::string& name, LoadStructFunc func) {
 
 void SaveManager::CopyZeldaFile(int from, int to) {
     assert(std::filesystem::exists(GetFileName(from)));
-    DeleteZeldaFile(to);
+    if (OotmmSession_IsActive() && OotmmSession_GetState().GetBoolSetting("sharedBombchu", false)) {
+        std::ifstream input(GetFileName(from));
+        auto copied = nlohmann::json::parse(input, nullptr, false);
+        std::error_code error;
+        if (!copied.is_object()) {
+            SPDLOG_ERROR("[OoTMM] Cannot copy invalid native save");
+            return;
+        }
+        copied.erase("ootmmSharedResources");
+        if (!Ship::WriteFileAtomically(GetFileName(to), copied.dump(1) + "\n", error)) {
+            SPDLOG_ERROR("[OoTMM] Cannot copy native save: {}", error.message());
+            return;
+        }
+    } else {
+        DeleteZeldaFile(to);
 #if defined(__WIIU__) || defined(__SWITCH__)
-    copy_file(GetFileName(from).c_str(), GetFileName(to).c_str());
+        copy_file(GetFileName(from).c_str(), GetFileName(to).c_str());
 #else
-    std::filesystem::copy_file(GetFileName(from), GetFileName(to));
+        std::filesystem::copy_file(GetFileName(from), GetFileName(to));
 #endif
+    }
     fileMetaInfo[to].valid = true;
     fileMetaInfo[to].deaths = fileMetaInfo[from].deaths;
     for (int i = 0; i < ARRAY_COUNT(fileMetaInfo[to].playerName); i++) {

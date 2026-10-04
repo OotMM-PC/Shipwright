@@ -1,9 +1,9 @@
 #include "OotmmDrops.h"
 
 #include "Enhancements/game-interactor/GameInteractor.h"
+#include "OotmmCheckLedger.h"
 #include "OotmmIpc.h"
 #include "OotmmItemModels.h"
-#include "OotmmItemPresentation.h"
 #include "OotmmSession.h"
 
 #include <random>
@@ -19,6 +19,8 @@ extern "C" {
 extern PlayState* gPlayState;
 }
 
+extern "C" void OotmmDrops_DrawActor(Actor* actor, PlayState* play);
+
 namespace {
 
 struct Drop {
@@ -26,12 +28,13 @@ struct Drop {
     std::string ItemName;
     std::string ItemGame;
     std::string CheckId;
+    uint32_t RecipientPlayer;
+    int CollectibleFlag;
     // What the drop draws as; differs from the item itself for disguised traps.
     std::string DrawItemId;
     std::string DrawItemName;
 };
 
-// A trap must not advertise itself: disguise it as a random major item from the seed.
 void PickDisguise(std::string& drawItemId, std::string& drawItemName) {
     std::vector<const Ship::OotmmPlacement*> majors;
     for (const auto& placement : OotmmSession_GetState().GetPlacements()) {
@@ -57,17 +60,31 @@ constexpr s16 kDespawnRefresh = 220;
 constexpr float kWorldScale = 0.25f;
 
 void Present(const Drop& drop) {
-    Ship::GameIpcItemPresentation presentation;
-    presentation.ItemId = drop.ItemId;
-    presentation.ItemName = drop.ItemName;
-    presentation.ItemGame = drop.ItemGame;
-    presentation.DestinationGame = drop.ItemGame;
-    const uint32_t self = OotmmSession_GetState().GetPlayerId();
-    presentation.SourcePlayer = self;
-    presentation.RecipientPlayer = self;
-    presentation.ViewerPlayer = self;
-    presentation.Debug = drop.CheckId.empty();
-    OotmmItemPresentation_Queue(std::move(presentation));
+    if (drop.CheckId.empty()) {
+        OotmmIpc_RequestDebugItemPresentation(drop.ItemId, OotmmSession_GetState().GetPlayerId());
+        return;
+    }
+    const bool collected = OotmmCheckLedger_Contains(drop.CheckId) || OotmmIpc_IsCheckCompleted(drop.CheckId);
+    OotmmIpc_SendCheckCollected(drop.CheckId, !collected);
+    OotmmCheckLedger_Record(drop.CheckId);
+}
+
+Actor* Spawn(PlayState* play, float x, float y, float z, Drop drop) {
+    if (play == nullptr) {
+        return nullptr;
+    }
+    Vec3f pos = { x, y, z };
+    EnItem00* item = Item_DropCollectible(play, &pos, ITEM00_RUPEE_GREEN);
+    if (item == nullptr) {
+        return nullptr;
+    }
+    item->actor.draw = OotmmDrops_DrawActor;
+    item->unk_15A = kDespawnRefresh;
+    if (Ship::OotmmItemCatalog::IsTrap(drop.ItemId)) {
+        PickDisguise(drop.DrawItemId, drop.DrawItemName);
+    }
+    sDrops.emplace(&item->actor, std::move(drop));
+    return &item->actor;
 }
 
 } // namespace
@@ -90,23 +107,20 @@ extern "C" void OotmmDrops_DrawActor(Actor* actor, PlayState* play) {
 bool OotmmDrops_Spawn(PlayState* play, float x, float y, float z, const std::string& itemId,
                       const std::string& itemName, const std::string& itemGame,
                       const std::string& checkId) {
-    if (play == nullptr) {
-        return false;
-    }
-    Vec3f pos = { x, y, z };
-    EnItem00* item = Item_DropCollectible(play, &pos, ITEM00_RUPEE_GREEN);
-    if (item == nullptr) {
-        return false;
-    }
-    item->actor.draw = OotmmDrops_DrawActor;
-    item->unk_15A = kDespawnRefresh;
-    std::string drawItemId = itemId;
-    std::string drawItemName = itemName;
-    if (Ship::OotmmItemCatalog::IsTrap(itemId)) {
-        PickDisguise(drawItemId, drawItemName);
-    }
-    sDrops.emplace(&item->actor, Drop{ itemId, itemName, itemGame, checkId, drawItemId, drawItemName });
-    return true;
+    const uint32_t self = OotmmSession_GetState().GetPlayerId();
+    return Spawn(play, x, y, z,
+                 Drop{ itemId, itemName, itemGame, checkId, self, -1, itemId, itemName }) != nullptr;
+}
+
+Actor* OotmmDrops_SpawnPlacement(PlayState* play, float x, float y, float z,
+                                 const Ship::OotmmPlacement& placement, int collectibleFlag) {
+    const std::string& drawItemId =
+        placement.CloakItemId.empty() ? placement.ItemId : placement.CloakItemId;
+    const std::string& drawItemName =
+        placement.CloakItemId.empty() ? placement.ItemName : placement.CloakItemName;
+    return Spawn(play, x, y, z,
+                 Drop{ placement.ItemId, placement.ItemName, placement.ItemGame, placement.CheckId,
+                       placement.OwnerPlayer, collectibleFlag, drawItemId, drawItemName });
 }
 
 void OotmmDrops_Init() {
@@ -116,10 +130,10 @@ void OotmmDrops_Init() {
         EnItem00* item = va_arg(args, EnItem00*);
         const auto it = sDrops.find(&item->actor);
         if (it != sDrops.end()) {
-            Present(it->second);
-            if (!it->second.CheckId.empty() && !OotmmIpc_IsCheckCompleted(it->second.CheckId)) {
-                OotmmIpc_SendCheckCollected(it->second.CheckId);
+            if (it->second.CollectibleFlag >= 0 && gPlayState != nullptr) {
+                Flags_SetCollectible(gPlayState, it->second.CollectibleFlag);
             }
+            Present(it->second);
             Actor_Kill(&item->actor);
             sDrops.erase(it);
             *should = false;

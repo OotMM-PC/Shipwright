@@ -2,6 +2,7 @@
 #include "objects/object_cs/object_cs.h"
 #include "objects/object_link_child/object_link_child.h"
 #include "soh/ResourceManagerHelpers.h"
+#include "soh/OotmmNpcChecks.h"
 
 #define FLAGS (ACTOR_FLAG_ATTENTION_ENABLED | ACTOR_FLAG_FRIENDLY)
 
@@ -189,9 +190,11 @@ s32 EnCs_GetTalkState(EnCs* this, PlayState* play) {
             if (Message_ShouldAdvance(play)) {
                 if (this->actor.textId == 0x2026) {
                     Player_UnsetMask(play);
-                    Item_Give(play, ITEM_SOLD_OUT);
+                    if (!OotmmNpcChecks_Collect("OOT_MASK_SELL_SPOOKY")) {
+                        Item_Give(play, ITEM_SOLD_OUT);
+                        Rupees_ChangeBy(30);
+                    }
                     Flags_SetItemGetInf(ITEMGETINF_3A);
-                    Rupees_ChangeBy(30);
                     this->actor.textId = 0x2027;
                     talkState = 2;
                 } else {

@@ -10,6 +10,7 @@ int OotmmDungeons_MaxSmallKeys(int sceneNum);
 int OotmmDungeons_SmallKeysRemoved(int sceneNum);
 int OotmmDungeons_DoorIsForcedOpen(int sceneNum, int switchFlag);
 int OotmmDungeons_BossDoorIsOpen(int sceneNum);
+int OotmmDungeons_ChestGameKeepsProgress(void);
 
 #ifdef __cplusplus
 }

@@ -13,6 +13,7 @@
 #include "soh/frame_interpolation.h"
 #include "soh/Enhancements/game-interactor/GameInteractor_Hooks.h"
 #include "soh/OotmmFishing.h"
+#include "soh/OotmmItemPresentation.h"
 
 #define FLAGS ACTOR_FLAG_UPDATE_CULLING_DISABLED
 #define WATER_SURFACE_Y(play) play->colCtx.colHeader->waterBoxes->ySurface
@@ -5121,8 +5122,8 @@ void Fishing_HandleOwnerDialog(Fishing* this, PlayState* play) {
                 // if we should give the check in rando
                 if (!GameInteractor_Should(VB_GIVE_FISHING_PRIZE, false, &fishData)) {
                     Actor_OfferGetItem(&this->actor, play, getItemId, 2000.0f, 1000.0f);
-                    this->stateAndTimer = 23;
                 }
+                this->stateAndTimer = 23;
             }
             break;
 
@@ -5171,9 +5172,15 @@ void Fishing_HandleOwnerDialog(Fishing* this, PlayState* play) {
             sIsRodVisible = false;
             if (Actor_HasParent(&this->actor, play)) {
                 this->stateAndTimer = 24;
-            } else {
-                if (!GameInteractor_Should(VB_GIVE_GLITCH_FISHING_PRIZE, false, this)) {
-                    Actor_OfferGetItem(&this->actor, play, GI_SCALE_GOLDEN, 2000.0f, 1000.0f);
+            } else if (!GameInteractor_Should(VB_GIVE_GLITCH_FISHING_PRIZE, false, this)) {
+                Actor_OfferGetItem(&this->actor, play, GI_SCALE_GOLDEN, 2000.0f, 1000.0f);
+            } else if (!OotmmItemPresentation_IsPending() && Message_GetState(&play->msgCtx) == TEXT_STATE_NONE &&
+                       !(GET_PLAYER(play)->stateFlags1 & PLAYER_STATE1_GETTING_ITEM)) {
+                if (sFishOnHandIsLoach == 0) {
+                    this->stateAndTimer = 0;
+                } else {
+                    Message_StartTextbox(play, 0x409C, NULL);
+                    this->stateAndTimer = 20;
                 }
             }
             break;

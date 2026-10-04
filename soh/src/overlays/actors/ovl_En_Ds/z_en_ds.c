@@ -208,6 +208,8 @@ void EnDs_OfferBluePotion(EnDs* this, PlayState* play) {
                             gSaveContext.ship.pendingSale = itemEntry.itemId;
                             gSaveContext.ship.pendingSaleMod = itemEntry.modIndex;
                             this->actionFunc = EnDs_GiveBluePotion;
+                        } else {
+                            this->actionFunc = EnDs_Talk;
                         }
 
                         return;

@@ -7,6 +7,7 @@
 #include "z_en_dns.h"
 #include "objects/object_shopnuts/object_shopnuts.h"
 #include "vt.h"
+#include "soh/OotmmSession.h"
 #include "soh/Enhancements/game-interactor/GameInteractor_Hooks.h"
 #include "soh/OTRGlobals.h"
 #include "soh/ResourceManagerHelpers.h"
@@ -235,7 +236,7 @@ u32 EnDns_CanBuyDekuShield(EnDns* this) {
 }
 
 u32 EnDns_CanBuyBombs(EnDns* this) {
-    if (!CHECK_QUEST_ITEM(QUEST_GORON_RUBY)) {
+    if (!OotmmSession_IsActive() && !CHECK_QUEST_ITEM(QUEST_GORON_RUBY)) {
         return DNS_CANBUY_RESULT_CANT_GET_NOW;
     }
     if (AMMO(ITEM_BOMB) >= CUR_CAPACITY(UPG_BOMB_BAG)) {

@@ -5,6 +5,7 @@
 #include "soh/frame_interpolation.h"
 #include "soh/ResourceManagerHelpers.h"
 #include "soh/Enhancements/game-interactor/GameInteractor_Hooks.h"
+#include "soh/OotmmSession.h"
 
 #define FLAGS                                                                                  \
     (ACTOR_FLAG_ATTENTION_ENABLED | ACTOR_FLAG_FRIENDLY | ACTOR_FLAG_UPDATE_CULLING_DISABLED | \
@@ -577,6 +578,22 @@ s16 EnGo2_UpdateTalkStateGoronCityLink(PlayState* play, EnGo2* this) {
 u16 EnGo2_GetTextIdGoronDmtBiggoron(PlayState* play, EnGo2* this) {
     Player* player = GET_PLAYER(play);
 
+    if (OotmmSession_IsActive()) {
+        switch (INV_CONTENT(ITEM_TRADE_ADULT)) {
+            case ITEM_SWORD_BROKEN:
+                player->exchangeItemId = EXCH_ITEM_SWORD_BROKEN;
+                return 0x3053;
+            case ITEM_EYEDROPS:
+                player->exchangeItemId = EXCH_ITEM_EYEDROPS;
+                return 0x3058;
+            case ITEM_CLAIM_CHECK:
+                player->exchangeItemId = EXCH_ITEM_CLAIM_CHECK;
+                return 0x305E;
+            default:
+                break;
+        }
+    }
+
     if (GameInteractor_Should(VB_BIGGORON_CONSIDER_TRADE_COMPLETE, gSaveContext.bgsFlag)) {
         player->exchangeItemId = EXCH_ITEM_CLAIM_CHECK;
         return 0x305E;
@@ -1026,10 +1043,42 @@ s32 EnGo2_IsRollingOnGround(EnGo2* this, s16 arg1, f32 arg2, s16 arg3) {
     return true;
 }
 
+s32 EnGo2_BiggoronOfferedTextId(PlayState* play, u16* textId) {
+    switch (func_8002F368(play)) {
+        case EXCH_ITEM_SWORD_BROKEN:
+            *textId = Flags_GetInfTable(INFTABLE_B4) ? 0x3055 : 0x3054;
+            return true;
+        case EXCH_ITEM_EYEDROPS:
+            *textId = 0x3059;
+            return true;
+        case EXCH_ITEM_CLAIM_CHECK:
+            if (GameInteractor_Should(VB_BIGGORON_CONSIDER_SWORD_COLLECTED, gSaveContext.bgsFlag)) {
+                return false;
+            }
+            *textId = GameInteractor_Should(VB_BIGGORON_CONSIDER_SWORD_FORGED,
+                                            Environment_GetBgsDayCount() >= 3)
+                          ? 0x305E
+                          : 0x305D;
+            return true;
+        default:
+            return false;
+    }
+}
+
 void EnGo2_BiggoronSetTextId(EnGo2* this, PlayState* play, Player* player) {
     u16 textId;
+    u16 offeredTextId;
 
     if ((this->actor.params & 0x1F) == GORON_DMT_BIGGORON) {
+        if (OotmmSession_IsActive() && EnGo2_BiggoronOfferedTextId(play, &offeredTextId)) {
+            this->actor.textId = offeredTextId;
+            player->actor.textId = offeredTextId;
+            if (offeredTextId == 0x3059) {
+                gSaveContext.subTimerState = SUBTIMER_STATE_OFF;
+            }
+            return;
+        }
+
         if (GameInteractor_Should(VB_BIGGORON_CONSIDER_TRADE_COMPLETE, gSaveContext.bgsFlag)) {
             if (func_8002F368(play) == EXCH_ITEM_CLAIM_CHECK) {
                 this->actor.textId = 0x3003;
@@ -1805,7 +1854,7 @@ void EnGo2_ReverseRolling(EnGo2* this, PlayState* play) {
 }
 
 void EnGo2_SetupGetItem(EnGo2* this, PlayState* play) {
-    if (Actor_HasParent(&this->actor, play) || !GameInteractor_Should(VB_GIVE_ITEM_FROM_GORON, true)) {
+    if (Actor_HasParent(&this->actor, play) || !GameInteractor_Should(VB_GIVE_ITEM_FROM_GORON, true, this)) {
         this->actor.parent = NULL;
         this->actionFunc = EnGo2_SetGetItem;
     } else {
@@ -1816,7 +1865,7 @@ void EnGo2_SetupGetItem(EnGo2* this, PlayState* play) {
 
 void EnGo2_SetGetItem(EnGo2* this, PlayState* play) {
     if ((Message_GetState(&play->msgCtx) == TEXT_STATE_DONE) && Message_ShouldAdvance(play) ||
-        !GameInteractor_Should(VB_GIVE_ITEM_FROM_GORON, true)) {
+        !GameInteractor_Should(VB_GIVE_ITEM_FROM_GORON, true, this)) {
         this->interactInfo.talkState = NPC_TALK_STATE_IDLE;
         switch (this->getItemId) {
             case GI_CLAIM_CHECK:
@@ -1828,7 +1877,7 @@ void EnGo2_SetGetItem(EnGo2* this, PlayState* play) {
                 EnGo2_GetItemAnimation(this, play);
                 return;
             case GI_SWORD_BGS:
-                if (GameInteractor_Should(VB_GIVE_ITEM_FROM_GORON, true)) {
+                if (OotmmSession_IsActive() || GameInteractor_Should(VB_GIVE_ITEM_FROM_GORON, true, this)) {
                     gSaveContext.bgsFlag = true;
                 }
                 break;

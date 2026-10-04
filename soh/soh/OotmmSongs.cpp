@@ -4,7 +4,6 @@
 #include "Enhancements/custom-message/CustomMessageManager.h"
 #include "OotmmIpc.h"
 #include "OotmmSession.h"
-#include "SaveManager.h"
 #include "cvar_prefixes.h"
 
 #include <array>
@@ -81,8 +80,6 @@ constexpr std::array<OwlDef, 10> kOwls = { {
     { "MM_WARP_OWL_STONE_TOWER", 0xAA30, "MM_OWL_STONE_TOWER", "tower", "Stone Tower" },
 } };
 
-constexpr int32_t kHandoffHoldFrames = 120;
-constexpr int32_t kHandoffLatchFrames = 1200;
 
 uint8_t sPlayedSong = OOTMM_SONG_NONE;
 uint8_t sActiveSong = OOTMM_SONG_NONE;
@@ -208,6 +205,10 @@ Ship::OotmmEntranceMapping ResolveOwl(const OwlDef& owl) {
     request.ToGame = mapping != nullptr ? mapping->ToGame : Ship::OotmmGame::Mm;
     request.To = mapping != nullptr ? mapping->To : owl.Entrance;
     request.ToNativeId = mapping != nullptr && mapping->ToNativeId.has_value() ? *mapping->ToNativeId : owl.NativeId;
+    if (const auto resolved = OotmmSession_GetState().GetOwlEntrance(static_cast<uint32_t>(&owl - kOwls.data()))) {
+        request.ToGame = (*resolved & 0x80000000u) != 0 ? Ship::OotmmGame::Oot : Ship::OotmmGame::Mm;
+        request.ToNativeId = *resolved & 0x7fffffffu;
+    }
     return request;
 }
 
@@ -219,7 +220,11 @@ bool WarpToOwl(PlayState* play, const OwlDef& owl) {
     const Ship::OotmmEntranceMapping request = ResolveOwl(owl);
 
     if (request.ToGame == Ship::OotmmGame::Oot) {
-        play->nextEntranceIndex = static_cast<int16_t>(*request.ToNativeId);
+        const int32_t resolved = OotmmSession_ApplyResolvedOotEntrance(*request.ToNativeId);
+        if (resolved < 0) {
+            return false;
+        }
+        play->nextEntranceIndex = static_cast<int16_t>(resolved);
         play->transitionTrigger = TRANS_TRIGGER_START;
         play->transitionType = TRANS_TYPE_FADE_WHITE_FAST;
         gSaveContext.nextTransitionType = TRANS_TYPE_FADE_WHITE;
@@ -228,7 +233,7 @@ bool WarpToOwl(PlayState* play, const OwlDef& owl) {
         return true;
     }
 
-    return OotmmIpc_SendCrossGameTransition(request, static_cast<uint32_t>(gSaveContext.linkAge));
+    return OotmmSession_BeginCrossGameTransition(request);
 }
 
 void SetupSoaring(PlayState* play) {
@@ -263,17 +268,6 @@ void SetupSoaring(PlayState* play) {
     }
 }
 
-void CommitHandoff(PlayState* play, Player* player) {
-    sHandoffFrames = -1;
-    sActiveSong = OOTMM_SONG_NONE;
-    sMenuOpen = false;
-    ReleasePlayer(play);
-    Play_PerformSave(play);
-    SaveManager::Instance->ThreadPoolWait();
-    player->stateFlags1 |= PLAYER_STATE1_IN_CUTSCENE;
-    player->actor.freezeTimer = 10000;
-}
-
 void AbandonHandoff(PlayState* play, Player* player) {
     sActiveSong = OOTMM_SONG_NONE;
     player->stateFlags1 &= ~PLAYER_STATE1_IN_CUTSCENE;
@@ -283,28 +277,12 @@ void AbandonHandoff(PlayState* play, Player* player) {
 }
 
 bool AwaitHandoff(PlayState* play, Player* player) {
-    if (OotmmIpc_ConsumeTransitionAccepted()) {
-        CommitHandoff(play, player);
-        return true;
-    }
-
-    const int32_t frames = sHandoffFrames++;
-    const bool connected = OotmmIpc_IsConnected();
-    if (connected && frames < kHandoffHoldFrames) {
-        // Player_SetupAction clears IN_CUTSCENE once ocarinaMode is 04, so the hold is re-asserted here.
+    if (OotmmSession_IsCrossGameTransitionPending()) {
         player->stateFlags1 |= PLAYER_STATE1_IN_CUTSCENE;
         return true;
     }
-
-    if (frames < kHandoffHoldFrames) {
-        sHandoffFrames = kHandoffHoldFrames + 1;
-    }
-    if (frames <= kHandoffHoldFrames) {
-        AbandonHandoff(play, player);
-    }
-    if (!connected || sHandoffFrames >= kHandoffLatchFrames) {
-        sHandoffFrames = -1;
-    }
+    sHandoffFrames = -1;
+    AbandonHandoff(play, player);
     return false;
 }
 

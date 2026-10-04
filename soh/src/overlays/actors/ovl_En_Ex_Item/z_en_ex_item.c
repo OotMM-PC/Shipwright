@@ -9,6 +9,7 @@
 #include "objects/gameplay_keep/gameplay_keep.h"
 #include "vt.h"
 #include "soh/Enhancements/game-interactor/GameInteractor_Hooks.h"
+#include "soh/OotmmNpcChecks.h"
 
 #define FLAGS (ACTOR_FLAG_UPDATE_CULLING_DISABLED | ACTOR_FLAG_DRAW_CULLING_DISABLED)
 
@@ -446,8 +447,18 @@ void EnExItem_Draw(Actor* thisx, PlayState* play) {
     s32 pad;
     EnExItem* this = (EnExItem*)thisx;
     s32 magicType;
+    const char* site;
 
     Actor_SetScale(&this->actor, this->scale);
+
+    site = OotmmNpcChecks_BowlingPrizeSite(this->type);
+    if (site != NULL) {
+        func_8002ED80(&this->actor, play, 0);
+        if (OotmmNpcChecks_DrawCheckItem(play, site)) {
+            return;
+        }
+    }
+
     switch (this->type) {
         case EXITEM_BOMB_BAG_BOWLING:
         case EXITEM_BOMBCHUS_BOWLING:

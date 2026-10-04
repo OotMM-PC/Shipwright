@@ -1,3 +1,5 @@
+#include "soh/OotmmItemApply.h"
+#include "soh/OotmmSession.h"
 #include "global.h"
 #include "overlays/actors/ovl_En_Elf/z_en_elf.h"
 #include "objects/gameplay_keep/gameplay_keep.h"
@@ -1461,6 +1463,10 @@ s16 EnItem00_ConvertBombDropToBombchu(s16 dropId) {
  * Returns a new drop type ID or -1 to cancel the drop.
  */
 s16 func_8001F404(s16 dropId) {
+    if (OotmmSession_IsActive() &&
+        (dropId == ITEM00_BOMBS_A || dropId == ITEM00_BOMBS_B || dropId == ITEM00_BOMBS_SPECIAL)) {
+        return OotmmItemApply_SelectBombDrop(dropId, ITEM00_BOMBCHU);
+    }
     if (LINK_IS_ADULT) {
         if (dropId == ITEM00_SEEDS) {
             dropId = ITEM00_ARROWS_SMALL;

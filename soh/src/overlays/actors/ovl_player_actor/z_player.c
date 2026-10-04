@@ -36,6 +36,7 @@
 #include "soh/frame_interpolation.h"
 #include "soh/OTRGlobals.h"
 #include "soh/OotmmSession.h"
+#include "soh/OotmmNpcChecks.h"
 #include "soh/ResourceManagerHelpers.h"
 
 #include <string.h>
@@ -3467,6 +3468,12 @@ void Player_UseItem(PlayState* play, Player* this, s32 item) {
     s8 itemAction;
     s32 temp;
     s32 nextAnimType;
+
+    if (item == ITEM_WEIRD_EGG) {
+        OotmmNpcChecks_HatchEgg(play, false);
+    } else if (item == ITEM_POCKET_EGG) {
+        OotmmNpcChecks_HatchEgg(play, true);
+    }
 
     itemAction = Player_ItemToItemAction(item);
 

@@ -6,6 +6,7 @@
 #include "soh/frame_interpolation.h"
 #include "soh/OTRGlobals.h"
 #include "soh/ResourceManagerHelpers.h"
+#include "soh/OotmmSession.h"
 #include "soh/Enhancements/game-interactor/GameInteractor.h"
 #include "soh/Enhancements/game-interactor/GameInteractor_Hooks.h"
 
@@ -2094,7 +2095,9 @@ void func_80075B44(PlayState* play) {
                 gSaveContext.bgsDayCount++;
                 gSaveContext.dogIsLost = true;
                 Sfx_PlaySfxCentered(NA_SE_EV_CHICKEN_CRY_M);
-                if ((Inventory_ReplaceItem(play, ITEM_WEIRD_EGG, ITEM_CHICKEN) || Inventory_HatchPocketCucco(play)) &&
+                if (!OotmmSession_IsActive() &&
+                    (Inventory_ReplaceItem(play, ITEM_WEIRD_EGG, ITEM_CHICKEN) ||
+                     Inventory_HatchPocketCucco(play)) &&
                     play->csCtx.state == 0 && !Player_InCsMode(play)) {
                     GameInteractor_ExecuteOnCuccoOrChickenHatch();
                     Message_StartTextbox(play, 0x3066, NULL);
@@ -2526,6 +2529,9 @@ void Environment_StopStormNatureAmbience(PlayState* play) {
 }
 
 void Environment_WarpSongLeave(PlayState* play) {
+    if (OotmmSession_PrepareSongWarp(play->msgCtx.lastPlayedSong)) {
+        return;
+    }
     gWeatherMode = 0;
     gSaveContext.cutsceneIndex = 0;
     gSaveContext.respawnFlag = -3;

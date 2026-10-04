@@ -11,6 +11,9 @@ extern "C" {
 #endif
 
 int32_t OotmmSession_IsActive(void);
+int32_t OotmmSession_RequestFileSelection(int32_t slot);
+int32_t OotmmSession_FileSelectionPending(void);
+int32_t OotmmSession_RequestFileCopy(int32_t source, int32_t target);
 int32_t OotmmSession_TryBootDirectly(void* gameState);
 void OotmmSession_InitializeNewSave(void);
 void OotmmSession_FixLoadSpawn(void);
@@ -21,12 +24,17 @@ void OotmmSession_PrepareGrottoReturn(void);
 void OotmmSession_ApplyDeathRespawn(void);
 /// Warps Link to the seed's spawn for his current age; 0 when there is no spawn to go to.
 int32_t OotmmSession_ReturnToSpawn(void);
+int32_t OotmmSession_ApplyResolvedOotEntrance(uint32_t entrance);
+int32_t OotmmSession_RedirectBossWarp(uint32_t bossId);
+int32_t OotmmSession_PrepareSongWarp(uint32_t songId);
 /// True when the seed's mqDungeons world flag marks this scene Master Quest; 0 without a seed.
 int32_t OotmmSession_IsSceneMasterQuest(int32_t sceneNum);
 
 #ifdef __cplusplus
 }
 
+bool OotmmSession_BeginCrossGameTransition(const Ship::OotmmEntranceMapping& mapping);
+bool OotmmSession_IsCrossGameTransitionPending();
 void OotmmSession_Init();
 const Ship::OotmmGameState& OotmmSession_GetState();
 std::string OotmmSession_GetSaveSubdirectory();

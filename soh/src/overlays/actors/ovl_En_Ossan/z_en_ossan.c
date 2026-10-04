@@ -13,6 +13,7 @@
 #include "objects/object_mastergolon/object_mastergolon.h"
 #include "objects/object_masterzoora/object_masterzoora.h"
 #include "objects/object_masterkokirihead/object_masterkokirihead.h"
+#include "soh/OotmmSession.h"
 #include "soh/Enhancements/cosmetics/cosmeticsTypes.h"
 #include "soh/Enhancements/game-interactor/GameInteractor_Hooks.h"
 #include <assert.h>
@@ -603,7 +604,7 @@ void EnOssan_Init(Actor* thisx, PlayState* play) {
     }
 
     // Flags_GetEventChkInf(EVENTCHKINF_USED_DODONGOS_CAVERN_BLUE_WARP) - Completed Dodongo's Cavern
-    if (this->actor.params == OSSAN_TYPE_BOMBCHUS &&
+    if (this->actor.params == OSSAN_TYPE_BOMBCHUS && !OotmmSession_IsActive() &&
         !Flags_GetEventChkInf(EVENTCHKINF_USED_DODONGOS_CAVERN_BLUE_WARP)) {
         Actor_Kill(&this->actor);
         return;

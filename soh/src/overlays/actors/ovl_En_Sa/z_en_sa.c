@@ -6,8 +6,9 @@
 #include "soh/OTRGlobals.h"
 #include "soh/ResourceManagerHelpers.h"
 #include "soh/Enhancements/game-interactor/GameInteractor_Hooks.h"
+#include "soh/OotmmNpcChecks.h"
 
-#define FLAGS                                                                                  \
+#define FLAGS                                                                                 \
     (ACTOR_FLAG_ATTENTION_ENABLED | ACTOR_FLAG_FRIENDLY | ACTOR_FLAG_UPDATE_CULLING_DISABLED | \
      ACTOR_FLAG_UPDATE_DURING_OCARINA)
 
@@ -151,10 +152,10 @@ u16 func_80AF55E0(PlayState* play, Actor* thisx) {
     if (reaction != 0) {
         return reaction;
     }
-    if (CHECK_QUEST_ITEM(QUEST_SONG_SARIA)) {
+    if (OotmmNpcChecks_Done("OOT_SARIA_SONG", CHECK_QUEST_ITEM(QUEST_SONG_SARIA))) {
         return 0x10AD;
     }
-    if (CHECK_QUEST_ITEM(QUEST_KOKIRI_EMERALD)) {
+    if (OotmmNpcChecks_DungeonBeaten(EVENTCHKINF_USED_DEKU_TREE_BLUE_WARP, CHECK_QUEST_ITEM(QUEST_KOKIRI_EMERALD))) {
         this->unk_208 = 0;
         this->unk_209 = TEXT_STATE_NONE;
         if (Flags_GetInfTable(INFTABLE_05)) {
@@ -396,7 +397,8 @@ s32 func_80AF5DFC(EnSa* this, PlayState* play) {
     if (play->sceneNum == SCENE_SACRED_FOREST_MEADOW && (Flags_GetEventChkInf(EVENTCHKINF_OBTAINED_ZELDAS_LETTER))) {
         return GameInteractor_Should(VB_BE_ELIGIBLE_FOR_SARIAS_SONG, !CHECK_QUEST_ITEM(QUEST_SONG_SARIA)) ? 5 : 2;
     }
-    if (play->sceneNum == SCENE_KOKIRI_FOREST && !CHECK_QUEST_ITEM(QUEST_KOKIRI_EMERALD)) {
+    if (play->sceneNum == SCENE_KOKIRI_FOREST &&
+        !OotmmNpcChecks_DungeonBeaten(EVENTCHKINF_USED_DEKU_TREE_BLUE_WARP, CHECK_QUEST_ITEM(QUEST_KOKIRI_EMERALD))) {
         if (GameInteractor_Should(VB_NOT_BE_GREETED_BY_SARIA, Flags_GetInfTable(INFTABLE_GREETED_BY_SARIA))) {
             return 1;
         }
@@ -594,7 +596,8 @@ void func_80AF6448(EnSa* this, PlayState* play) {
                     }
                     break;
             }
-        } else if (!CHECK_QUEST_ITEM(QUEST_KOKIRI_EMERALD) &&
+        } else if (!OotmmNpcChecks_DungeonBeaten(EVENTCHKINF_USED_DEKU_TREE_BLUE_WARP,
+                                                 CHECK_QUEST_ITEM(QUEST_KOKIRI_EMERALD)) &&
                    ((Flags_GetInfTable(INFTABLE_01)) || (Flags_GetInfTable(INFTABLE_03)))) {
             if (this->unk_20B != 3) {
                 func_80AF5CD4(this, 3);

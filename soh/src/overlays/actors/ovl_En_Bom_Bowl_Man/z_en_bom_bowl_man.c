@@ -6,6 +6,8 @@
 #include "soh/OTRGlobals.h"
 #include "soh/ResourceManagerHelpers.h"
 #include "soh/Enhancements/game-interactor/GameInteractor.h"
+#include "soh/OotmmSession.h"
+#include "soh/OotmmNpcChecks.h"
 #include "soh/Enhancements/game-interactor/GameInteractor_Hooks.h"
 
 #define FLAGS                                                                                  \
@@ -92,7 +94,7 @@ void EnBomBowlMan_Init(Actor* thisx, PlayState* play2) {
         }
     }
 
-    this->prizeSelect = (s16)Rand_ZeroFloat(4.99f);
+    this->prizeSelect = OotmmSession_IsActive() ? 0 : (s16)Rand_ZeroFloat(4.99f);
     this->actor.targetMode = 1;
     this->actionFunc = EnBomBowMan_SetupWaitAsleep;
 }
@@ -182,7 +184,8 @@ void EnBomBowMan_CheckBeatenDC(EnBomBowlMan* this, PlayState* play) {
 
         // check if we have beaten Dodongo's Cavern
         bool bombchuBowlingClosed =
-            !((Flags_GetEventChkInf(EVENTCHKINF_USED_DODONGOS_CAVERN_BLUE_WARP)) || BREG(2));
+            !GameInteractor_Should(VB_BE_ABLE_TO_PLAY_BOMBCHU_BOWLING,
+                                   (Flags_GetEventChkInf(EVENTCHKINF_USED_DODONGOS_CAVERN_BLUE_WARP)) || BREG(2));
         if (bombchuBowlingClosed) {
             this->actionFunc = EnBomBowMan_WaitNotBeatenDC;
         } else {
@@ -410,21 +413,28 @@ void EnBomBowMan_ChooseShowPrize(EnBomBowlMan* this, PlayState* play) {
     if (this->prizeRevealTimer == 0) {
         switch (this->prizeSelect) {
             case 0:
-                prizeTemp = EXITEM_BOMB_BAG_BOWLING;
-                if (Flags_GetItemGetInf(ITEMGETINF_11)) {
-                    prizeTemp = EXITEM_PURPLE_RUPEE_BOWLING;
-                }
+                prizeTemp = OotmmNpcChecks_Done("OOT_BOMBCHU_BOWLING_1", Flags_GetItemGetInf(ITEMGETINF_11))
+                                ? EXITEM_PURPLE_RUPEE_BOWLING
+                                : EXITEM_BOMB_BAG_BOWLING;
                 break;
             case 1:
-                prizeTemp = EXITEM_PURPLE_RUPEE_BOWLING;
+                if (OotmmSession_IsActive()) {
+                    prizeTemp = OotmmNpcChecks_Done("OOT_BOMBCHU_BOWLING_2", Flags_GetItemGetInf(ITEMGETINF_12))
+                                    ? EXITEM_PURPLE_RUPEE_BOWLING
+                                    : EXITEM_HEART_PIECE_BOWLING;
+                } else {
+                    prizeTemp = EXITEM_PURPLE_RUPEE_BOWLING;
+                }
                 break;
             case 2:
                 prizeTemp = EXITEM_BOMBCHUS_BOWLING;
                 break;
             case 3:
-                prizeTemp = EXITEM_HEART_PIECE_BOWLING;
-                if (Flags_GetItemGetInf(ITEMGETINF_12)) {
+                if (OotmmSession_IsActive()) {
                     prizeTemp = EXITEM_PURPLE_RUPEE_BOWLING;
+                } else {
+                    prizeTemp = Flags_GetItemGetInf(ITEMGETINF_12) ? EXITEM_PURPLE_RUPEE_BOWLING
+                                                                   : EXITEM_HEART_PIECE_BOWLING;
                 }
                 break;
             case 4:

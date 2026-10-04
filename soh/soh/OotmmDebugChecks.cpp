@@ -5,11 +5,13 @@
 #include "OotmmChecks.h"
 #include "OotmmCsmc.h"
 #include "OotmmDrops.h"
+#include "OotmmNpcChecks.h"
 #include "OotmmSession.h"
 #include "soh/SohGui/UIWidgets.hpp"
 
 #include <algorithm>
 #include <cctype>
+#include <string>
 #include <unordered_map>
 #include <unordered_set>
 #include <vector>
@@ -134,14 +136,15 @@ void BuildDropOptions() {
               [](const DropOption& a, const DropOption& b) { return a.ItemName < b.ItemName; });
 }
 
-bool MatchesFilter(const std::string& name) {
-    if (sDropFilter[0] == '\0') {
+bool MatchesFilter(const std::string& name, const char* filter) {
+    if (filter[0] == '\0') {
         return true;
     }
     std::string lowerName = name;
-    std::string lowerFilter = sDropFilter;
-    std::transform(lowerName.begin(), lowerName.end(), lowerName.begin(), ::tolower);
-    std::transform(lowerFilter.begin(), lowerFilter.end(), lowerFilter.begin(), ::tolower);
+    std::string lowerFilter = filter;
+    const auto lower = [](unsigned char character) { return static_cast<char>(std::tolower(character)); };
+    std::transform(lowerName.begin(), lowerName.end(), lowerName.begin(), lower);
+    std::transform(lowerFilter.begin(), lowerFilter.end(), lowerFilter.begin(), lower);
     return lowerName.find(lowerFilter) != std::string::npos;
 }
 
@@ -174,7 +177,7 @@ void DrawDropSection() {
     ImGui::SetNextItemWidth(ImGui::GetFontSize() * 12.0f);
     if (ImGui::BeginCombo("Item", sDropOptions[sDropSelection].ItemName.c_str())) {
         for (int i = 0; i < static_cast<int>(sDropOptions.size()); i++) {
-            if (!MatchesFilter(sDropOptions[i].ItemName)) {
+            if (!MatchesFilter(sDropOptions[i].ItemName, sDropFilter)) {
                 continue;
             }
             if (ImGui::Selectable(sDropOptions[i].ItemName.c_str(), i == sDropSelection)) {
@@ -189,6 +192,126 @@ void DrawDropSection() {
         DropSelectedItem();
     }
     ImGui::EndDisabled();
+}
+
+struct NpcOption {
+    std::string NativeId;
+    std::string Label;
+    std::string ItemLabel;
+    int32_t Entrance = -1;
+    const char* RouteHint = nullptr;
+};
+
+std::vector<NpcOption> sNpcOptions;
+int sNpcSelection = 0;
+char sNpcFilter[64] = {};
+
+constexpr int32_t kDekuTheaterEntrance = 0x05C4;
+
+int32_t EntranceForScene(int32_t scene) {
+    int32_t fallback = -1;
+    for (int32_t entrance = 0; scene >= 0 && entrance < ENTR_MAX; entrance++) {
+        if (gEntranceTable[entrance].scene != scene) {
+            continue;
+        }
+        if (gEntranceTable[entrance].spawn == 0) {
+            return entrance;
+        }
+        if (fallback < 0) {
+            fallback = entrance;
+        }
+    }
+    return fallback;
+}
+
+int32_t EntranceForNpc(const std::string& nativeId, int32_t scene) {
+    if (nativeId == "OOT_THEATER_STICKS" || nativeId == "OOT_THEATER_NUTS") {
+        return kDekuTheaterEntrance;
+    }
+    if (nativeId == "OOT_WEIRD_EGG" || nativeId == "OOT_POCKET_EGG") {
+        return -1;
+    }
+    return EntranceForScene(scene);
+}
+
+const char* RouteHintForNpc(const std::string& nativeId) {
+    if (nativeId == "OOT_WEIRD_EGG" || nativeId == "OOT_POCKET_EGG") {
+        return "This check triggers by holding the egg until it hatches.";
+    }
+    return nullptr;
+}
+
+void BuildNpcOptions() {
+    if (!sNpcOptions.empty()) {
+        return;
+    }
+    for (const auto& placement : OotmmSession_GetState().GetPlacements()) {
+        if (placement.CheckGame != Ship::OotmmGame::Oot || placement.CheckType != "npc" ||
+            placement.CheckNativeId.empty()) {
+            continue;
+        }
+        const int32_t scene = placement.CheckScene.has_value() ? static_cast<int32_t>(*placement.CheckScene) : -1;
+        sNpcOptions.push_back({ placement.CheckNativeId,
+                                placement.CheckName.empty() ? placement.CheckNativeId : placement.CheckName,
+                                placement.ItemName.empty() ? placement.ItemId : placement.ItemName,
+                                EntranceForNpc(placement.CheckNativeId, scene),
+                                RouteHintForNpc(placement.CheckNativeId) });
+    }
+    std::sort(sNpcOptions.begin(), sNpcOptions.end(),
+              [](const NpcOption& a, const NpcOption& b) { return a.Label < b.Label; });
+}
+
+void DrawNpcSection() {
+    ImGui::SeparatorText("NPC interactions");
+    ImGui::TextWrapped("Go loads the NPC's scene. Complete the interaction in-game so the actor owns "
+                       "the grant, dialogue, and state transition.");
+    BuildNpcOptions();
+    if (sNpcOptions.empty()) {
+        ImGui::TextDisabled("No npc checks in the seed.");
+        return;
+    }
+    ImGui::SetNextItemWidth(ImGui::GetFontSize() * 12.0f);
+    ImGui::InputTextWithHint("##NpcFilter", "Filter", sNpcFilter, sizeof(sNpcFilter));
+    if (sNpcSelection >= static_cast<int>(sNpcOptions.size())) {
+        sNpcSelection = 0;
+    }
+    ImGui::SetNextItemWidth(ImGui::GetFontSize() * 12.0f);
+    if (ImGui::BeginCombo("Check", sNpcOptions[sNpcSelection].Label.c_str())) {
+        for (int i = 0; i < static_cast<int>(sNpcOptions.size()); i++) {
+            if (!MatchesFilter(sNpcOptions[i].Label, sNpcFilter) &&
+                !MatchesFilter(sNpcOptions[i].ItemLabel, sNpcFilter) &&
+                !MatchesFilter(sNpcOptions[i].NativeId, sNpcFilter)) {
+                continue;
+            }
+            const bool collected = OotmmNpcChecks_IsCollected(sNpcOptions[i].NativeId.c_str()) != 0;
+            const std::string label = collected ? sNpcOptions[i].Label + " (collected)" : sNpcOptions[i].Label;
+            if (ImGui::Selectable(label.c_str(), i == sNpcSelection)) {
+                sNpcSelection = i;
+            }
+        }
+        ImGui::EndCombo();
+    }
+    ImGui::SameLine();
+    const NpcOption& selected = sNpcOptions[sNpcSelection];
+    ImGui::BeginDisabled(gPlayState == nullptr || selected.Entrance < 0);
+    if (ImGui::Button("Go")) {
+        const int32_t entrance = OotmmSession_ApplyResolvedOotEntrance(selected.Entrance);
+        if (entrance >= 0) {
+            GameInteractor::RawAction::TeleportPlayer(entrance);
+        }
+    }
+    ImGui::EndDisabled();
+    const bool collected = OotmmNpcChecks_IsCollected(selected.NativeId.c_str()) != 0;
+    if (collected) {
+        ImGui::SameLine();
+        ImGui::TextDisabled("Collected");
+    }
+    ImGui::TextDisabled("Contains: %s", selected.ItemLabel.c_str());
+    if (selected.RouteHint != nullptr) {
+        ImGui::TextDisabled("%s", selected.RouteHint);
+    } else if (selected.Entrance < 0) {
+        ImGui::TextDisabled("This check has no routable scene in the seed.");
+    }
 }
 
 } // namespace
@@ -215,9 +338,17 @@ void OotmmDebugChecks_DrawTab() {
         ImGui::TextDisabled("%d debug chest(s) in this scene.", static_cast<int>(sDebugChests.size()));
     }
     DrawDropSection();
+    DrawNpcSection();
 }
 
 void OotmmDebugChecks_Init() {
+    GameInteractor::Instance->RegisterGameHook<GameInteractor::OnLoadGame>([](int32_t) {
+        sDropOptions.clear();
+        sDropSelection = 0;
+        sNpcOptions.clear();
+        sNpcSelection = 0;
+    });
+
     GameInteractor::Instance->RegisterGameHook<GameInteractor::OnSceneInit>([](int16_t) {
         sDebugChests.clear();
         OotmmCsmc_ClearChestOverrides();

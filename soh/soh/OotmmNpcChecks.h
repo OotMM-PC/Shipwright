@@ -1,0 +1,24 @@
+#pragma once
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+int OotmmNpcChecks_IsShuffled(const char* nativeId);
+int OotmmNpcChecks_IsCollected(const char* nativeId);
+int OotmmNpcChecks_Collect(const char* nativeId);
+int OotmmNpcChecks_Done(const char* nativeId, int vanillaDone);
+int OotmmNpcChecks_DungeonBeaten(int blueWarpFlag, int vanillaOwned);
+void OotmmNpcChecks_HatchEgg(struct PlayState* play, int adult);
+int OotmmNpcChecks_TryCollectFreestanding(struct Actor* actor, struct PlayState* play, const char* nativeId,
+                                        float xzRange, float yRange);
+const char* OotmmNpcChecks_BowlingPrizeSite(int prizeIndex);
+const char* OotmmNpcChecks_DekuTheaterPrizeSite(int getItemId);
+int OotmmNpcChecks_DrawCheckItem(struct PlayState* play, const char* nativeId);
+int OotmmNpcChecks_BlueWarpReady(struct PlayState* play);
+void OotmmNpcChecks_DrawBlueWarpReward(struct Actor* actor, struct PlayState* play);
+void OotmmNpcChecks_Init(void);
+
+#ifdef __cplusplus
+}
+#endif

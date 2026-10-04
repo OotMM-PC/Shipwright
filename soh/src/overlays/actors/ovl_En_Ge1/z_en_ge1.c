@@ -503,6 +503,12 @@ void EnGe1_WaitTillItemGiven_Archery(EnGe1* this, PlayState* play) {
     s32 getItemId;
 
     if (!GameInteractor_Should(VB_GIVE_ITEM_FROM_HORSEBACK_ARCHERY, true, this)) {
+        if (this->stateFlags & GE1_STATE_GIVE_QUIVER) {
+            Flags_SetItemGetInf(ITEMGETINF_0F);
+        } else {
+            Flags_SetInfTable(INFTABLE_190);
+        }
+        this->actionFunc = EnGe1_SetupWait_Archery;
         return;
     }
     if (Actor_HasParent(&this->actor, play)) {

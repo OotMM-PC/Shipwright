@@ -80,6 +80,10 @@ int ChestGameSmallKeys() {
 
 } // namespace
 
+extern "C" int OotmmDungeons_ChestGameKeepsProgress(void) {
+    return OotmmSession_IsActive() && ChestGameSmallKeys() != 0 ? 1 : 0;
+}
+
 extern "C" int OotmmDungeons_SceneForCode(const char* code) {
     if (code == nullptr) {
         return -1;

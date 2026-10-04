@@ -4,6 +4,8 @@
 #include "soh/Enhancements/enhancementTypes.h"
 #include "soh/Enhancements/game-interactor/GameInteractor_Hooks.h"
 #include "soh/ResourceManagerHelpers.h"
+#include "soh/OotmmNpcChecks.h"
+#include "soh/OotmmSession.h"
 
 #define FLAGS                                                                                 \
     (ACTOR_FLAG_ATTENTION_ENABLED | ACTOR_FLAG_HOSTILE | ACTOR_FLAG_UPDATE_CULLING_DISABLED | \
@@ -1169,11 +1171,16 @@ void EnSkj_SetupTakeMask(EnSkj* this, PlayState* play) {
 
 void EnSkj_TakeMask(EnSkj* this, PlayState* play) {
     if ((Message_GetState(&play->msgCtx) == TEXT_STATE_DONE) && Message_ShouldAdvance(play)) {
-        Rupees_ChangeBy(10);
+        const s32 sold = OotmmNpcChecks_Collect("OOT_MASK_SELL_SKULL");
+        if (!sold) {
+            Rupees_ChangeBy(10);
+        }
         Flags_SetItemGetInf(ITEMGETINF_39);
         EnSkj_SetNaviId(this);
         Player_UnsetMask(play);
-        Item_Give(play, ITEM_SOLD_OUT);
+        if (!sold) {
+            Item_Give(play, ITEM_SOLD_OUT);
+        }
         Message_ContinueTextbox(play, 0x101F);
         EnSkj_SetupWaitForMaskTextClear(this);
     }
@@ -1558,10 +1565,24 @@ void EnSkj_WonOcarinaMiniGame(EnSkj* this, PlayState* play) {
     }
 }
 
+static s32 EnSkj_OcarinaGameReward(void) {
+    static s32 sOotmmOcarinaGameRewards[] = { GI_RUPEE_GREEN, GI_RUPEE_GREEN, GI_RUPEE_BLUE, GI_RUPEE_RED };
+
+    if (OotmmSession_IsActive()) {
+        return sOotmmOcarinaGameRewards[gSaveContext.ocarinaGameRoundNum];
+    }
+    return sOcarinaGameRewards[gSaveContext.ocarinaGameRoundNum];
+}
+
 void EnSkj_WaitToGiveReward(EnSkj* this, PlayState* play) {
     if ((Message_GetState(&play->msgCtx) == TEXT_STATE_DONE) && Message_ShouldAdvance(play)) {
-        Actor_OfferGetItem(&this->actor, play, sOcarinaGameRewards[gSaveContext.ocarinaGameRoundNum], 26.0f, 26.0f);
-        this->actionFunc = EnSkj_GiveOcarinaGameReward;
+        if (OotmmSession_IsActive() && gSaveContext.ocarinaGameRoundNum == 0 &&
+            OotmmNpcChecks_Collect("OOT_LOST_WOODS_MEMORY")) {
+            this->actionFunc = EnSkj_FinishOcarinaGameRound;
+        } else {
+            Actor_OfferGetItem(&this->actor, play, EnSkj_OcarinaGameReward(), 26.0f, 26.0f);
+            this->actionFunc = EnSkj_GiveOcarinaGameReward;
+        }
     }
 }
 
@@ -1570,7 +1591,7 @@ void EnSkj_GiveOcarinaGameReward(EnSkj* this, PlayState* play) {
         this->actor.parent = NULL;
         this->actionFunc = EnSkj_FinishOcarinaGameRound;
     } else {
-        Actor_OfferGetItem(&this->actor, play, sOcarinaGameRewards[gSaveContext.ocarinaGameRoundNum], 26.0f, 26.0f);
+        Actor_OfferGetItem(&this->actor, play, EnSkj_OcarinaGameReward(), 26.0f, 26.0f);
     }
 }
 

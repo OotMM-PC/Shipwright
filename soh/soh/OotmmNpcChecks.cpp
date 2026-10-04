@@ -1,0 +1,739 @@
+#include "OotmmNpcChecks.h"
+
+#include "Enhancements/custom-message/CustomMessageManager.h"
+#include "Enhancements/game-interactor/GameInteractor.h"
+#include "Enhancements/game-interactor/GameInteractor_Hooks.h"
+#include "OotmmCheckLedger.h"
+#include "OotmmChecks.h"
+#include "OotmmIpc.h"
+#include "OotmmItemApply.h"
+#include "OotmmItemModels.h"
+#include "OotmmItemPresentation.h"
+#include "OotmmSession.h"
+
+#include <iterator>
+#include <cmath>
+#include <string>
+
+extern "C" {
+#include "macros.h"
+#include "variables.h"
+#include "z64.h"
+#include "src/overlays/actors/ovl_En_Bom_Bowl_Pit/z_en_bom_bowl_pit.h"
+#include "src/overlays/actors/ovl_En_Ex_Item/z_en_ex_item.h"
+#include "src/overlays/actors/ovl_En_Dnt_Jiji/z_en_dnt_jiji.h"
+#include "src/overlays/actors/ovl_En_Fr/z_en_fr.h"
+#include "src/overlays/actors/ovl_Fishing/z_fishing.h"
+#include "src/overlays/actors/ovl_En_Ge1/z_en_ge1.h"
+#include "src/overlays/actors/ovl_En_Ta/z_en_ta.h"
+#include "src/overlays/actors/ovl_En_Go2/z_en_go2.h"
+#include "src/overlays/actors/ovl_En_Kz/z_en_kz.h"
+#include "src/overlays/actors/ovl_En_Niw_Lady/z_en_niw_lady.h"
+#include "src/overlays/actors/ovl_En_Sth/z_en_sth.h"
+
+extern PlayState* gPlayState;
+}
+
+namespace {
+
+const Ship::OotmmPlacement* Find(const char* nativeId) {
+    return OotmmSession_GetState().FindCheck(Ship::OotmmGame::Oot, "npc", nativeId);
+}
+
+bool IsCollected(const Ship::OotmmPlacement& placement) {
+    return OotmmCheckLedger_Contains(placement.CheckId) || OotmmIpc_IsCheckCompleted(placement.CheckId);
+}
+
+constexpr const char* kSongSites[] = {
+    "OOT_SHEIK_FOREST", "OOT_SHEIK_FIRE",       "OOT_SHEIK_WATER",       "OOT_SHEIK_SPIRIT",
+    "OOT_SHEIK_SHADOW", "OOT_SHEIK_LIGHT",      "OOT_ZELDA_SONG",        "OOT_MALON_SONG",
+    "OOT_SARIA_SONG",   "OOT_ROYAL_TOMB_SONG",  "OOT_OCARINA_TIME_SONG", "OOT_SONG_STORMS",
+};
+
+constexpr int16_t kVanillaCuccoCount = 7;
+
+constexpr const char* kSkulltulaSites[] = {
+    "OOT_GS_100", "OOT_GS_10", "OOT_GS_20", "OOT_GS_30", "OOT_GS_40", "OOT_GS_50",
+};
+
+const char* SkulltulaSite(int32_t params) {
+    return (params >= 0 && params < static_cast<int32_t>(std::size(kSkulltulaSites)))
+               ? kSkulltulaSites[params]
+               : nullptr;
+}
+
+const char* BowlingSite(int32_t prizeIndex) {
+    switch (prizeIndex) {
+        case EXITEM_BOMB_BAG_BOWLING:
+        case EXITEM_BOMB_BAG_COUNTER:
+            return "OOT_BOMBCHU_BOWLING_1";
+        case EXITEM_HEART_PIECE_BOWLING:
+        case EXITEM_HEART_PIECE_COUNTER:
+            return "OOT_BOMBCHU_BOWLING_2";
+        default:
+            return nullptr;
+    }
+}
+
+const char* FishingSite() {
+    return LINK_IS_ADULT ? "OOT_FISH_ADULT" : "OOT_FISH_CHILD";
+}
+
+bool IsFishingPrizeCatch(const VBFishingData* data) {
+    return data != nullptr && data->fishWeight >= (LINK_IS_ADULT ? 60.0f : 50.0f);
+}
+
+int32_t Collect(const char* nativeId) {
+    return nativeId != nullptr && OotmmNpcChecks_Collect(nativeId);
+}
+
+bool OwnsTradeItem(uint8_t slot, uint8_t item) {
+    uint8_t items[32];
+    const int32_t count = OotmmItemApply_OwnedTradeItems(slot, items, static_cast<int32_t>(std::size(items)));
+    for (int32_t i = 0; i < count; i++) {
+        if (items[i] == item) {
+            return true;
+        }
+    }
+    return false;
+}
+
+bool OwnsBombchuBag() {
+    for (const auto& [id, count] : OotmmIpc_GetInventory().GetValues()) {
+        if (count > 0 && id.find("BOMBCHU_BAG") != std::string::npos) {
+            return true;
+        }
+    }
+    return false;
+}
+
+const char* FrogSite(int32_t songIndex) {
+    switch (songIndex) {
+        case FROG_ZL:
+            return "OOT_FROGS_ZL";
+        case FROG_EPONA:
+            return "OOT_FROGS_EPONA";
+        case FROG_SARIA:
+            return "OOT_FROGS_SARIA";
+        case FROG_SUNS:
+            return "OOT_FROGS_SUNS";
+        case FROG_SOT:
+            return "OOT_FROGS_SOT";
+        case FROG_STORMS:
+            return "OOT_FROGS_STORMS";
+        case FROG_CHOIR_SONG:
+            return "OOT_FROGS_GAME";
+        default:
+            return nullptr;
+    }
+}
+
+const char* BlueWarpSite(int32_t item) {
+    switch (item) {
+        case ITEM_KOKIRI_EMERALD:
+            return "OOT_BLUE_WARP_GOHMA";
+        case ITEM_GORON_RUBY:
+            return "OOT_BLUE_WARP_KING_DODONGO";
+        case ITEM_ZORA_SAPPHIRE:
+            return "OOT_BLUE_WARP_BARINADE";
+        case ITEM_MEDALLION_FOREST:
+            return "OOT_BLUE_WARP_PHANTOM_GANON";
+        case ITEM_MEDALLION_FIRE:
+            return "OOT_BLUE_WARP_VOLVAGIA";
+        case ITEM_MEDALLION_WATER:
+            return "OOT_BLUE_WARP_MORPHA";
+        case ITEM_MEDALLION_SHADOW:
+            return "OOT_BLUE_WARP_BONGO_BONGO";
+        case ITEM_MEDALLION_SPIRIT:
+            return "OOT_BLUE_WARP_TWINROVA";
+        default:
+            return nullptr;
+    }
+}
+
+const char* BlueWarpSiteForScene(int32_t scene) {
+    switch (scene) {
+        case SCENE_DEKU_TREE_BOSS:
+            return "OOT_BLUE_WARP_GOHMA";
+        case SCENE_DODONGOS_CAVERN_BOSS:
+            return "OOT_BLUE_WARP_KING_DODONGO";
+        case SCENE_JABU_JABU_BOSS:
+            return "OOT_BLUE_WARP_BARINADE";
+        case SCENE_FOREST_TEMPLE_BOSS:
+            return "OOT_BLUE_WARP_PHANTOM_GANON";
+        case SCENE_FIRE_TEMPLE_BOSS:
+            return "OOT_BLUE_WARP_VOLVAGIA";
+        case SCENE_WATER_TEMPLE_BOSS:
+            return "OOT_BLUE_WARP_MORPHA";
+        case SCENE_SHADOW_TEMPLE_BOSS:
+            return "OOT_BLUE_WARP_BONGO_BONGO";
+        case SCENE_SPIRIT_TEMPLE_BOSS:
+            return "OOT_BLUE_WARP_TWINROVA";
+        default:
+            return nullptr;
+    }
+}
+
+const char* GoronSite(int32_t getItemId) {
+    switch (getItemId) {
+        case GI_PRESCRIPTION:
+            return "OOT_TRADE_PRESCRIPTION";
+        case GI_CLAIM_CHECK:
+            return "OOT_TRADE_CLAIM_CHECK";
+        case GI_SWORD_BGS:
+            return "OOT_TRADE_BIGGORON_SWORD";
+        case GI_TUNIC_GORON:
+            return "OOT_GORON_LINK_TUNIC";
+        case GI_BOMB_BAG_30:
+        case GI_BOMB_BAG_40:
+            return "OOT_GORON_BOMB_BAG";
+        default:
+            return nullptr;
+    }
+}
+
+const char* DekuTheaterSite(int32_t getItemId) {
+    switch (getItemId) {
+        case GI_STICK_UPGRADE_20:
+        case GI_STICK_UPGRADE_30:
+            return "OOT_THEATER_STICKS";
+        case GI_NUT_UPGRADE_30:
+        case GI_NUT_UPGRADE_40:
+            return "OOT_THEATER_NUTS";
+        default:
+            return nullptr;
+    }
+}
+
+std::string RewardName(const char* nativeId) {
+    const auto* placement = nativeId != nullptr ? Find(nativeId) : nullptr;
+    if (placement == nullptr) {
+        return {};
+    }
+    std::string name = "%g" + Ship::OotmmItemCatalog::TrimGameSuffix(placement->ItemName) + "%w";
+    const bool otherPlayer =
+        placement->OwnerPlayer != 0 && placement->OwnerPlayer != OotmmSession_GetState().GetPlayerId();
+    const bool otherGame = !placement->ItemGame.empty() && placement->ItemGame != "oot";
+    if (otherPlayer) {
+        name += " for %bPlayer " + std::to_string(placement->OwnerPlayer) + "%w";
+        if (otherGame) {
+            name += "'s %r" + OotmmItemPresentation_GameName(placement->ItemGame) + "%w";
+        }
+    } else if (otherGame) {
+        name += " for %r" + OotmmItemPresentation_GameName(placement->ItemGame) + "%w";
+    }
+    return name;
+}
+
+void BuildSkulltulaHouseText(uint16_t*, bool* loadFromMessageTable) {
+    if (gPlayState == nullptr) {
+        return;
+    }
+    Player* player = GET_PLAYER(gPlayState);
+    if (player == nullptr || player->talkActor == nullptr || player->talkActor->id != ACTOR_EN_SSH) {
+        return;
+    }
+    const int32_t params = player->talkActor->params;
+    const std::string reward = RewardName(SkulltulaSite(params));
+    if (reward.empty()) {
+        return;
+    }
+    const int32_t tokens = params == 0 ? 100 : params * 10;
+    CustomMessage message("Yeaaarrgh! I'm cursed!!&Please save me by destroying %r" + std::to_string(tokens) +
+                          " Spiders of the Curse%w and I will give you " + reward + ".");
+    message.AutoFormat();
+    message.LoadIntoFont();
+    *loadFromMessageTable = false;
+}
+
+} // namespace
+
+extern "C" int OotmmNpcChecks_IsShuffled(const char* nativeId) {
+    return Find(nativeId) != nullptr;
+}
+
+extern "C" const char* OotmmNpcChecks_BowlingPrizeSite(int prizeIndex) {
+    return BowlingSite(prizeIndex);
+}
+
+extern "C" const char* OotmmNpcChecks_DekuTheaterPrizeSite(int getItemId) {
+    return DekuTheaterSite(getItemId);
+}
+
+extern "C" int OotmmNpcChecks_DrawCheckItem(PlayState* play, const char* nativeId) {
+    const auto* placement = Find(nativeId);
+    if (play == nullptr || placement == nullptr) {
+        return 0;
+    }
+    const std::string& itemId = placement->CloakItemId.empty() ? placement->ItemId : placement->CloakItemId;
+    const std::string& itemName = placement->CloakItemId.empty() ? placement->ItemName : placement->CloakItemName;
+    return OotmmItemModel_DrawById(play, itemId, itemName) ? 1 : 0;
+}
+
+extern "C" int OotmmNpcChecks_BlueWarpReady(PlayState* play) {
+    if (play == nullptr) {
+        return 1;
+    }
+    const char* site = BlueWarpSiteForScene(play->sceneNum);
+    const auto* placement = Find(site);
+    if (placement == nullptr) {
+        return 1;
+    }
+    if (!IsCollected(*placement)) {
+        OotmmNpcChecks_Collect(site);
+        return 0;
+    }
+    Player* player = GET_PLAYER(play);
+    return player != nullptr && !OotmmIpc_IsCheckPresentationPending(placement->CheckId) &&
+           Message_GetState(&play->msgCtx) == TEXT_STATE_NONE &&
+           !(player->stateFlags1 & (PLAYER_STATE1_GETTING_ITEM | PLAYER_STATE1_TALKING | PLAYER_STATE1_IN_CUTSCENE));
+}
+
+extern "C" void OotmmNpcChecks_DrawBlueWarpReward(Actor* actor, PlayState* play) {
+    if (actor == nullptr || play == nullptr) {
+        return;
+    }
+    const char* site = BlueWarpSiteForScene(play->sceneNum);
+    const auto* placement = Find(site);
+    if (placement == nullptr || IsCollected(*placement)) {
+        return;
+    }
+    Matrix_Push();
+    Matrix_Translate(actor->world.pos.x, actor->world.pos.y + 35.0f, actor->world.pos.z, MTXMODE_NEW);
+    Matrix_Scale(0.35f, 0.35f, 0.35f, MTXMODE_APPLY);
+    Matrix_RotateY((play->state.frames % 100) * (6.28318530717958647692f / 100.0f), MTXMODE_APPLY);
+    if (!OotmmNpcChecks_DrawCheckItem(play, site)) {
+        GetItem_Draw(play, GID_RUPEE_GREEN);
+    }
+    Matrix_Pop();
+}
+
+extern "C" int OotmmNpcChecks_IsCollected(const char* nativeId) {
+    const auto* placement = Find(nativeId);
+    return placement != nullptr && IsCollected(*placement);
+}
+
+extern "C" int OotmmNpcChecks_Collect(const char* nativeId) {
+    const auto* placement = Find(nativeId);
+    if (placement == nullptr) {
+        return 0;
+    }
+    OotmmIpc_SendCheckCollected(placement->CheckId, !IsCollected(*placement));
+    OotmmCheckLedger_Record(placement->CheckId);
+    return 1;
+}
+
+extern "C" int OotmmNpcChecks_TryCollectFreestanding(Actor* actor, PlayState* play, const char* nativeId,
+                                                   float xzRange, float yRange) {
+    const auto* placement = Find(nativeId);
+    if (actor == nullptr || play == nullptr || placement == nullptr) {
+        return 0;
+    }
+    if (IsCollected(*placement)) {
+        return 1;
+    }
+    Player* player = GET_PLAYER(play);
+    if (player == nullptr || actor->xzDistToPlayer >= xzRange || std::fabs(actor->yDistToPlayer) >= yRange ||
+        play->msgCtx.msgMode != MSGMODE_NONE || play->pauseCtx.state != 0 ||
+        play->transitionTrigger != TRANS_TRIGGER_OFF || OotmmItemPresentation_IsPending() ||
+        Player_GetExplosiveHeld(player) >= 0 || player->getItemId > GI_NONE ||
+        (player->stateFlags1 &
+         (PLAYER_STATE1_DEAD | PLAYER_STATE1_CHARGING_SPIN_ATTACK | PLAYER_STATE1_HANGING_OFF_LEDGE |
+          PLAYER_STATE1_CLIMBING_LEDGE | PLAYER_STATE1_JUMPING | PLAYER_STATE1_FREEFALL |
+          PLAYER_STATE1_FIRST_PERSON | PLAYER_STATE1_CLIMBING_LADDER | PLAYER_STATE1_CARRYING_ACTOR |
+          PLAYER_STATE1_IN_CUTSCENE | PLAYER_STATE1_GETTING_ITEM | PLAYER_STATE1_TALKING))) {
+        return 0;
+    }
+    return OotmmNpcChecks_Collect(nativeId);
+}
+
+extern "C" int OotmmNpcChecks_Done(const char* nativeId, int vanillaDone) {
+    return OotmmNpcChecks_IsShuffled(nativeId) ? OotmmNpcChecks_IsCollected(nativeId) : vanillaDone;
+}
+
+extern "C" int OotmmNpcChecks_DungeonBeaten(int blueWarpFlag, int vanillaOwned) {
+    return OotmmSession_IsActive() ? Flags_GetEventChkInf(blueWarpFlag) != 0 : vanillaOwned;
+}
+
+extern "C" void OotmmNpcChecks_HatchEgg(PlayState* play, int adult) {
+    const uint8_t slotItem = adult ? ITEM_TRADE_ADULT : ITEM_TRADE_CHILD;
+    const uint8_t egg = adult ? ITEM_POCKET_EGG : ITEM_WEIRD_EGG;
+    if (play == nullptr || INV_CONTENT(slotItem) != egg) {
+        return;
+    }
+    if (Collect(adult ? "OOT_POCKET_EGG" : "OOT_WEIRD_EGG")) {
+        OotmmItemApply_SetTradeItemOwned(adult ? SLOT_TRADE_ADULT : SLOT_TRADE_CHILD, egg, 0);
+    } else {
+        Inventory_ReplaceItem(play, egg, adult ? ITEM_POCKET_CUCCO : ITEM_CHICKEN);
+    }
+}
+
+void OotmmNpcChecks_Init(void) {
+    REGISTER_VB_SHOULD(VB_GIVE_ITEM_SONG, {
+        const int item = va_arg(args, int);
+        if (item >= ITEM_SONG_MINUET && item <= ITEM_SONG_STORMS &&
+            OotmmNpcChecks_Collect(kSongSites[item - ITEM_SONG_MINUET])) {
+            *should = false;
+        }
+    });
+
+    REGISTER_VB_SHOULD(VB_BE_ELIGIBLE_FOR_SARIAS_SONG, {
+        if (OotmmNpcChecks_IsShuffled("OOT_SARIA_SONG")) {
+            *should = !OotmmNpcChecks_IsCollected("OOT_SARIA_SONG");
+        }
+    });
+    REGISTER_VB_SHOULD(VB_MALON_RETURN_FROM_CASTLE, {
+        if (OotmmSession_IsActive()) {
+            *should = OotmmNpcChecks_Done("OOT_MALON_EGG",
+                                          Flags_GetEventChkInf(EVENTCHKINF_OBTAINED_POCKET_EGG));
+        }
+    });
+
+    REGISTER_VB_SHOULD(VB_MALON_ALREADY_TAUGHT_EPONAS_SONG, {
+        if (OotmmNpcChecks_IsShuffled("OOT_MALON_SONG")) {
+            *should = OotmmNpcChecks_IsCollected("OOT_MALON_SONG");
+        }
+    });
+    REGISTER_VB_SHOULD(VB_PLAY_SUNS_SONG_CS, {
+        if (OotmmNpcChecks_IsShuffled("OOT_ROYAL_TOMB_SONG")) {
+            *should = !OotmmNpcChecks_IsCollected("OOT_ROYAL_TOMB_SONG");
+        }
+    });
+
+    REGISTER_VB_SHOULD(VB_GIVE_ITEM_FROM_SKULLTULA_REWARD, {
+        EnSth* sth = va_arg(args, EnSth*);
+        if (sth != nullptr && Collect(SkulltulaSite(sth->actor.params))) {
+            *should = false;
+        }
+    });
+    GameInteractor::Instance->RegisterGameHook<GameInteractor::OnOpenText>(BuildSkulltulaHouseText);
+
+    REGISTER_VB_SHOULD(VB_SET_CUCCO_COUNT, {
+        EnNiwLady* lady = va_arg(args, EnNiwLady*);
+        if (lady != nullptr) {
+            lady->cuccosInPen = kVanillaCuccoCount - 1;
+            *should = false;
+        }
+    });
+    REGISTER_VB_SHOULD(VB_GIVE_ITEM_FROM_ANJU_AS_CHILD, {
+        if (Collect("OOT_ANJU_BOTTLE")) {
+            *should = false;
+        }
+    });
+    REGISTER_VB_SHOULD(VB_GIVE_ITEM_FROM_ANJU_AS_ADULT, {
+        if (Collect("OOT_TRADE_POCKET_EGG")) {
+            *should = false;
+        }
+    });
+    REGISTER_VB_SHOULD(VB_TRADE_POCKET_CUCCO, {
+        if (Collect("OOT_TRADE_COJIRO")) {
+            *should = false;
+        }
+    });
+
+    REGISTER_VB_SHOULD(VB_TRADE_COJIRO, {
+        if (Collect("OOT_TRADE_ODD_MUSHROOM")) {
+            *should = false;
+        }
+    });
+    REGISTER_VB_SHOULD(VB_TRADE_ODD_MUSHROOM, {
+        if (Collect("OOT_TRADE_ODD_POTION")) {
+            *should = false;
+        }
+    });
+    REGISTER_VB_SHOULD(VB_TRADE_ODD_POTION, {
+        if (Collect("OOT_TRADE_POACHER_SAW")) {
+            *should = false;
+        }
+    });
+    REGISTER_VB_SHOULD(VB_TRADE_SAW, {
+        if (Collect("OOT_TRADE_BROKEN_GORON_SWORD")) {
+            *should = false;
+        }
+    });
+    REGISTER_VB_SHOULD(VB_TRADE_FROG, {
+        if (Collect("OOT_TRADE_EYE_DROPS")) {
+            *should = false;
+        }
+    });
+    REGISTER_VB_SHOULD(VB_GIVE_ITEM_FROM_LAB_DIVE, {
+        if (Collect("OOT_LABORATORY_DIVE")) {
+            *should = false;
+        }
+    });
+
+    REGISTER_VB_SHOULD(VB_ADULT_KING_ZORA_ITEM_GIVE, {
+        EnKz* kz = va_arg(args, EnKz*);
+        if (kz != nullptr &&
+            Collect(kz->isTrading ? "OOT_TRADE_EYEBALL_FROG" : "OOT_ZORA_KING_TUNIC")) {
+            *should = false;
+        }
+    });
+    REGISTER_VB_SHOULD(VB_GIVE_ITEM_FROM_GORON, {
+        EnGo2* goron = va_arg(args, EnGo2*);
+        if (goron != nullptr && Collect(GoronSite(goron->getItemId))) {
+            *should = false;
+        }
+    });
+
+    REGISTER_VB_SHOULD(VB_TRADE_TIMER_ODD_MUSHROOM, { *should = false; });
+    REGISTER_VB_SHOULD(VB_TRADE_TIMER_EYEDROPS, { *should = false; });
+    REGISTER_VB_SHOULD(VB_TRADE_TIMER_FROG, { *should = false; });
+    REGISTER_VB_SHOULD(VB_BIGGORON_CONSIDER_SWORD_FORGED, { *should = true; });
+
+    REGISTER_VB_SHOULD(VB_GIVE_ITEM_FROM_BLUE_WARP, {
+        const int item = va_arg(args, int);
+        if (Collect(BlueWarpSite(item))) {
+            *should = false;
+        }
+    });
+
+    REGISTER_VB_SHOULD(VB_PLAY_BLUE_WARP_CS, {
+        if (gPlayState != nullptr) {
+            const char* site = nullptr;
+            if (gPlayState->sceneNum == SCENE_SPIRIT_TEMPLE_BOSS) {
+                site = "OOT_BLUE_WARP_TWINROVA";
+            } else if (gPlayState->sceneNum == SCENE_SHADOW_TEMPLE_BOSS) {
+                site = "OOT_BLUE_WARP_BONGO_BONGO";
+            }
+            if (site != nullptr && OotmmNpcChecks_IsShuffled(site)) {
+                *should = !OotmmNpcChecks_IsCollected(site);
+            }
+        }
+    });
+
+    REGISTER_VB_SHOULD(VB_GIVE_ITEM_MASTER_SWORD, {
+        if (Collect("OOT_MASTER_SWORD")) {
+            *should = false;
+        }
+    });
+    REGISTER_VB_SHOULD(VB_GIVE_ITEM_LIGHT_MEDALLION, {
+        if (Collect("OOT_LIGHT_MEDALLION")) {
+            *should = false;
+        }
+    });
+    REGISTER_VB_SHOULD(VB_GIVE_ITEM_OCARINA_OF_TIME, {
+        if (Collect("OOT_OCARINA_TIME_ITEM")) {
+            *should = false;
+        }
+    });
+    REGISTER_VB_SHOULD(VB_GIVE_ITEM_FAIRY_OCARINA, {
+        if (Collect("OOT_SARIA_OCARINA")) {
+            *should = false;
+        }
+    });
+    REGISTER_VB_SHOULD(VB_GIVE_ITEM_ZELDAS_LETTER, {
+        if (Collect("OOT_ZELDA_LETTER")) {
+            *should = false;
+        }
+    });
+    REGISTER_VB_SHOULD(VB_GIVE_ITEM_LIGHT_ARROW, {
+        if (Collect("OOT_ZELDA_LIGHT_ARROW")) {
+            *should = false;
+        }
+    });
+    REGISTER_VB_SHOULD(VB_GIVE_ITEM_GERUDO_MEMBERSHIP_CARD, {
+        if (Collect("OOT_GERUDO_CARD")) {
+            *should = false;
+        }
+    });
+    REGISTER_VB_SHOULD(VB_GIVE_ITEM_FROM_MAN_ON_ROOF, {
+        if (Collect("OOT_KAKARIKO_ROOF_MAN")) {
+            *should = false;
+        }
+    });
+    REGISTER_VB_SHOULD(VB_GIVE_ITEM_WEIRD_EGG, {
+        if (Collect("OOT_MALON_EGG")) {
+            Flags_SetEventChkInf(EVENTCHKINF_SPOKE_TO_CHILD_MALON_AT_CASTLE_OR_MARKET);
+            *should = false;
+        }
+    });
+    REGISTER_VB_SHOULD(VB_GIVE_ITEM_FROM_SHOOTING_GALLERY, {
+        if (Collect(LINK_IS_ADULT ? "OOT_SHOOTING_GAME_ADULT" : "OOT_SHOOTING_GAME_CHILD")) {
+            *should = false;
+        }
+    });
+    REGISTER_VB_SHOULD(VB_BE_ELIGIBLE_FOR_ADULT_SHOOTING_GAME_REWARD, {
+        if (OotmmNpcChecks_IsShuffled("OOT_SHOOTING_GAME_ADULT")) {
+            *should = true;
+        }
+    });
+    REGISTER_VB_SHOULD(VB_GIVE_ITEM_FROM_DIVING_MINIGAME, {
+        if (Collect("OOT_ZORA_DIVING_GAME")) {
+            *should = false;
+        }
+    });
+    REGISTER_VB_SHOULD(VB_GIVE_ITEM_FROM_TARGET_IN_WOODS, {
+        if (Collect("OOT_LOST_WOODS_TARGET")) {
+            *should = false;
+        }
+    });
+    REGISTER_VB_SHOULD(VB_GIVE_ITEM_FROM_SKULL_KID_SARIAS_SONG, {
+        if (Collect("OOT_LOST_WOODS_SKULL_KID")) {
+            *should = false;
+        }
+    });
+    REGISTER_VB_SHOULD(VB_GIVE_ITEM_FROM_TALONS_CHICKENS, {
+        EnTa* talon = reinterpret_cast<EnTa*>(va_arg(args, Actor*));
+        if (talon != nullptr && Collect((talon->unk_2E0 & 2) ? "OOT_TALON_MILK" : "OOT_TALON_BOTTLE")) {
+            *should = false;
+        }
+    });
+
+    REGISTER_VB_SHOULD(VB_FROGS_GO_TO_IDLE, {
+        EnFr* frog = va_arg(args, EnFr*);
+        if (frog != nullptr) {
+            const char* site = FrogSite(frog->songIndex);
+            if (site != nullptr && !OotmmNpcChecks_IsCollected(site) && Collect(site)) {
+                *should = true;
+            }
+        }
+    });
+
+    REGISTER_VB_SHOULD(VB_BE_DAMPE_GRAVEDIGGING_GRAND_PRIZE, {
+        if (!Flags_GetItemGetInf(ITEMGETINF_1C)) {
+            *should = true;
+        }
+    });
+    REGISTER_VB_SHOULD(VB_BE_ELIGIBLE_FOR_CHILD_ROLLING_GORON_REWARD, { *should = true; });
+    REGISTER_VB_SHOULD(VB_GORONS_CONSIDER_TUNIC_COLLECTED, {
+        if (OotmmNpcChecks_IsShuffled("OOT_GORON_LINK_TUNIC")) {
+            *should = OotmmNpcChecks_IsCollected("OOT_GORON_LINK_TUNIC");
+        }
+    });
+
+    REGISTER_VB_SHOULD(VB_GIVE_ITEM_FROM_GRANNYS_SHOP, {
+        if (Collect("OOT_WITCH_BLUE_POTION")) {
+            *should = false;
+        }
+    });
+    REGISTER_VB_SHOULD(VB_GIVE_ITEM_FROM_MAGIC_BEAN_SALESMAN, {
+        if (Collect("OOT_BEAN_SELLER")) {
+            *should = false;
+        }
+    });
+    REGISTER_VB_SHOULD(VB_GIVE_ITEM_FROM_MEDIGORON, {
+        if (Collect("OOT_MEDIGORON")) {
+            *should = false;
+        }
+    });
+    REGISTER_VB_SHOULD(VB_BE_ELIGIBLE_FOR_GIANTS_KNIFE_PURCHASE, {
+        if (OotmmNpcChecks_IsShuffled("OOT_MEDIGORON")) {
+            *should = !OotmmNpcChecks_IsCollected("OOT_MEDIGORON");
+        }
+    });
+    REGISTER_VB_SHOULD(VB_GIVE_ITEM_FROM_DEKU_THEATER, {
+        EnDntJiji* jiji = va_arg(args, EnDntJiji*);
+        if (jiji != nullptr && Collect(DekuTheaterSite(jiji->getItemId))) {
+            *should = false;
+        }
+    });
+
+    REGISTER_VB_SHOULD(VB_GIVE_FISHING_PRIZE, {
+        const VBFishingData* data = va_arg(args, const VBFishingData*);
+        const char* site = FishingSite();
+        if (IsFishingPrizeCatch(data) && !OotmmNpcChecks_IsCollected(site) && Collect(site)) {
+            *should = true;
+        }
+    });
+    REGISTER_VB_SHOULD(VB_SHOULD_GIVE_VANILLA_FISHING_PRIZE, {
+        const VBFishingData* data = va_arg(args, const VBFishingData*);
+        const char* site = FishingSite();
+        if (OotmmNpcChecks_IsShuffled(site)) {
+            *should = IsFishingPrizeCatch(data) && !OotmmNpcChecks_IsCollected(site);
+        }
+    });
+    REGISTER_VB_SHOULD(VB_GIVE_GLITCH_FISHING_PRIZE, {
+        if (OotmmNpcChecks_IsShuffled(FishingSite())) {
+            *should = true;
+        }
+    });
+
+    REGISTER_VB_SHOULD(VB_GIVE_ITEM_FROM_CARPET_SALESMAN, {
+        if (Collect("OOT_CARPET_MERCHANT")) {
+            *should = true;
+        }
+    });
+    REGISTER_VB_SHOULD(VB_GIVE_ITEM_FROM_POE_COLLECTOR, {
+        if (Collect("OOT_POE_COLLECTOR")) {
+            *should = false;
+        }
+    });
+    REGISTER_VB_SHOULD(VB_GIVE_ITEM_FROM_HORSEBACK_ARCHERY, {
+        EnGe1* gerudo = va_arg(args, EnGe1*);
+        constexpr uint16_t kGiveQuiver = 1 << 1;
+        if (gerudo != nullptr && Collect((gerudo->stateFlags & kGiveQuiver) ? "OOT_GERUDO_ARCHERY_2"
+                                                                           : "OOT_GERUDO_ARCHERY_1")) {
+            *should = false;
+        }
+    });
+
+    REGISTER_VB_SHOULD(VB_GIVE_ITEM_FROM_LOST_DOG, {
+        if (Collect("OOT_DOG_LADY")) {
+            *should = false;
+        }
+    });
+    REGISTER_VB_SHOULD(VB_SPAWN_FIRE_ARROW, {
+        if (OotmmNpcChecks_IsShuffled("OOT_FIRE_ARROW")) {
+            *should = !OotmmNpcChecks_IsCollected("OOT_FIRE_ARROW");
+        }
+    });
+
+    REGISTER_VB_SHOULD(VB_SPAWN_LW_FADO, {
+        *should = OwnsTradeItem(SLOT_TRADE_ADULT, ITEM_ODD_POTION);
+    });
+    REGISTER_VB_SHOULD(VB_DESPAWN_GROG, {
+        *should = !(OwnsTradeItem(SLOT_TRADE_ADULT, ITEM_COJIRO) &&
+                    !OwnsTradeItem(SLOT_TRADE_ADULT, ITEM_ODD_POTION));
+    });
+
+    REGISTER_VB_SHOULD(VB_BE_ELIGIBLE_FOR_DARUNIAS_JOY_REWARD, {
+        if (OotmmNpcChecks_IsShuffled("OOT_DARUNIA_BRACELET")) {
+            *should = !OotmmNpcChecks_IsCollected("OOT_DARUNIA_BRACELET");
+        }
+    });
+    REGISTER_VB_SHOULD(VB_GIVE_ITEM_STRENGTH_1, {
+        if (Collect("OOT_DARUNIA_BRACELET")) {
+            *should = false;
+        }
+    });
+
+    REGISTER_VB_SHOULD(VB_GORONS_CONSIDER_DODONGOS_CAVERN_FINISHED, {
+        *should = Flags_GetEventChkInf(EVENTCHKINF_USED_DODONGOS_CAVERN_BLUE_WARP);
+    });
+    REGISTER_VB_SHOULD(VB_GORONS_CONSIDER_FIRE_TEMPLE_FINISHED, {
+        *should = Flags_GetEventChkInf(EVENTCHKINF_USED_FIRE_TEMPLE_BLUE_WARP);
+    });
+    REGISTER_VB_SHOULD(VB_BIGGORON_CONSIDER_TRADE_COMPLETE, {
+        if (OotmmSession_IsActive()) {
+            *should = false;
+        }
+    });
+    REGISTER_VB_SHOULD(VB_BIGGORON_CONSIDER_SWORD_COLLECTED, {
+        if (OotmmNpcChecks_IsShuffled("OOT_TRADE_BIGGORON_SWORD")) {
+            *should = OotmmNpcChecks_IsCollected("OOT_TRADE_BIGGORON_SWORD");
+        }
+    });
+
+    REGISTER_VB_SHOULD(VB_DEKU_JR_CONSIDER_FOREST_TEMPLE_FINISHED, {
+        *should = Flags_GetEventChkInf(EVENTCHKINF_USED_FOREST_TEMPLE_BLUE_WARP);
+    });
+    REGISTER_VB_SHOULD(VB_KING_ZORA_THANK_CHILD, {
+        *should = Flags_GetEventChkInf(EVENTCHKINF_USED_JABU_JABUS_BELLY_BLUE_WARP);
+    });
+    REGISTER_VB_SHOULD(VB_KING_ZORA_TUNIC_CHECK, {
+        if (OotmmNpcChecks_IsShuffled("OOT_ZORA_KING_TUNIC")) {
+            *should = OotmmNpcChecks_IsCollected("OOT_ZORA_KING_TUNIC");
+        }
+    });
+
+    REGISTER_VB_SHOULD(VB_BE_ABLE_TO_PLAY_BOMBCHU_BOWLING, {
+        *should = CUR_UPG_VALUE(UPG_BOMB_BAG) > 0 || OwnsBombchuBag();
+    });
+    REGISTER_VB_SHOULD(VB_GIVE_ITEM_FROM_BOMBCHU_BOWLING, {
+        EnBomBowlPit* pit = va_arg(args, EnBomBowlPit*);
+        if (pit != nullptr && Collect(BowlingSite(pit->prizeIndex))) {
+            *should = false;
+        }
+    });
+}

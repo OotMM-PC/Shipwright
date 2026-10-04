@@ -314,7 +314,7 @@ u16 EnKo_GetTextIdChild(PlayState* play, Actor* thisx) {
             if (Flags_GetEventChkInf(EVENTCHKINF_OBTAINED_ZELDAS_LETTER)) {
                 return 0x10DA;
             }
-            if (CHECK_QUEST_ITEM(QUEST_KOKIRI_EMERALD)) {
+            if (GameInteractor_Should(VB_MIDO_CONSIDER_DEKU_TREE_DEAD, CHECK_QUEST_ITEM(QUEST_KOKIRI_EMERALD))) {
                 return 0x10D9;
             }
             return (Flags_GetInfTable(INFTABLE_B7)) ? 0x10D8 : 0x10D7;
@@ -322,7 +322,7 @@ u16 EnKo_GetTextIdChild(PlayState* play, Actor* thisx) {
             if (Flags_GetEventChkInf(EVENTCHKINF_OBTAINED_ZELDAS_LETTER)) {
                 return 0x1025;
             }
-            if (CHECK_QUEST_ITEM(QUEST_KOKIRI_EMERALD)) {
+            if (GameInteractor_Should(VB_MIDO_CONSIDER_DEKU_TREE_DEAD, CHECK_QUEST_ITEM(QUEST_KOKIRI_EMERALD))) {
                 return 0x1042;
             }
             return 0x1004;
@@ -330,7 +330,7 @@ u16 EnKo_GetTextIdChild(PlayState* play, Actor* thisx) {
             if (Flags_GetEventChkInf(EVENTCHKINF_OBTAINED_ZELDAS_LETTER)) {
                 return 0x1023;
             }
-            if (CHECK_QUEST_ITEM(QUEST_KOKIRI_EMERALD)) {
+            if (GameInteractor_Should(VB_MIDO_CONSIDER_DEKU_TREE_DEAD, CHECK_QUEST_ITEM(QUEST_KOKIRI_EMERALD))) {
                 return 0x1043;
             }
             if (Flags_GetInfTable(INFTABLE_1E)) {
@@ -346,7 +346,7 @@ u16 EnKo_GetTextIdChild(PlayState* play, Actor* thisx) {
             if (Flags_GetEventChkInf(EVENTCHKINF_OBTAINED_ZELDAS_LETTER)) {
                 return 0x1021;
             }
-            if (CHECK_QUEST_ITEM(QUEST_KOKIRI_EMERALD)) {
+            if (GameInteractor_Should(VB_MIDO_CONSIDER_DEKU_TREE_DEAD, CHECK_QUEST_ITEM(QUEST_KOKIRI_EMERALD))) {
                 return 0x1044;
             }
             if (Flags_GetInfTable(INFTABLE_22)) {
@@ -357,7 +357,7 @@ u16 EnKo_GetTextIdChild(PlayState* play, Actor* thisx) {
             if (Flags_GetEventChkInf(EVENTCHKINF_OBTAINED_ZELDAS_LETTER)) {
                 return 0x1097;
             }
-            if (CHECK_QUEST_ITEM(QUEST_KOKIRI_EMERALD)) {
+            if (GameInteractor_Should(VB_MIDO_CONSIDER_DEKU_TREE_DEAD, CHECK_QUEST_ITEM(QUEST_KOKIRI_EMERALD))) {
                 return 0x1042;
             }
             if (Flags_GetInfTable(INFTABLE_24)) {
@@ -368,7 +368,7 @@ u16 EnKo_GetTextIdChild(PlayState* play, Actor* thisx) {
             if (Flags_GetEventChkInf(EVENTCHKINF_OBTAINED_ZELDAS_LETTER)) {
                 return 0x10B0;
             }
-            if (CHECK_QUEST_ITEM(QUEST_KOKIRI_EMERALD)) {
+            if (GameInteractor_Should(VB_MIDO_CONSIDER_DEKU_TREE_DEAD, CHECK_QUEST_ITEM(QUEST_KOKIRI_EMERALD))) {
                 return 0x1043;
             }
             if (Flags_GetInfTable(INFTABLE_26)) {
@@ -379,7 +379,7 @@ u16 EnKo_GetTextIdChild(PlayState* play, Actor* thisx) {
             if (Flags_GetEventChkInf(EVENTCHKINF_OBTAINED_ZELDAS_LETTER)) {
                 return 0x10B5;
             }
-            if (CHECK_QUEST_ITEM(QUEST_KOKIRI_EMERALD)) {
+            if (GameInteractor_Should(VB_MIDO_CONSIDER_DEKU_TREE_DEAD, CHECK_QUEST_ITEM(QUEST_KOKIRI_EMERALD))) {
                 return 0x1043;
             }
             if (Flags_GetInfTable(INFTABLE_28)) {
@@ -391,12 +391,12 @@ u16 EnKo_GetTextIdChild(PlayState* play, Actor* thisx) {
         case ENKO_TYPE_CHILD_8:
             return 0x1038;
         case ENKO_TYPE_CHILD_9:
-            if (CHECK_QUEST_ITEM(QUEST_KOKIRI_EMERALD)) {
+            if (GameInteractor_Should(VB_MIDO_CONSIDER_DEKU_TREE_DEAD, CHECK_QUEST_ITEM(QUEST_KOKIRI_EMERALD))) {
                 return 0x104B;
             }
             return 0x103C;
         case ENKO_TYPE_CHILD_10:
-            if (CHECK_QUEST_ITEM(QUEST_KOKIRI_EMERALD)) {
+            if (GameInteractor_Should(VB_MIDO_CONSIDER_DEKU_TREE_DEAD, CHECK_QUEST_ITEM(QUEST_KOKIRI_EMERALD))) {
                 return 0x104C;
             }
             return 0x103D;
@@ -415,7 +415,7 @@ u16 EnKo_GetTextIdAdult(PlayState* play, Actor* thisx) {
             player->exchangeItemId = EXCH_ITEM_ODD_POTION;
             return 0x10B9;
         case ENKO_TYPE_CHILD_0:
-            if (CHECK_QUEST_ITEM(QUEST_MEDALLION_FOREST)) {
+            if (GameInteractor_Should(VB_DEKU_JR_CONSIDER_FOREST_TEMPLE_FINISHED, CHECK_QUEST_ITEM(QUEST_MEDALLION_FOREST))) {
                 return 0x1072;
             }
             if (Flags_GetInfTable(INFTABLE_41)) {
@@ -423,12 +423,12 @@ u16 EnKo_GetTextIdAdult(PlayState* play, Actor* thisx) {
             }
             return 0x1055;
         case ENKO_TYPE_CHILD_1:
-            if (CHECK_QUEST_ITEM(QUEST_MEDALLION_FOREST)) {
+            if (GameInteractor_Should(VB_DEKU_JR_CONSIDER_FOREST_TEMPLE_FINISHED, CHECK_QUEST_ITEM(QUEST_MEDALLION_FOREST))) {
                 return 0x1073;
             }
             return 0x105A;
         case ENKO_TYPE_CHILD_2:
-            if (CHECK_QUEST_ITEM(QUEST_MEDALLION_FOREST)) {
+            if (GameInteractor_Should(VB_DEKU_JR_CONSIDER_FOREST_TEMPLE_FINISHED, CHECK_QUEST_ITEM(QUEST_MEDALLION_FOREST))) {
                 return 0x1074;
             }
             if (Flags_GetInfTable(INFTABLE_47)) {
@@ -436,19 +436,19 @@ u16 EnKo_GetTextIdAdult(PlayState* play, Actor* thisx) {
             }
             return 0x105D;
         case ENKO_TYPE_CHILD_3:
-            if (CHECK_QUEST_ITEM(QUEST_MEDALLION_FOREST)) {
+            if (GameInteractor_Should(VB_DEKU_JR_CONSIDER_FOREST_TEMPLE_FINISHED, CHECK_QUEST_ITEM(QUEST_MEDALLION_FOREST))) {
                 return 0x1075;
             }
             return 0x105B;
         case ENKO_TYPE_CHILD_4:
-            if (CHECK_QUEST_ITEM(QUEST_MEDALLION_FOREST)) {
+            if (GameInteractor_Should(VB_DEKU_JR_CONSIDER_FOREST_TEMPLE_FINISHED, CHECK_QUEST_ITEM(QUEST_MEDALLION_FOREST))) {
                 return 0x1076;
             }
             return 0x105F;
         case ENKO_TYPE_CHILD_5:
             return 0x1057;
         case ENKO_TYPE_CHILD_6:
-            if (CHECK_QUEST_ITEM(QUEST_MEDALLION_FOREST)) {
+            if (GameInteractor_Should(VB_DEKU_JR_CONSIDER_FOREST_TEMPLE_FINISHED, CHECK_QUEST_ITEM(QUEST_MEDALLION_FOREST))) {
                 return 0x1077;
             }
             if (Flags_GetInfTable(INFTABLE_51)) {
@@ -456,12 +456,12 @@ u16 EnKo_GetTextIdAdult(PlayState* play, Actor* thisx) {
             }
             return 0x1058;
         case ENKO_TYPE_CHILD_7:
-            if (CHECK_QUEST_ITEM(QUEST_MEDALLION_FOREST)) {
+            if (GameInteractor_Should(VB_DEKU_JR_CONSIDER_FOREST_TEMPLE_FINISHED, CHECK_QUEST_ITEM(QUEST_MEDALLION_FOREST))) {
                 return 0x1079;
             }
             return 0x104E;
         case ENKO_TYPE_CHILD_8:
-            if (CHECK_QUEST_ITEM(QUEST_MEDALLION_FOREST)) {
+            if (GameInteractor_Should(VB_DEKU_JR_CONSIDER_FOREST_TEMPLE_FINISHED, CHECK_QUEST_ITEM(QUEST_MEDALLION_FOREST))) {
                 return 0x107A;
             }
             if (Flags_GetInfTable(INFTABLE_59)) {
@@ -469,17 +469,17 @@ u16 EnKo_GetTextIdAdult(PlayState* play, Actor* thisx) {
             }
             return 0x104F;
         case ENKO_TYPE_CHILD_9:
-            if (CHECK_QUEST_ITEM(QUEST_MEDALLION_FOREST)) {
+            if (GameInteractor_Should(VB_DEKU_JR_CONSIDER_FOREST_TEMPLE_FINISHED, CHECK_QUEST_ITEM(QUEST_MEDALLION_FOREST))) {
                 return 0x107B;
             }
             return 0x1051;
         case ENKO_TYPE_CHILD_10:
-            if (CHECK_QUEST_ITEM(QUEST_MEDALLION_FOREST)) {
+            if (GameInteractor_Should(VB_DEKU_JR_CONSIDER_FOREST_TEMPLE_FINISHED, CHECK_QUEST_ITEM(QUEST_MEDALLION_FOREST))) {
                 return 0x107C;
             }
             return 0x1052;
         case ENKO_TYPE_CHILD_11:
-            if (CHECK_QUEST_ITEM(QUEST_MEDALLION_FOREST)) {
+            if (GameInteractor_Should(VB_DEKU_JR_CONSIDER_FOREST_TEMPLE_FINISHED, CHECK_QUEST_ITEM(QUEST_MEDALLION_FOREST))) {
                 return 0x107C;
             }
             if (Flags_GetInfTable(INFTABLE_61)) {
@@ -613,13 +613,13 @@ s32 EnKo_GetForestQuestState(EnKo* this) {
         if (Flags_GetEventChkInf(EVENTCHKINF_OBTAINED_ZELDAS_LETTER)) {
             return ENKO_FQS_CHILD_SARIA;
         }
-        if (CHECK_QUEST_ITEM(QUEST_KOKIRI_EMERALD)) {
+        if (GameInteractor_Should(VB_MIDO_CONSIDER_DEKU_TREE_DEAD, CHECK_QUEST_ITEM(QUEST_KOKIRI_EMERALD))) {
             return ENKO_FQS_CHILD_STONE;
         }
         return ENKO_FQS_CHILD_START;
     }
 
-    if (CHECK_QUEST_ITEM(QUEST_MEDALLION_FOREST)) {
+    if (GameInteractor_Should(VB_DEKU_JR_CONSIDER_FOREST_TEMPLE_FINISHED, CHECK_QUEST_ITEM(QUEST_MEDALLION_FOREST))) {
         result = ENKO_FQS_ADULT_SAVED;
     } else {
         result = ENKO_FQS_ADULT_ENEMY;
@@ -993,7 +993,7 @@ s32 EnKo_CanSpawn(EnKo* this, PlayState* play) {
             if (ENKO_TYPE >= ENKO_TYPE_CHILD_7 && ENKO_TYPE != ENKO_TYPE_CHILD_FADO) {
                 return false;
             }
-            if (!CHECK_QUEST_ITEM(QUEST_MEDALLION_FOREST) && LINK_IS_ADULT) {
+            if (!GameInteractor_Should(VB_DEKU_JR_CONSIDER_FOREST_TEMPLE_FINISHED, CHECK_QUEST_ITEM(QUEST_MEDALLION_FOREST)) && LINK_IS_ADULT) {
                 return false;
             }
             return true;
@@ -1004,7 +1004,7 @@ s32 EnKo_CanSpawn(EnKo* this, PlayState* play) {
                 return true;
             }
         case SCENE_TWINS_HOUSE:
-            if (LINK_IS_ADULT && !CHECK_QUEST_ITEM(QUEST_MEDALLION_FOREST)) {
+            if (LINK_IS_ADULT && !GameInteractor_Should(VB_DEKU_JR_CONSIDER_FOREST_TEMPLE_FINISHED, CHECK_QUEST_ITEM(QUEST_MEDALLION_FOREST))) {
                 if (ENKO_TYPE != ENKO_TYPE_CHILD_1 && ENKO_TYPE != ENKO_TYPE_CHILD_9) {
                     return false;
                 } else {
@@ -1017,7 +1017,7 @@ s32 EnKo_CanSpawn(EnKo* this, PlayState* play) {
                 return true;
             }
         case SCENE_MIDOS_HOUSE:
-            if (LINK_IS_ADULT && !CHECK_QUEST_ITEM(QUEST_MEDALLION_FOREST)) {
+            if (LINK_IS_ADULT && !GameInteractor_Should(VB_DEKU_JR_CONSIDER_FOREST_TEMPLE_FINISHED, CHECK_QUEST_ITEM(QUEST_MEDALLION_FOREST))) {
                 if (ENKO_TYPE != ENKO_TYPE_CHILD_0 && ENKO_TYPE != ENKO_TYPE_CHILD_4) {
                     return false;
                 } else {
@@ -1027,7 +1027,7 @@ s32 EnKo_CanSpawn(EnKo* this, PlayState* play) {
                 return false;
             }
         case SCENE_SARIAS_HOUSE:
-            if (LINK_IS_ADULT && !CHECK_QUEST_ITEM(QUEST_MEDALLION_FOREST)) {
+            if (LINK_IS_ADULT && !GameInteractor_Should(VB_DEKU_JR_CONSIDER_FOREST_TEMPLE_FINISHED, CHECK_QUEST_ITEM(QUEST_MEDALLION_FOREST))) {
                 if (ENKO_TYPE != ENKO_TYPE_CHILD_6) {
                     return false;
                 } else {
@@ -1038,7 +1038,7 @@ s32 EnKo_CanSpawn(EnKo* this, PlayState* play) {
             }
 
         case SCENE_KOKIRI_SHOP:
-            if (LINK_IS_ADULT && !CHECK_QUEST_ITEM(QUEST_MEDALLION_FOREST)) {
+            if (LINK_IS_ADULT && !GameInteractor_Should(VB_DEKU_JR_CONSIDER_FOREST_TEMPLE_FINISHED, CHECK_QUEST_ITEM(QUEST_MEDALLION_FOREST))) {
                 if (ENKO_TYPE != ENKO_TYPE_CHILD_5 && ENKO_TYPE != ENKO_TYPE_CHILD_10) {
                     return false;
                 } else {
@@ -1086,9 +1086,9 @@ void func_80A98CD8(EnKo* this) {
 // Used to fetch actor animation?
 s32 EnKo_GetForestQuestState2(EnKo* this) {
     if (LINK_IS_ADULT) {
-        return CHECK_QUEST_ITEM(QUEST_MEDALLION_FOREST) ? ENKO_FQS_ADULT_SAVED : ENKO_FQS_ADULT_ENEMY;
+        return GameInteractor_Should(VB_DEKU_JR_CONSIDER_FOREST_TEMPLE_FINISHED, CHECK_QUEST_ITEM(QUEST_MEDALLION_FOREST)) ? ENKO_FQS_ADULT_SAVED : ENKO_FQS_ADULT_ENEMY;
     }
-    if (CHECK_QUEST_ITEM(QUEST_KOKIRI_EMERALD)) {
+    if (GameInteractor_Should(VB_MIDO_CONSIDER_DEKU_TREE_DEAD, CHECK_QUEST_ITEM(QUEST_KOKIRI_EMERALD))) {
         return (Flags_GetEventChkInf(EVENTCHKINF_OBTAINED_ZELDAS_LETTER)) ? ENKO_FQS_CHILD_SARIA : ENKO_FQS_CHILD_STONE;
     }
     return ENKO_FQS_CHILD_START;
@@ -1170,7 +1170,7 @@ void func_80A99048(EnKo* this, PlayState* play) {
         if (ENKO_TYPE == ENKO_TYPE_CHILD_7) {
             // "Angle Z"
             osSyncPrintf(VT_BGCOL(BLUE) "  アングルＺ->(%d)\n" VT_RST, this->actor.shape.rot.z);
-            if (LINK_IS_ADULT && !CHECK_QUEST_ITEM(QUEST_MEDALLION_FOREST)) {
+            if (LINK_IS_ADULT && !GameInteractor_Should(VB_DEKU_JR_CONSIDER_FOREST_TEMPLE_FINISHED, CHECK_QUEST_ITEM(QUEST_MEDALLION_FOREST))) {
                 if (this->actor.shape.rot.z != 1) {
                     Actor_Kill(&this->actor);
                     return;
@@ -1194,7 +1194,7 @@ void func_80A99048(EnKo* this, PlayState* play) {
         Actor_SpawnAsChild(&play->actorCtx, &this->actor, play, ACTOR_EN_ELF, this->actor.world.pos.x,
                            this->actor.world.pos.y, this->actor.world.pos.z, 0, 0, 0, 3);
         if (ENKO_TYPE == ENKO_TYPE_CHILD_3) {
-            if (!GameInteractor_Should(VB_OPEN_KOKIRI_FOREST, CHECK_QUEST_ITEM(QUEST_KOKIRI_EMERALD), this)) {
+            if (!GameInteractor_Should(VB_OPEN_KOKIRI_FOREST, GameInteractor_Should(VB_MIDO_CONSIDER_DEKU_TREE_DEAD, CHECK_QUEST_ITEM(QUEST_KOKIRI_EMERALD)), this)) {
                 this->collider.dim.height += 200;
                 this->actionFunc = func_80A995CC;
                 return;

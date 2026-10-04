@@ -497,7 +497,8 @@ void Play_Init(GameState* thisx) {
             gSaveContext.bgsDayCount++;
             gSaveContext.dogIsLost = true;
 
-            if (Inventory_ReplaceItem(play, ITEM_WEIRD_EGG, ITEM_CHICKEN) || Inventory_HatchPocketCucco(play)) {
+            if (!OotmmSession_IsActive() &&
+                (Inventory_ReplaceItem(play, ITEM_WEIRD_EGG, ITEM_CHICKEN) || Inventory_HatchPocketCucco(play))) {
                 GameInteractor_ExecuteOnCuccoOrChickenHatch();
                 Message_StartTextbox(play, 0x3066, NULL);
             }

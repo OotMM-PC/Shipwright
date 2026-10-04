@@ -1,3 +1,4 @@
+#include "soh/OotmmSession.h"
 #include "file_choose.h"
 #include "soh/Enhancements/game-interactor/GameInteractor_Hooks.h"
 #include "soh/SaveManager.h"
@@ -381,6 +382,10 @@ void FileChoose_CopyConfirm(GameState* thisx) {
     u16 dayTime;
     bool dpad = CVarGetInteger(CVAR_SETTING("DpadInText"), 0);
 
+    if (OotmmSession_FileSelectionPending()) {
+        return;
+    }
+
     if (((this->buttonIndex != FS_BTN_CONFIRM_YES) && CHECK_BTN_ANY(input->press.button, BTN_A | BTN_START)) ||
         CHECK_BTN_ALL(input->press.button, BTN_B)) {
         this->actionTimer = 8;
@@ -389,6 +394,9 @@ void FileChoose_CopyConfirm(GameState* thisx) {
         Audio_PlaySoundGeneral(NA_SE_SY_FSEL_CLOSE, &gSfxDefaultPos, 4, &gSfxDefaultFreqAndVolScale,
                                &gSfxDefaultFreqAndVolScale, &gSfxDefaultReverb);
     } else if (CHECK_BTN_ANY(input->press.button, BTN_A | BTN_START)) {
+        if (!OotmmSession_RequestFileCopy(this->selectedFileIndex, this->copyDestFileIndex)) {
+            return;
+        }
         dayTime = gSaveContext.dayTime;
         Save_CopyFile(this->selectedFileIndex, this->copyDestFileIndex);
         gSaveContext.dayTime = dayTime;

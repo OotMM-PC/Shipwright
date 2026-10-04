@@ -152,10 +152,8 @@ int32_t OotmmCsmc_UpdateChest(EnBox* chest, PlayState* play) {
         return 0;
     }
 
-    // The treasure-game rooms keep vanilla chests unless their keys are shuffled;
-    // the final room's reward chest always participates.
     const bool excluded =
-        play->sceneNum == SCENE_TREASURE_BOX_SHOP && chest->dyna.actor.room != 6 &&
+        play->sceneNum == SCENE_TREASURE_BOX_SHOP && (chest->dyna.actor.params & 0x1F) != 0x0A &&
         state.GetStringSetting("smallKeyShuffleChestGame", "vanilla") == "vanilla";
     const auto mode = Ship::OotmmCsmc_Mode(state);
     if (mode == Ship::OotmmCsmcMode::Never || excluded) {

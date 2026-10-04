@@ -11,6 +11,8 @@
 #include "vt.h"
 #include "soh/ResourceManagerHelpers.h"
 #include "soh/Enhancements/game-interactor/GameInteractor_Hooks.h"
+#include "soh/OotmmItemPresentation.h"
+#include "soh/OotmmNpcChecks.h"
 
 #define FLAGS (ACTOR_FLAG_ATTENTION_ENABLED | ACTOR_FLAG_FRIENDLY | ACTOR_FLAG_UPDATE_CULLING_DISABLED)
 
@@ -258,11 +260,14 @@ void EnDntJiji_Talk(EnDntJiji* this, PlayState* play) {
     if ((Message_GetState(&play->msgCtx) == TEXT_STATE_EVENT) && Message_ShouldAdvance(play)) {
         func_8005B1A4(GET_ACTIVE_CAM(play));
         Message_CloseTextbox(play);
-        Player_SetCsActionWithHaltedActors(play, NULL, 7);
         this->actor.parent = NULL;
         if (GameInteractor_Should(VB_GIVE_ITEM_FROM_DEKU_THEATER, true, this)) {
+            Player_SetCsActionWithHaltedActors(play, NULL, 7);
             Actor_OfferGetItem(&this->actor, play, this->getItemId, 400.0f, 200.0f);
             this->actionFunc = EnDntJiji_SetupGivePrize;
+        } else {
+            GET_PLAYER(play)->stateFlags1 &= ~PLAYER_STATE1_IN_CUTSCENE;
+            this->actionFunc = EnDntJiji_GivePrize;
         }
     }
 }
@@ -277,9 +282,21 @@ void EnDntJiji_SetupGivePrize(EnDntJiji* this, PlayState* play) {
 }
 
 void EnDntJiji_GivePrize(EnDntJiji* this, PlayState* play) {
+    Player* player = GET_PLAYER(play);
+    const char* prizeSite = OotmmNpcChecks_DekuTheaterPrizeSite(this->getItemId);
+    s32 finishPrize;
+
     SkelAnime_Update(&this->skelAnime);
-    if (GameInteractor_Should(VB_DEKU_THEATER_FINISH_GIVING_PRIZE,
-                              (Message_GetState(&play->msgCtx) == TEXT_STATE_DONE) && Message_ShouldAdvance(play))) {
+    if ((prizeSite != NULL) && OotmmNpcChecks_IsShuffled(prizeSite)) {
+        finishPrize = !OotmmItemPresentation_IsPending() &&
+                      (Message_GetState(&play->msgCtx) == TEXT_STATE_NONE) &&
+                      !(player->stateFlags1 & PLAYER_STATE1_GETTING_ITEM);
+    } else {
+        finishPrize = GameInteractor_Should(
+            VB_DEKU_THEATER_FINISH_GIVING_PRIZE,
+            (Message_GetState(&play->msgCtx) == TEXT_STATE_DONE) && Message_ShouldAdvance(play));
+    }
+    if (finishPrize) {
         if ((this->getItemId == GI_NUT_UPGRADE_30) || (this->getItemId == GI_NUT_UPGRADE_40)) {
             // "nut"
             osSyncPrintf("実 \n");

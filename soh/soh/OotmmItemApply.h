@@ -4,9 +4,14 @@
 
 #ifdef __cplusplus
 #include <string>
+#include <nlohmann/json.hpp>
 
 extern "C" {
 #endif
+
+int32_t OotmmItemApply_BombchuCapacity(void);
+void OotmmItemApply_AddBombchuAmmo(int32_t amount);
+int32_t OotmmItemApply_SelectBombDrop(int32_t bombDrop, int32_t bombchuDrop);
 
 /// OoTMM's sticky "found the Master Sword" state, not the equipment bit OoT can clear.
 int32_t OotmmItemApply_FoundMasterSword(void);
@@ -27,6 +32,10 @@ void OotmmItemApply_SetTradeItemOwned(uint8_t slot, uint8_t item, int32_t owned)
 }
 
 void OotmmItemApply_Init();
+bool OotmmItemApply_CaptureSnapshot(nlohmann::json& snapshot);
+nlohmann::json OotmmItemApply_LegacySnapshot(int fileNum);
+void OotmmItemApply_SetSaveSnapshot(int fileNum, const nlohmann::json& snapshot, const nlohmann::json& shared = nullptr);
+bool OotmmItemApply_CaptureSharedSnapshot(nlohmann::json& snapshot);
 void OotmmItemApply_Reconcile();
 
 void OotmmItemApply_ResetLedgerForNewSave();

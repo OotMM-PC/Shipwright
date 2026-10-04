@@ -276,6 +276,8 @@ void EnGm_ProcessChoiceIndex(EnGm* this, PlayState* play) {
                     if (GameInteractor_Should(VB_GIVE_ITEM_FROM_MEDIGORON, true, this)) {
                         Actor_OfferGetItem(&this->actor, play, GI_SWORD_KNIFE, 415.0f, 10.0f);
                         this->actionFunc = func_80A3DF00;
+                    } else {
+                        this->actionFunc = func_80A3DF60;
                     }
                 }
                 break;

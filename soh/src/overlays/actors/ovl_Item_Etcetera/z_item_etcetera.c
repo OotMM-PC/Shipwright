@@ -5,6 +5,7 @@
  */
 
 #include "z_item_etcetera.h"
+#include "soh/OotmmNpcChecks.h"
 #include <assert.h>
 
 #define FLAGS ACTOR_FLAG_UPDATE_CULLING_DISABLED
@@ -83,11 +84,19 @@ void ItemEtcetera_Init(Actor* thisx, PlayState* play) {
         case ITEM_ETC_LETTER:
             Actor_SetScale(&this->actor, 0.5f);
             this->futureActionFunc = func_80B858B4;
-            if (Flags_GetEventChkInf(EVENTCHKINF_OBTAINED_RUTOS_LETTER)) {
+            if (OotmmNpcChecks_Done("OOT_RUTO_LETTER", Flags_GetEventChkInf(EVENTCHKINF_OBTAINED_RUTOS_LETTER))) {
+                if (OotmmNpcChecks_IsShuffled("OOT_RUTO_LETTER")) {
+                    Flags_SetEventChkInf(EVENTCHKINF_OBTAINED_RUTOS_LETTER);
+                    Flags_SetSwitch(play, 0xB);
+                }
                 Actor_Kill(&this->actor);
             }
             break;
         case ITEM_ETC_ARROW_FIRE:
+            if (OotmmNpcChecks_IsCollected("OOT_FIRE_ARROW")) {
+                Actor_Kill(&this->actor);
+                break;
+            }
             this->futureActionFunc = ItemEtcetera_UpdateFireArrow;
             Actor_SetScale(&this->actor, 0.5f);
             this->actor.draw = NULL;
@@ -118,6 +127,28 @@ void func_80B857D0(ItemEtcetera* this, PlayState* play) {
     }
 }
 
+const char* ItemEtcetera_CheckId(ItemEtcetera* this) {
+    switch (this->actor.params & 0xFF) {
+        case ITEM_ETC_LETTER:
+            return "OOT_RUTO_LETTER";
+        case ITEM_ETC_ARROW_FIRE:
+            return "OOT_FIRE_ARROW";
+        default:
+            return NULL;
+    }
+}
+
+void ItemEtcetera_OfferGetItem(ItemEtcetera* this, PlayState* play) {
+    const char* nativeId = ItemEtcetera_CheckId(this);
+    if (nativeId != NULL && OotmmNpcChecks_IsShuffled(nativeId)) {
+        if (OotmmNpcChecks_TryCollectFreestanding(&this->actor, play, nativeId, 30.0f, 50.0f)) {
+            this->actor.parent = &GET_PLAYER(play)->actor;
+        }
+    } else {
+        Actor_OfferGetItem(&this->actor, play, this->getItemId, 30.0f, 50.0f);
+    }
+}
+
 void func_80B85824(ItemEtcetera* this, PlayState* play) {
     if (Actor_HasParent(&this->actor, play)) {
         if ((this->actor.params & 0xFF) == 1) {
@@ -126,7 +157,7 @@ void func_80B85824(ItemEtcetera* this, PlayState* play) {
         }
         Actor_Kill(&this->actor);
     } else {
-        Actor_OfferGetItem(&this->actor, play, this->getItemId, 30.0f, 50.0f);
+        ItemEtcetera_OfferGetItem(this, play);
     }
 }
 
@@ -139,7 +170,7 @@ void func_80B858B4(ItemEtcetera* this, PlayState* play) {
 
         Actor_Kill(&this->actor);
     } else {
-        Actor_OfferGetItem(&this->actor, play, this->getItemId, 30.0f, 50.0f);
+        ItemEtcetera_OfferGetItem(this, play);
 
         if ((play->gameplayFrames & 0xD) == 0) {
             EffectSsBubble_Spawn(play, &this->actor.world.pos, 0.0f, 0.0f, 10.0f, 0.13f);
@@ -212,8 +243,12 @@ void ItemEtcetera_DrawThroughLens(Actor* thisx, PlayState* play) {
 
 void ItemEtcetera_Draw(Actor* thisx, PlayState* play) {
     ItemEtcetera* this = (ItemEtcetera*)thisx;
+    const char* nativeId = ItemEtcetera_CheckId(this);
 
     func_8002EBCC(&this->actor, play, 0);
     func_8002ED80(&this->actor, play, 0);
+    if (nativeId != NULL && OotmmNpcChecks_DrawCheckItem(play, nativeId)) {
+        return;
+    }
     GetItem_Draw(play, this->giDrawId);
 }

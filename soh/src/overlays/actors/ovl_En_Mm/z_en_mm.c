@@ -8,6 +8,7 @@
 #include "objects/object_mm/object_mm.h"
 #include "objects/object_link_child/object_link_child.h"
 #include "soh/ResourceManagerHelpers.h"
+#include "soh/OotmmNpcChecks.h"
 
 #define FLAGS (ACTOR_FLAG_ATTENTION_ENABLED | ACTOR_FLAG_FRIENDLY | ACTOR_FLAG_UPDATE_CULLING_DISABLED)
 
@@ -240,9 +241,11 @@ s32 func_80AADAA0(EnMm* this, PlayState* play) {
         case TEXT_STATE_EVENT:
             if (Message_ShouldAdvance(play)) {
                 Player_UnsetMask(play);
-                Item_Give(play, ITEM_SOLD_OUT);
+                if (!OotmmNpcChecks_Collect("OOT_MASK_SELL_BUNNY")) {
+                    Item_Give(play, ITEM_SOLD_OUT);
+                    Rupees_ChangeBy(500);
+                }
                 Flags_SetItemGetInf(ITEMGETINF_3B);
-                Rupees_ChangeBy(500);
                 player->actor.textId = 0x202E;
                 sp1C = 2;
             }

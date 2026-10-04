@@ -7,6 +7,7 @@
 #include "z_item_b_heart.h"
 #include "objects/object_gi_hearts/object_gi_hearts.h"
 #include "soh/Enhancements/game-interactor/GameInteractor_Hooks.h"
+#include "soh/OotmmChecks.h"
 
 #define FLAGS 0
 
@@ -40,7 +41,8 @@ static InitChainEntry sInitChain[] = {
 void ItemBHeart_Init(Actor* thisx, PlayState* play) {
     ItemBHeart* this = (ItemBHeart*)thisx;
 
-    if (GameInteractor_Should(VB_ITEM_B_HEART_DESPAWN, Flags_GetCollectible(play, 0x1F), this)) {
+    if (GameInteractor_Should(VB_ITEM_B_HEART_DESPAWN,
+                              OotmmChecks_BossContainerDone(play, Flags_GetCollectible(play, 0x1F)), this)) {
         Actor_Kill(&this->actor);
     } else {
         Actor_ProcessInitChain(&this->actor, sInitChain);
@@ -56,6 +58,13 @@ void ItemBHeart_Update(Actor* thisx, PlayState* play) {
 
     func_80B85264(this, play);
     Actor_UpdateBgCheckInfo(play, &this->actor, 0.0f, 0.0f, 0.0f, 4);
+    if (OotmmChecks_BossContainerIsShuffled(play)) {
+        if (OotmmChecks_TryCollectBossContainer(&this->actor, play)) {
+            Flags_SetCollectible(play, 0x1F);
+            Actor_Kill(&this->actor);
+        }
+        return;
+    }
     if (Actor_HasParent(&this->actor, play)) {
         Flags_SetCollectible(play, 0x1F);
         Actor_Kill(&this->actor);
@@ -81,6 +90,10 @@ void ItemBHeart_Draw(Actor* thisx, PlayState* play) {
     ItemBHeart* this = (ItemBHeart*)thisx;
     Actor* actorIt;
     u8 flag = false;
+
+    if (OotmmChecks_DrawBossContainer(&this->actor, play)) {
+        return;
+    }
 
     OPEN_DISPS(play->state.gfxCtx);
 

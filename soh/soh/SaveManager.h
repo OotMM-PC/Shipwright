@@ -50,6 +50,7 @@ typedef enum {
 #include <BS_thread_pool.hpp>
 
 #include <nlohmann/json.hpp>
+#include <atomic>
 
 class SaveManager {
   public:
@@ -82,6 +83,8 @@ class SaveManager {
     void LoadFile(int fileNum);
     bool SaveFile_Exist(int fileNum);
     void ThreadPoolWait();
+    bool LastBaseSaveSucceeded(int fileNum) const;
+    bool IsSaving() const;
 
     // Adds a function that is called when we are intializing a save, including when we are loading a save.
     void AddInitFunction(InitFunc func);
@@ -149,11 +152,13 @@ class SaveManager {
     std::filesystem::path GetFileName(int fileNum);
     std::filesystem::path GetFileTempName(int fileNum);
     nlohmann::json saveBlock;
+    std::array<std::atomic<bool>, MaxFiles> baseSaveSucceeded{};
+    std::atomic<bool> lastWriteFailed{false};
 
     void ConvertFromUnversioned();
     void CreateDefaultGlobal();
 
-    void SaveFileThreaded(int fileNum, SaveContext* saveContext, int sectionID);
+    void SaveFileThreaded(int fileNum, SaveContext* saveContext, int sectionID, nlohmann::json ootmmSnapshot);
 
     void InitMeta(int slotNum);
     void StartupCheckAndInitMeta(int slotNum);

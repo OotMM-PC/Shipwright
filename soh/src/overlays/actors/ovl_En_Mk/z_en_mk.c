@@ -96,8 +96,8 @@ void func_80AACA40(EnMk* this, PlayState* play) {
 void func_80AACA94(EnMk* this, PlayState* play) {
     if (Actor_HasParent(&this->actor, play) != 0 || !GameInteractor_Should(VB_TRADE_FROG, true, this)) {
         this->actor.parent = NULL;
+        this->actionFunc = func_80AACA40;
         if (GameInteractor_Should(VB_TRADE_TIMER_EYEDROPS, true, this)) {
-            this->actionFunc = func_80AACA40;
             Interface_SetSubTimer(240);
             gSaveContext.eventInf[1] &= ~1;
         }
