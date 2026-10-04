@@ -152,7 +152,7 @@ void func_80B17934(EnTakaraMan* this, PlayState* play) {
                     Rupees_ChangeBy(-10);
                     this->unk_214 = 1;
                     this->actor.parent = NULL;
-                    if (OotmmNpcChecks_Collect("OOT_CHEST_GAME_KEY")) {
+                    if (OotmmDungeons_ChestGameKeepsProgress() && OotmmNpcChecks_Collect("OOT_CHEST_GAME_KEY")) {
                         this->actionFunc = func_80B17AC4;
                     } else {
                         Actor_OfferGetItem(&this->actor, play, GI_DOOR_KEY, 2000.0f, 1000.0f);

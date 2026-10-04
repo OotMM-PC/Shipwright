@@ -5,6 +5,7 @@
 #include "OotmmCheckLedger.h"
 #include "OotmmCsmc.h"
 #include "OotmmDrops.h"
+#include "OotmmDungeons.h"
 #include "OotmmIpc.h"
 #include "OotmmItemModels.h"
 #include "OotmmItemPresentation.h"
@@ -40,6 +41,9 @@ uint32_t sChestOpeningFinishedFrame = 0;
 bool sWasConnected = false;
 
 const Ship::OotmmPlacement* FindChest(uint32_t scene, uint32_t flag) {
+    if (scene == SCENE_TREASURE_BOX_SHOP && flag != 0x0A && !OotmmDungeons_ChestGameKeepsProgress()) {
+        return nullptr;
+    }
     return OotmmSession_GetState().FindCheck(Ship::OotmmGame::Oot, scene, "chest", flag);
 }
 

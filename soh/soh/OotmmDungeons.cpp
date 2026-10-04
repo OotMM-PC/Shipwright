@@ -97,6 +97,15 @@ extern "C" int OotmmDungeons_SceneForCode(const char* code) {
     return -1;
 }
 
+extern "C" const char* OotmmDungeons_CodeForScene(int sceneNum) {
+    for (const Dungeon& dungeon : kDungeons) {
+        if (dungeon.Scene == sceneNum) {
+            return dungeon.Code.data();
+        }
+    }
+    return nullptr;
+}
+
 extern "C" int OotmmDungeons_MaxSmallKeys(int sceneNum) {
     switch (sceneNum) {
         case SCENE_INSIDE_GANONS_CASTLE:

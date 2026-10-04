@@ -8,6 +8,7 @@
 #include "vt.h"
 #include "overlays/actors/ovl_Item_Etcetera/z_item_etcetera.h"
 #include "overlays/actors/ovl_En_Ex_Item/z_en_ex_item.h"
+#include "soh/OotmmDungeons.h"
 
 #define FLAGS 0
 
@@ -77,6 +78,20 @@ void EnChanger_Init(Actor* thisx, PlayState* play2) {
     s16 temp_v1_3;
     s16 new_var;
     s32 rewardParams;
+
+    if (OotmmDungeons_ChestGameKeepsProgress()) {
+        s16 room = play->roomCtx.curRoom.num;
+        if (room >= 6) {
+            Actor_Spawn(&play->actorCtx, play, ACTOR_EN_BOX, 20.0f, 20.0f, -2500.0f, 0, 0x7FFF, 0, 0x402A);
+        } else if (room >= 1) {
+            Actor_Spawn(&play->actorCtx, play, ACTOR_EN_BOX, sLeftChestPos[room].x, sLeftChestPos[room].y,
+                        sLeftChestPos[room].z, 0, -0x3FFF, 0, 0x4020 | ((room - 1) * 2));
+            Actor_Spawn(&play->actorCtx, play, ACTOR_EN_BOX, sRightChestPos[room].x, sRightChestPos[room].y,
+                        sRightChestPos[room].z, 0, 0x3FFF, 0, 0x4020 | ((room - 1) * 2 + 1));
+        }
+        Actor_Kill(thisx);
+        return;
+    }
 
     minigameRoomNum = play->roomCtx.curRoom.num - 1;
     if (minigameRoomNum < 0) {

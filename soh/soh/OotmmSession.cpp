@@ -541,15 +541,11 @@ void ApplySaveFlags() {
         Flags_SetEventChkInf(EVENTCHKINF_CARPENTERS_FREE(1));
         Flags_SetEventChkInf(EVENTCHKINF_CARPENTERS_FREE(2));
         Flags_SetEventChkInf(EVENTCHKINF_CARPENTERS_FREE(3));
-        gSaveContext.sceneFlags[SCENE_THIEVES_HIDEOUT].swch |=
-            (1 << 0x02) | (1 << 0x03) | (1 << 0x04) | (1 << 0x06) | (1 << 0x07) | (1 << 0x08) | (1 << 0x10) |
-            (1 << 0x12) | (1 << 0x13);
-        gSaveContext.sceneFlags[SCENE_THIEVES_HIDEOUT].collect |= (1 << 0x0A) | (1 << 0x0E) | (1 << 0x0F);
+        gSaveContext.sceneFlags[SCENE_THIEVES_HIDEOUT].swch |= (1 << 0x02) | (1 << 0x03) | (1 << 0x04);
     }
     if (gerudo == "open") {
         Flags_SetEventChkInf(EVENTCHKINF_CARPENTERS_FREE(0));
-        gSaveContext.sceneFlags[SCENE_THIEVES_HIDEOUT].swch |= (1 << 0x01) | (1 << 0x05) | (1 << 0x11);
-        gSaveContext.sceneFlags[SCENE_THIEVES_HIDEOUT].collect |= 1 << 0x0C;
+        gSaveContext.sceneFlags[SCENE_THIEVES_HIDEOUT].swch |= 1 << 0x01;
     }
 
     if (sGameState.GetBoolSetting("skipZelda", false)) {

@@ -361,9 +361,7 @@ void EnDoor_Draw(Actor* thisx, PlayState* play) {
             if (ABS((s16)(this->actor.shape.rot.y - yaw)) < 0x4000) {
                 Matrix_RotateY(M_PI, MTXMODE_APPLY);
             }
-            gDPSetPrimColor(POLY_OPA_DISP++, 0, 0, 255, 140, 64, 255);
-            gDPSetEnvColor(POLY_OPA_DISP++, 140, 55, 15, 255);
-            Actor_DrawDoorLock(play, 10, DOORLOCK_NORMAL);
+            OotmmRustyDoorDrawLock(play);
         } else if (this->lockTimer != 0) {
             if (CVarGetInteger(CVAR_ENHANCEMENT("ShowDoorLocksOnBothSides"), 0)) {
                 Matrix_Push();
