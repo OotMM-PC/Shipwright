@@ -644,10 +644,27 @@ static ActorDBInit OotmmCustomWarpInit = {
     nullptr,
 };
 
+#include "soh/OotmmIceFloe.h"
+
+static ActorDBInit OotmmIceFloeInit = {
+    "Ootmm_Ice_Floe",
+    "OoTMM Ice Arrow Platform",
+    ACTORCAT_BG,
+    ACTOR_FLAG_UPDATE_CULLING_DISABLED,
+    OBJECT_GAMEPLAY_KEEP,
+    sizeof(OotmmIceFloe),
+    (ActorFunc)OotmmIceFloe_Init,
+    (ActorFunc)OotmmIceFloe_Destroy,
+    (ActorFunc)OotmmIceFloe_Update,
+    (ActorFunc)OotmmIceFloe_Draw,
+    nullptr,
+};
+
 void ActorDB::AddBuiltInCustomActors() {
     gEnPartnerId = ActorDB::Instance->AddEntry(EnPartnerInit).entry.id;
     gOotmmPuppetId = ActorDB::Instance->AddEntry(OotmmPuppetInit).entry.id;
     gOotmmCustomWarpId = ActorDB::Instance->AddEntry(OotmmCustomWarpInit).entry.id;
+    gOotmmIceFloeId = ActorDB::Instance->AddEntry(OotmmIceFloeInit).entry.id;
 }
 
 extern "C" ActorDBEntry* ActorDB_Retrieve(const int id) {

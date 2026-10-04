@@ -5,6 +5,7 @@
  */
 
 #include "z_en_arrow.h"
+#include "soh/OotmmIceFloe.h"
 #include "objects/gameplay_keep/gameplay_keep.h"
 #include "objects/object_gi_nuts/object_gi_nuts.h"
 
@@ -381,6 +382,7 @@ void EnArrow_Fly(EnArrow* this, PlayState* play) {
     } else {
         Math_Vec3f_Copy(&this->unk_210, &this->actor.world.pos);
         Actor_MoveXZGravity(&this->actor);
+        OotmmIceFloe_CheckArrow(&this->actor, play);
 
         if ((this->touchedPoly =
                  BgCheck_ProjectileLineTest(&play->colCtx, &this->actor.prevPos, &this->actor.world.pos, &hitPoint,

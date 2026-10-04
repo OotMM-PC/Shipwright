@@ -44,7 +44,6 @@ struct SafeGround {
 
 SafeGround sSafe;
 uint8_t sNoGroundVoidTimer = 0;
-uint8_t sConsecutiveVoids = 0;
 
 bool SwimNeedsScale() {
     return OotmmSession_IsActive() &&
@@ -66,27 +65,14 @@ bool EntranceLoadsCurrentScene(PlayState* play) {
 void CaptureGround(PlayState* play, Player* player) {
     sSafe.Valid = true;
     sSafe.Pos = player->actor.world.pos;
-    // Flipped so the void leaves Link facing away from the doorway he was standing in.
-    sSafe.Yaw = static_cast<int16_t>(player->actor.shape.rot.y + 0x8000);
+    sSafe.Yaw = player->actor.world.rot.y;
     sSafe.EntranceIndex = static_cast<int16_t>(gSaveContext.entranceIndex);
     sSafe.Room = play->roomCtx.curRoom.num;
     sNoGroundVoidTimer = 0;
-    sConsecutiveVoids = 0;
 }
 
 void VoidToDryGround(PlayState* play) {
     Sfx_PlaySfxCentered(NA_SE_EV_WATER_CONVECTION);
-
-    // Draining a heart per repeat hands an underwater respawn to the death sequence rather than
-    // an endless fade loop.
-    if (++sConsecutiveVoids >= 2) {
-        gSaveContext.health -= 16;
-        if (gSaveContext.health <= 0) {
-            gSaveContext.health = 0;
-            return;
-        }
-    }
-
     if (sSafe.Valid) {
         Play_SetRespawnData(play, RESPAWN_MODE_DOWN, sSafe.EntranceIndex, sSafe.Room, kVoidPlayerParams, &sSafe.Pos,
                             sSafe.Yaw);
@@ -220,7 +206,6 @@ extern "C" void OotmmScales_Init(void) {
     GameInteractor::Instance->RegisterGameHook<GameInteractor::OnLoadGame>([](int32_t) {
         sSafe = SafeGround{};
         sNoGroundVoidTimer = 0;
-        sConsecutiveVoids = 0;
     });
 }
 
