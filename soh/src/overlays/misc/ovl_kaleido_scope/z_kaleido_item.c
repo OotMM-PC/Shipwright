@@ -1,3 +1,4 @@
+#include "soh/OotmmCustomItems.h"
 #include "soh/OotmmItemApply.h"
 #include "soh/OotmmItemPage.h"
 #include "z_kaleido_scope.h"
@@ -244,7 +245,7 @@ void KaleidoScope_DrawItemCycleExtras(PlayState* play, u8 slot, u8 canCycle, u8 
                 gDPSetGrayscaleColor(POLY_OPA_DISP++, 109, 109, 109, 255);
                 gSPGrayscale(POLY_OPA_DISP++, true);
             }
-            KaleidoScope_DrawQuadTextureRGBA32(play->state.gfxCtx, gItemIcons[leftItem], 32, 32, 0);
+            KaleidoScope_DrawQuadTextureRGBA32(play->state.gfxCtx, OotmmCustomItems_ButtonIcon(leftItem), 32, 32, 0);
             gSPGrayscale(POLY_OPA_DISP++, false);
         }
         if (showRightItem) {
@@ -252,7 +253,7 @@ void KaleidoScope_DrawItemCycleExtras(PlayState* play, u8 slot, u8 canCycle, u8 
                 gDPSetGrayscaleColor(POLY_OPA_DISP++, 109, 109, 109, 255);
                 gSPGrayscale(POLY_OPA_DISP++, true);
             }
-            KaleidoScope_DrawQuadTextureRGBA32(play->state.gfxCtx, gItemIcons[rightItem], 32, 32, 4);
+            KaleidoScope_DrawQuadTextureRGBA32(play->state.gfxCtx, OotmmCustomItems_ButtonIcon(rightItem), 32, 32, 4);
             gSPGrayscale(POLY_OPA_DISP++, false);
         }
 
@@ -273,6 +274,18 @@ void KaleidoScope_HandleItemCycleExtras(PlayState* play, u8 slot, bool canCycle,
 
     if (canCycle && pauseCtx->cursorSlot[PAUSE_ITEM] == slot && CHECK_BTN_ALL(input->press.button, BTN_A) &&
         (hasLeftItem || hasRightItem)) {
+        if (OotmmBottles_IsTradeBottleSlot(slot) &&
+            ((slot == SLOT_TRADE_ADULT && LINK_IS_CHILD) ||
+             (slot == SLOT_TRADE_CHILD && LINK_IS_ADULT && !OotmmAgeless_ChildTrade()))) {
+            for (int i = 1; i < ARRAY_COUNT(gSaveContext.equips.buttonItems); i++) {
+                if (gSaveContext.equips.buttonItems[i] != ITEM_NONE &&
+                    gSaveContext.equips.cButtonSlots[i - 1] == slot) {
+                    Audio_PlaySoundGeneral(NA_SE_SY_ERROR, &gSfxDefaultPos, 4, &gSfxDefaultFreqAndVolScale,
+                                           &gSfxDefaultFreqAndVolScale, &gSfxDefaultReverb);
+                    return;
+                }
+            }
+        }
         Audio_PlaySoundGeneral(NA_SE_SY_DECIDE, &gSfxDefaultPos, 4, &gSfxDefaultFreqAndVolScale,
                                &gSfxDefaultFreqAndVolScale, &gSfxDefaultReverb);
         gCurrentItemCyclingSlot = gCurrentItemCyclingSlot == slot ? -1 : slot;
@@ -285,7 +298,8 @@ void KaleidoScope_HandleItemCycleExtras(PlayState* play, u8 slot, bool canCycle,
                                    &gSfxDefaultFreqAndVolScale, &gSfxDefaultReverb);
             if (replaceCButtons) {
                 for (int i = 1; i < ARRAY_COUNT(gSaveContext.equips.buttonItems); i++) {
-                    if (gSaveContext.equips.buttonItems[i] == gSaveContext.inventory.items[slot]) {
+                    if (gSaveContext.equips.buttonItems[i] != ITEM_NONE &&
+                        gSaveContext.equips.cButtonSlots[i - 1] == slot) {
                         if (CHECK_AGE_REQ_ITEM(rightItem)) {
                             gSaveContext.equips.buttonItems[i] = rightItem;
                             Interface_LoadItemIcon1(play, i);
@@ -303,7 +317,8 @@ void KaleidoScope_HandleItemCycleExtras(PlayState* play, u8 slot, bool canCycle,
                                    &gSfxDefaultFreqAndVolScale, &gSfxDefaultReverb);
             if (replaceCButtons) {
                 for (int i = 1; i < ARRAY_COUNT(gSaveContext.equips.buttonItems); i++) {
-                    if (gSaveContext.equips.buttonItems[i] == gSaveContext.inventory.items[slot]) {
+                    if (gSaveContext.equips.buttonItems[i] != ITEM_NONE &&
+                        gSaveContext.equips.cButtonSlots[i - 1] == slot) {
                         if (CHECK_AGE_REQ_ITEM(leftItem)) {
                             gSaveContext.equips.buttonItems[i] = leftItem;
                             Interface_LoadItemIcon1(play, i);
@@ -795,7 +810,7 @@ void KaleidoScope_DrawItemSelect(PlayState* play) {
                 gDPSetGrayscaleColor(POLY_OPA_DISP++, 109, 109, 109, 255);
                 gSPGrayscale(POLY_OPA_DISP++, true);
             }
-            KaleidoScope_DrawQuadTextureRGBA32(play->state.gfxCtx, gItemIcons[itemId], 32, 32, 0);
+            KaleidoScope_DrawQuadTextureRGBA32(play->state.gfxCtx, OotmmCustomItems_ButtonIcon(itemId), 32, 32, 0);
             gSPGrayscale(POLY_OPA_DISP++, false);
         }
     }

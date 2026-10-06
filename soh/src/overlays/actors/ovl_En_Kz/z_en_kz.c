@@ -5,6 +5,7 @@
  */
 
 #include "z_en_kz.h"
+#include "soh/OotmmBottles.h"
 #include "objects/object_kz/object_kz.h"
 #include "soh/ResourceManagerHelpers.h"
 #include "soh/Enhancements/game-interactor/GameInteractor_Hooks.h"
@@ -461,7 +462,7 @@ void EnKz_Mweep(EnKz* this, PlayState* play) {
     }
     if ((EnKz_FollowPath(this, play) == 1) && (this->waypoint == 0)) {
         Animation_ChangeByInfo(&this->skelanime, sAnimationInfo, ENKZ_ANIM_1);
-        Inventory_ReplaceItem(play, ITEM_LETTER_RUTO, ITEM_BOTTLE);
+        OotmmBottles_GiveRutoLetter(play);
         EnKz_SetMovedPos(this, play);
         Flags_SetEventChkInf(EVENTCHKINF_KING_ZORA_MOVED);
         this->actor.speedXZ = 0.0;

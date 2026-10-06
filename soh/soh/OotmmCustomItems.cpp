@@ -1,4 +1,5 @@
 #include "OotmmCustomItems.h"
+#include "OotmmBottles.h"
 
 #include "Enhancements/custom-message/CustomMessageManager.h"
 #include "Enhancements/game-interactor/GameInteractor.h"
@@ -128,6 +129,9 @@ extern "C" void* OotmmCustomItems_ButtonIcon(uint8_t item) {
     const CustomItem* entry = Find(item);
     if (entry != nullptr) {
         return const_cast<char*>(entry->Icon);
+    }
+    if (const char* bottle = OotmmBottles_IconPath(item); bottle != nullptr) {
+        return const_cast<char*>(bottle);
     }
     // gItemIcons only covers vanilla ids; anything else would read past its end.
     return item < ARRAY_COUNT(gItemIcons) ? gItemIcons[item] : nullptr;

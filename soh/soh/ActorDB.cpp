@@ -645,6 +645,7 @@ static ActorDBInit OotmmCustomWarpInit = {
 };
 
 #include "soh/OotmmIceFloe.h"
+#include "soh/OotmmAqua.h"
 
 static ActorDBInit OotmmIceFloeInit = {
     "Ootmm_Ice_Floe",
@@ -660,11 +661,26 @@ static ActorDBInit OotmmIceFloeInit = {
     nullptr,
 };
 
+static ActorDBInit OotmmAquaInit = {
+    "Ootmm_Obj_Aqua",
+    "OoTMM Spring Water",
+    ACTORCAT_ITEMACTION,
+    ACTOR_FLAG_UPDATE_CULLING_DISABLED,
+    OBJECT_GAMEPLAY_KEEP,
+    sizeof(OotmmAqua),
+    (ActorFunc)OotmmAqua_Init,
+    (ActorFunc)OotmmAqua_Destroy,
+    (ActorFunc)OotmmAqua_Update,
+    (ActorFunc)OotmmAqua_Draw,
+    nullptr,
+};
+
 void ActorDB::AddBuiltInCustomActors() {
     gEnPartnerId = ActorDB::Instance->AddEntry(EnPartnerInit).entry.id;
     gOotmmPuppetId = ActorDB::Instance->AddEntry(OotmmPuppetInit).entry.id;
     gOotmmCustomWarpId = ActorDB::Instance->AddEntry(OotmmCustomWarpInit).entry.id;
     gOotmmIceFloeId = ActorDB::Instance->AddEntry(OotmmIceFloeInit).entry.id;
+    gOotmmAquaId = ActorDB::Instance->AddEntry(OotmmAquaInit).entry.id;
 }
 
 extern "C" ActorDBEntry* ActorDB_Retrieve(const int id) {

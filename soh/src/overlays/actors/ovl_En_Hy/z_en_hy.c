@@ -5,6 +5,7 @@
  */
 
 #include "z_en_hy.h"
+#include "soh/OotmmBottles.h"
 #include "objects/object_aob/object_aob.h"
 #include "objects/object_ahg/object_ahg.h"
 #include "objects/object_bob/object_bob.h"
@@ -611,7 +612,7 @@ s16 func_80A70058(PlayState* play, Actor* thisx) {
                 case 0x70F1:
                 case 0x70F2:
                 case 0x70F3:
-                    Rupees_ChangeBy(beggarRewards[this->actor.textId - 0x70F0]);
+                    Rupees_ChangeBy(OotmmBottles_BeggarPayout(beggarRewards[this->actor.textId - 0x70F0]));
                     Animation_ChangeByInfo(&this->skelAnime, sAnimationInfo, ENHY_ANIM_17);
                     Player_UpdateBottleHeld(play, GET_PLAYER(play), ITEM_BOTTLE, PLAYER_IA_BOTTLE);
                     break;
@@ -746,8 +747,9 @@ void func_80A70834(EnHy* this, PlayState* play) {
     Player* player = GET_PLAYER(play);
 
     if ((this->actor.params & 0x7F) == ENHY_TYPE_BOJ_5) {
-        if (!Inventory_HasSpecificBottle(ITEM_BLUE_FIRE) && !Inventory_HasSpecificBottle(ITEM_BUG) &&
-            !Inventory_HasSpecificBottle(ITEM_FISH)) {
+        OotmmBottles_BeggarOffer(EXCH_ITEM_NONE);
+        if (!OotmmBottles_HasSpecific(ITEM_BLUE_FIRE) && !OotmmBottles_HasSpecific(ITEM_BUG) &&
+            !OotmmBottles_HasSpecific(ITEM_FISH) && !OotmmBottles_BeggarHasSellable()) {
             switch (func_8002F368(play)) {
                 case EXCH_ITEM_POE:
                 case EXCH_ITEM_BIG_POE:
@@ -755,11 +757,15 @@ void func_80A70834(EnHy* this, PlayState* play) {
                     this->actor.textId = 0x70EF;
                     break;
                 default:
-                    if (Player_GetMask(play) == PLAYER_MASK_NONE) {
+                    if (OotmmBottles_BeggarRefuses(func_8002F368(play))) {
+                        this->actor.textId = 0x70EF;
+                    } else if (Player_GetMask(play) == PLAYER_MASK_NONE) {
                         this->actor.textId = 0x70ED;
                     }
                     break;
             }
+        } else if (OotmmBottles_BeggarOffer(func_8002F368(play))) {
+            this->actor.textId = 0x70F0;
         } else {
             switch (func_8002F368(play)) {
                 case EXCH_ITEM_BLUE_FIRE:

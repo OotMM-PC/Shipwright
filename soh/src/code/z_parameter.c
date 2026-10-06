@@ -17,6 +17,7 @@
 
 #include "soh/Enhancements/game-interactor/GameInteractor.h"
 #include "soh/Enhancements/game-interactor/GameInteractor_Hooks.h"
+#include "soh/OotmmBottles.h"
 #include "soh/OotmmCustomItems.h"
 #include "soh/OotmmSession.h"
 #include "soh/OotmmItemApply.h"
@@ -1096,8 +1097,9 @@ void func_80083108(PlayState* play) {
 
                 if (interfaceCtx->restrictions.bottles != 0) {
                     for (i = 1; i < ARRAY_COUNT(gSaveContext.equips.buttonItems); i++) {
-                        if ((gSaveContext.equips.buttonItems[i] >= ITEM_BOTTLE) &&
-                            (gSaveContext.equips.buttonItems[i] <= ITEM_POE)) {
+                        if (((gSaveContext.equips.buttonItems[i] >= ITEM_BOTTLE) &&
+                             (gSaveContext.equips.buttonItems[i] <= ITEM_POE)) ||
+                            OotmmBottles_IsItem(gSaveContext.equips.buttonItems[i])) {
                             if (gSaveContext.buttonStatus[BUTTON_STATUS_INDEX(i)] == BTN_ENABLED) {
                                 sp28 = 1;
                             }
@@ -1107,8 +1109,9 @@ void func_80083108(PlayState* play) {
                     }
                 } else if (interfaceCtx->restrictions.bottles == 0) {
                     for (i = 1; i < ARRAY_COUNT(gSaveContext.equips.buttonItems); i++) {
-                        if ((gSaveContext.equips.buttonItems[i] >= ITEM_BOTTLE) &&
-                            (gSaveContext.equips.buttonItems[i] <= ITEM_POE)) {
+                        if (((gSaveContext.equips.buttonItems[i] >= ITEM_BOTTLE) &&
+                             (gSaveContext.equips.buttonItems[i] <= ITEM_POE)) ||
+                            OotmmBottles_IsItem(gSaveContext.equips.buttonItems[i])) {
                             if (gSaveContext.buttonStatus[BUTTON_STATUS_INDEX(i)] == BTN_DISABLED) {
                                 sp28 = 1;
                             }
@@ -1248,6 +1251,7 @@ void func_80083108(PlayState* play) {
                             (gSaveContext.equips.buttonItems[i] != ITEM_OCARINA_TIME) &&
                             !((gSaveContext.equips.buttonItems[i] >= ITEM_BOTTLE) &&
                               (gSaveContext.equips.buttonItems[i] <= ITEM_POE)) &&
+                            !OotmmBottles_IsItem(gSaveContext.equips.buttonItems[i]) &&
                             !((gSaveContext.equips.buttonItems[i] >= ITEM_SHIELD_DEKU) && // Never disable equipment
                               (gSaveContext.equips.buttonItems[i] <=
                                ITEM_BOOTS_HOVER)) && // (tunics/boots) on C-buttons
@@ -1280,6 +1284,7 @@ void func_80083108(PlayState* play) {
                             (gSaveContext.equips.buttonItems[i] != ITEM_OCARINA_TIME) &&
                             !((gSaveContext.equips.buttonItems[i] >= ITEM_BOTTLE) &&
                               (gSaveContext.equips.buttonItems[i] <= ITEM_POE)) &&
+                            !OotmmBottles_IsItem(gSaveContext.equips.buttonItems[i]) &&
                             !((gSaveContext.equips.buttonItems[i] >= ITEM_WEIRD_EGG) &&
                               (gSaveContext.equips.buttonItems[i] <= ITEM_CLAIM_CHECK))) {
                             if (gSaveContext.buttonStatus[BUTTON_STATUS_INDEX(i)] == BTN_DISABLED) {
@@ -2429,6 +2434,10 @@ s32 Inventory_ConsumeFairy(PlayState* play) {
     s16 i;
     s16 j;
 
+    if (OotmmSession_IsActive()) {
+        return OotmmBottles_ConsumeFairy(play);
+    }
+
     for (i = 0; i < 4; i++) {
         if (gSaveContext.inventory.items[bottleSlot + i] == ITEM_FAIRY) {
             for (j = 1; j < ARRAY_COUNT(gSaveContext.equips.buttonItems); j++) {
@@ -2777,6 +2786,10 @@ s32 Magic_RequestChange(PlayState* play, s16 amount, s16 type) {
         return false;
     }
 
+    if (OotmmBottles_ChateauActive() && (type != MAGIC_CONSUME_WAIT_PREVIEW) && (type != MAGIC_ADD)) {
+        amount = 0;
+    }
+
     if ((type != 5) && (gSaveContext.magic - amount) < 0) {
         if (gSaveContext.magicCapacity != 0) {
             Audio_PlaySoundGeneral(NA_SE_SY_ERROR, &gSfxDefaultPos, 4, &gSfxDefaultFreqAndVolScale,
@@ -2862,6 +2875,43 @@ s32 Magic_RequestChange(PlayState* play, s16 amount, s16 type) {
     return 0;
 }
 
+static void Interface_StepMagicBorderFlash(s16 colors[][3], s16* indexes, s16* ratio, s16* step) {
+    s16 temp = indexes[*step];
+    s16 borderChangeR = ABS(sMagicBorder.r - colors[temp][0]) / *ratio;
+    s16 borderChangeG = ABS(sMagicBorder.g - colors[temp][1]) / *ratio;
+    s16 borderChangeB = ABS(sMagicBorder.b - colors[temp][2]) / *ratio;
+
+    if (sMagicBorder.r >= colors[temp][0]) {
+        sMagicBorder.r -= borderChangeR;
+    } else {
+        sMagicBorder.r += borderChangeR;
+    }
+
+    if (sMagicBorder.g >= colors[temp][1]) {
+        sMagicBorder.g -= borderChangeG;
+    } else {
+        sMagicBorder.g += borderChangeG;
+    }
+
+    if (sMagicBorder.b >= colors[temp][2]) {
+        sMagicBorder.b -= borderChangeB;
+    } else {
+        sMagicBorder.b += borderChangeB;
+    }
+
+    (*ratio)--;
+    if (*ratio == 0) {
+        sMagicBorder.r = colors[temp][0];
+        sMagicBorder.g = colors[temp][1];
+        sMagicBorder.b = colors[temp][2];
+        *ratio = YREG(40 + *step);
+        (*step)++;
+        if (*step >= 4) {
+            *step = 0;
+        }
+    }
+}
+
 void Interface_UpdateMagicBar(PlayState* play) {
     static s16 sMagicBorderColors[][3] = {
         { 255, 255, 255 },
@@ -2907,10 +2957,21 @@ void Interface_UpdateMagicBar(PlayState* play) {
     static s16 sMagicBorderStep = 1;
     MessageContext* msgCtx = &play->msgCtx;
     InterfaceContext* interfaceCtx = &play->interfaceCtx;
-    s16 borderChangeR;
-    s16 borderChangeG;
-    s16 borderChangeB;
     s16 temp;
+
+    if (OotmmBottles_ChateauActive()) {
+        switch (gSaveContext.magicState) {
+            case MAGIC_STATE_CONSUME:
+            case MAGIC_STATE_METER_FLASH_1:
+            case MAGIC_STATE_METER_FLASH_2:
+            case MAGIC_STATE_METER_FLASH_3:
+                break;
+            default:
+                Interface_StepMagicBorderFlash(sMagicBorderColors, sMagicBorderIndexes, &sMagicBorderRatio,
+                                               &sMagicBorderStep);
+                break;
+        }
+    }
 
     switch (gSaveContext.magicState) {
         case MAGIC_STATE_STEP_CAPACITY:
@@ -2955,7 +3016,11 @@ void Interface_UpdateMagicBar(PlayState* play) {
             break;
 
         case MAGIC_STATE_CONSUME:
-            gSaveContext.magic -= 2;
+            if (OotmmBottles_ChateauActive()) {
+                gSaveContext.magicTarget = gSaveContext.magic;
+            } else {
+                gSaveContext.magic -= 2;
+            }
             if (gSaveContext.magic <= 0) {
                 gSaveContext.magic = 0;
                 gSaveContext.magicState = MAGIC_STATE_METER_FLASH_1;
@@ -2975,40 +3040,8 @@ void Interface_UpdateMagicBar(PlayState* play) {
         case MAGIC_STATE_METER_FLASH_1:
         case MAGIC_STATE_METER_FLASH_2:
         case MAGIC_STATE_METER_FLASH_3:
-            temp = sMagicBorderIndexes[sMagicBorderStep];
-            borderChangeR = ABS(sMagicBorder.r - sMagicBorderColors[temp][0]) / sMagicBorderRatio;
-            borderChangeG = ABS(sMagicBorder.g - sMagicBorderColors[temp][1]) / sMagicBorderRatio;
-            borderChangeB = ABS(sMagicBorder.b - sMagicBorderColors[temp][2]) / sMagicBorderRatio;
-
-            if (sMagicBorder.r >= sMagicBorderColors[temp][0]) {
-                sMagicBorder.r -= borderChangeR;
-            } else {
-                sMagicBorder.r += borderChangeR;
-            }
-
-            if (sMagicBorder.g >= sMagicBorderColors[temp][1]) {
-                sMagicBorder.g -= borderChangeG;
-            } else {
-                sMagicBorder.g += borderChangeG;
-            }
-
-            if (sMagicBorder.b >= sMagicBorderColors[temp][2]) {
-                sMagicBorder.b -= borderChangeB;
-            } else {
-                sMagicBorder.b += borderChangeB;
-            }
-
-            sMagicBorderRatio--;
-            if (sMagicBorderRatio == 0) {
-                sMagicBorder.r = sMagicBorderColors[temp][0];
-                sMagicBorder.g = sMagicBorderColors[temp][1];
-                sMagicBorder.b = sMagicBorderColors[temp][2];
-                sMagicBorderRatio = YREG(40 + sMagicBorderStep);
-                sMagicBorderStep++;
-                if (sMagicBorderStep >= 4) {
-                    sMagicBorderStep = 0;
-                }
-            }
+            Interface_StepMagicBorderFlash(sMagicBorderColors, sMagicBorderIndexes, &sMagicBorderRatio,
+                                           &sMagicBorderStep);
             break;
 
         case MAGIC_STATE_RESET:
@@ -3051,45 +3084,15 @@ void Interface_UpdateMagicBar(PlayState* play) {
 
                 interfaceCtx->unk_230--;
                 if (interfaceCtx->unk_230 == 0) {
-                    gSaveContext.magic--;
+                    if (!OotmmBottles_ChateauActive()) {
+                        gSaveContext.magic--;
+                    }
                     interfaceCtx->unk_230 = 80;
                 }
             }
 
-            temp = sMagicBorderIndexes[sMagicBorderStep];
-            borderChangeR = ABS(sMagicBorder.r - sMagicBorderColors[temp][0]) / sMagicBorderRatio;
-            borderChangeG = ABS(sMagicBorder.g - sMagicBorderColors[temp][1]) / sMagicBorderRatio;
-            borderChangeB = ABS(sMagicBorder.b - sMagicBorderColors[temp][2]) / sMagicBorderRatio;
-
-            if (sMagicBorder.r >= sMagicBorderColors[temp][0]) {
-                sMagicBorder.r -= borderChangeR;
-            } else {
-                sMagicBorder.r += borderChangeR;
-            }
-
-            if (sMagicBorder.g >= sMagicBorderColors[temp][1]) {
-                sMagicBorder.g -= borderChangeG;
-            } else {
-                sMagicBorder.g += borderChangeG;
-            }
-
-            if (sMagicBorder.b >= sMagicBorderColors[temp][2]) {
-                sMagicBorder.b -= borderChangeB;
-            } else {
-                sMagicBorder.b += borderChangeB;
-            }
-
-            sMagicBorderRatio--;
-            if (sMagicBorderRatio == 0) {
-                sMagicBorder.r = sMagicBorderColors[temp][0];
-                sMagicBorder.g = sMagicBorderColors[temp][1];
-                sMagicBorder.b = sMagicBorderColors[temp][2];
-                sMagicBorderRatio = YREG(40 + sMagicBorderStep);
-                sMagicBorderStep++;
-                if (sMagicBorderStep >= 4) {
-                    sMagicBorderStep = 0;
-                }
-            }
+            Interface_StepMagicBorderFlash(sMagicBorderColors, sMagicBorderIndexes, &sMagicBorderRatio,
+                                           &sMagicBorderStep);
             break;
 
         case MAGIC_STATE_ADD:
@@ -3105,6 +3108,9 @@ void Interface_UpdateMagicBar(PlayState* play) {
 
         default:
             gSaveContext.magicState = MAGIC_STATE_IDLE;
+            if (OotmmBottles_ChateauActive()) {
+                break;
+            }
             if (CVarGetInteger(CVAR_COSMETIC("Consumable.MagicBorder.Changed"), 0)) {
                 sMagicBorder = CVarGetColor24(CVAR_COSMETIC("Consumable.MagicBorder.Value"), sMagicBorder_ori);
             } else {
@@ -3150,6 +3156,10 @@ void Interface_DrawMagicBar(PlayState* play) {
     }
     if (CVarGetInteger(CVAR_COSMETIC("Consumable.Magic.Changed"), 0)) {
         magicbar_green = CVarGetColor24(CVAR_COSMETIC("Consumable.Magic.Value"), magicbar_green);
+    }
+    if (OotmmBottles_ChateauActive()) {
+        magicbar_green.g = 0;
+        magicbar_green.b = 200;
     }
 
     OPEN_DISPS(play->state.gfxCtx);

@@ -7,6 +7,7 @@
 #include "overlays/actors/ovl_Demo_Effect/z_demo_effect.h"
 
 #include "soh/Enhancements/game-interactor/GameInteractor.h"
+#include "soh/OotmmBottles.h"
 #include "soh/OotmmAgeless.h"
 #include "soh/OotmmChildGauntlets.h"
 #include "soh/OotmmCustomItemsPlayer.h"
@@ -112,6 +113,14 @@ u8 sActionModelGroups[] = {
     PLAYER_MODELGROUP_DEFAULT,          // PLAYER_IA_MASK_OOTMM_KAMARO
     PLAYER_MODELGROUP_BGS,              // PLAYER_IA_SWORD_OOTMM_GREAT_FAIRY
     PLAYER_MODELGROUP_EXPLOSIVES,       // PLAYER_IA_OOTMM_POWDER_KEG
+    PLAYER_MODELGROUP_BOTTLE,           // PLAYER_IA_BOTTLE_OOTMM_MAGIC_MUSHROOM
+    PLAYER_MODELGROUP_BOTTLE,           // PLAYER_IA_BOTTLE_OOTMM_CHATEAU
+    PLAYER_MODELGROUP_BOTTLE,           // PLAYER_IA_BOTTLE_OOTMM_GOLD_DUST
+    PLAYER_MODELGROUP_BOTTLE,           // PLAYER_IA_BOTTLE_OOTMM_SEAHORSE
+    PLAYER_MODELGROUP_BOTTLE,           // PLAYER_IA_BOTTLE_OOTMM_DEKU_PRINCESS
+    PLAYER_MODELGROUP_BOTTLE,           // PLAYER_IA_BOTTLE_OOTMM_SPRING_WATER
+    PLAYER_MODELGROUP_BOTTLE,           // PLAYER_IA_BOTTLE_OOTMM_SPRING_WATER_HOT
+    PLAYER_MODELGROUP_BOTTLE,           // PLAYER_IA_BOTTLE_OOTMM_ZORA_EGG
 };
 
 TextTriggerEntry sTextTriggers[] = {
@@ -1849,7 +1858,10 @@ void Player_PostLimbDrawGameplay(PlayState* play, s32 limbIndex, Gfx** dList, Ve
             func_80090A28(this, spE4);
             func_800906D4(play, this, spE4);
         } else if ((*dList != NULL) && (this->leftHandType == PLAYER_MODELTYPE_LH_BOTTLE)) {
-            Color_RGB8* bottleColor = &sBottleColors[Player_ActionToBottle(this, this->itemAction)];
+            const u8* ootmmColor = OotmmBottles_LiquidColor(this->itemAction);
+            const Color_RGB8* bottleColor = ootmmColor != NULL
+                                                ? (const Color_RGB8*)ootmmColor
+                                                : &sBottleColors[Player_ActionToBottle(this, this->itemAction)];
 
             OPEN_DISPS(play->state.gfxCtx);
 

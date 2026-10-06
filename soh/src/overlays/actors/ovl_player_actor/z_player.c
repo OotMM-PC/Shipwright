@@ -25,6 +25,7 @@
 #include "soh/Enhancements/game-interactor/GameInteractor.h"
 #include "soh/OotmmAgeless.h"
 #include "soh/OotmmCustomItems.h"
+#include "soh/OotmmBottles.h"
 #include "soh/OotmmCustomItemsPlayer.h"
 #include "soh/OotmmFaroresWind.h"
 #include "soh/OotmmSongs.h"
@@ -1319,6 +1320,14 @@ static s32 (*sItemActionUpdateFuncs[])(Player* this, PlayState* play) = {
     func_8083485C,                 // PLAYER_IA_MASK_OOTMM_KAMARO
     Player_UpperAction_Sword,      // PLAYER_IA_SWORD_OOTMM_GREAT_FAIRY
     Player_UpperAction_CarryActor, // PLAYER_IA_OOTMM_POWDER_KEG
+    func_8083485C,                 // PLAYER_IA_BOTTLE_OOTMM_MAGIC_MUSHROOM
+    func_8083485C,                 // PLAYER_IA_BOTTLE_OOTMM_CHATEAU
+    func_8083485C,                 // PLAYER_IA_BOTTLE_OOTMM_GOLD_DUST
+    func_8083485C,                 // PLAYER_IA_BOTTLE_OOTMM_SEAHORSE
+    func_8083485C,                 // PLAYER_IA_BOTTLE_OOTMM_DEKU_PRINCESS
+    func_8083485C,                 // PLAYER_IA_BOTTLE_OOTMM_SPRING_WATER
+    func_8083485C,                 // PLAYER_IA_BOTTLE_OOTMM_SPRING_WATER_HOT
+    func_8083485C,                 // PLAYER_IA_BOTTLE_OOTMM_ZORA_EGG
 };
 
 static void (*sItemActionInitFuncs[])(PlayState* play, Player* this) = {
@@ -1394,6 +1403,14 @@ static void (*sItemActionInitFuncs[])(PlayState* play, Player* this) = {
     Player_InitDefaultIA,        // PLAYER_IA_MASK_OOTMM_KAMARO
     Player_InitDefaultIA,        // PLAYER_IA_SWORD_OOTMM_GREAT_FAIRY
     Player_InitExplosiveIA,      // PLAYER_IA_OOTMM_POWDER_KEG
+    Player_InitDefaultIA,        // PLAYER_IA_BOTTLE_OOTMM_MAGIC_MUSHROOM
+    Player_InitDefaultIA,        // PLAYER_IA_BOTTLE_OOTMM_CHATEAU
+    Player_InitDefaultIA,        // PLAYER_IA_BOTTLE_OOTMM_GOLD_DUST
+    Player_InitDefaultIA,        // PLAYER_IA_BOTTLE_OOTMM_SEAHORSE
+    Player_InitDefaultIA,        // PLAYER_IA_BOTTLE_OOTMM_DEKU_PRINCESS
+    Player_InitDefaultIA,        // PLAYER_IA_BOTTLE_OOTMM_SPRING_WATER
+    Player_InitDefaultIA,        // PLAYER_IA_BOTTLE_OOTMM_SPRING_WATER_HOT
+    Player_InitDefaultIA,        // PLAYER_IA_BOTTLE_OOTMM_ZORA_EGG
 };
 
 typedef enum ItemChangeType {
@@ -2265,6 +2282,10 @@ void Player_InitItemActionWithAnim(PlayState* play, Player* this, s8 itemAction)
 
 s8 Player_ItemToItemAction(s32 item) {
     s32 customAction = OotmmCustomItems_ItemAction(item);
+
+    if (OotmmBottles_IsItem(item)) {
+        return OotmmBottles_ItemAction(item);
+    }
 
     if (customAction >= 0) {
         return OotmmCustomItems_UsableNow(item) ? customAction : PLAYER_IA_NONE;
@@ -3547,10 +3568,12 @@ void Player_UseItem(PlayState* play, Player* this, s32 item) {
 
                 func_808328EC(this, NA_SE_PL_CHANGE_ARMS);
             } else if (((itemAction >= PLAYER_IA_OCARINA_FAIRY) && (itemAction <= PLAYER_IA_OCARINA_OF_TIME)) ||
-                       ((itemAction >= PLAYER_IA_BOTTLE_FISH) && (itemAction <= PLAYER_IA_CLAIM_CHECK))) {
+                       ((itemAction >= PLAYER_IA_BOTTLE_FISH) && (itemAction <= PLAYER_IA_CLAIM_CHECK)) ||
+                       OotmmBottles_IsAction(itemAction)) {
                 // Handle "cutscene items"
                 if (!Player_CheckHostileLockOn(this) ||
-                    ((itemAction >= PLAYER_IA_BOTTLE_POTION_RED) && (itemAction <= PLAYER_IA_BOTTLE_FAIRY))) {
+                    ((itemAction >= PLAYER_IA_BOTTLE_POTION_RED) && (itemAction <= PLAYER_IA_BOTTLE_FAIRY)) ||
+                    OotmmBottles_IsAction(itemAction)) {
                     func_8002D53C(play, &play->actorCtx.titleCtx);
                     this->unk_6AD = 4;
                     this->itemAction = itemAction;
@@ -6066,14 +6089,20 @@ s32 Player_ActionHandler_13(Player* this, PlayState* play) {
                     return 1;
                 }
 
-                sp2C = this->itemAction - PLAYER_IA_ZELDAS_LETTER;
+                sp2C = OotmmBottles_IsAction(this->itemAction) ? -1 : this->itemAction - PLAYER_IA_ZELDAS_LETTER;
                 if ((sp2C >= 0) ||
-                    (sp28 = Player_ActionToBottle(this, this->itemAction) - 1,
-                     ((sp28 >= 0) && (sp28 < 6) &&
-                      ((this->itemAction > PLAYER_IA_BOTTLE_POE) ||
-                       ((this->talkActor != NULL) &&
-                        (((this->itemAction == PLAYER_IA_BOTTLE_POE) && (this->exchangeItemId == EXCH_ITEM_POE)) ||
-                         (this->exchangeItemId == EXCH_ITEM_BLUE_FIRE))))))) {
+                    (OotmmBottles_IsAction(this->itemAction)
+                         ? (sp28 = OotmmBottles_ExchangeIndex(this->itemAction),
+                            (OotmmBottles_AlwaysExchange(this->itemAction) ||
+                             ((this->talkActor != NULL) &&
+                              OotmmBottles_TalkAccepts(this->exchangeItemId, sp28 + 0x18))))
+                         : (sp28 = Player_ActionToBottle(this, this->itemAction) - 1,
+                            ((sp28 >= 0) && (sp28 < 6) &&
+                             ((this->itemAction > PLAYER_IA_BOTTLE_POE) ||
+                              ((this->talkActor != NULL) &&
+                               (((this->itemAction == PLAYER_IA_BOTTLE_POE) &&
+                                 (this->exchangeItemId == EXCH_ITEM_POE)) ||
+                                (this->exchangeItemId == EXCH_ITEM_BLUE_FIRE)))))))) {
 
                     if ((play->actorCtx.titleCtx.delayTimer == 0) && (play->actorCtx.titleCtx.alpha == 0)) {
                         Player_SetupActionPreserveItemAction(play, this, Player_Action_ExchangeItem, 0);
@@ -6100,6 +6129,7 @@ s32 Player_ActionHandler_13(Player* this, PlayState* play) {
 
                         if ((talkActor != NULL) &&
                             ((this->exchangeItemId == sp2C) || (this->exchangeItemId == EXCH_ITEM_BLUE_FIRE) ||
+                             (OotmmBottles_IsExchange(sp2C) && OotmmBottles_TalkAccepts(this->exchangeItemId, sp2C)) ||
                              ((this->exchangeItemId == EXCH_ITEM_POE) &&
                               (this->itemAction == PLAYER_IA_BOTTLE_BIG_POE)) ||
                              ((this->exchangeItemId == EXCH_ITEM_BEAN) &&
@@ -6141,7 +6171,8 @@ s32 Player_ActionHandler_13(Player* this, PlayState* play) {
                     return 1;
                 }
 
-                sp2C = Player_ActionToBottle(this, this->itemAction);
+                sp2C = OotmmBottles_IsAction(this->itemAction) ? OotmmBottles_UseType(this->itemAction)
+                                                               : Player_ActionToBottle(this, this->itemAction);
                 if (sp2C >= 0) {
                     if (sp2C == 0xC) {
                         Player_SetupActionPreserveItemAction(play, this, Player_Action_8084EED8, 0);
@@ -14514,7 +14545,9 @@ void Player_Action_8084EAC0(Player* this, PlayState* play) {
                     gSaveContext.healthAccumulator = rand * FULL_HEART_HEALTH;
                 }
             } else {
-                s32 sp28 = D_808549FC[this->itemAction - PLAYER_IA_BOTTLE_POTION_RED];
+                s32 sp28 = OotmmBottles_IsAction(this->itemAction)
+                               ? OotmmBottles_Drink(this->itemAction)
+                               : D_808549FC[this->itemAction - PLAYER_IA_BOTTLE_POTION_RED];
 
                 if (sp28 & 1) {
                     gSaveContext.healthAccumulator = MAX_HEALTH;
@@ -14688,12 +14721,17 @@ void Player_Action_8084EFC0(Player* this, PlayState* play) {
     }
 
     if (LinkAnimation_OnFrame(&this->skelAnime, 76.0f)) {
-        BottleDropInfo* dropInfo = &D_80854A28[this->itemAction - PLAYER_IA_BOTTLE_FISH];
+        if (OotmmBottles_IsAction(this->itemAction)) {
+            OotmmBottles_Pour(play, this, (Math_SinS(this->actor.shape.rot.y) * 5.0f) + this->leftHandPos.x,
+                              this->leftHandPos.y, (Math_CosS(this->actor.shape.rot.y) * 5.0f) + this->leftHandPos.z);
+        } else {
+            BottleDropInfo* dropInfo = &D_80854A28[this->itemAction - PLAYER_IA_BOTTLE_FISH];
 
-        Actor_Spawn(&play->actorCtx, play, dropInfo->actorId,
-                    (Math_SinS(this->actor.shape.rot.y) * 5.0f) + this->leftHandPos.x, this->leftHandPos.y,
-                    (Math_CosS(this->actor.shape.rot.y) * 5.0f) + this->leftHandPos.z, 0x4000, this->actor.shape.rot.y,
-                    0, dropInfo->actorParams);
+            Actor_Spawn(&play->actorCtx, play, dropInfo->actorId,
+                        (Math_SinS(this->actor.shape.rot.y) * 5.0f) + this->leftHandPos.x, this->leftHandPos.y,
+                        (Math_CosS(this->actor.shape.rot.y) * 5.0f) + this->leftHandPos.z, 0x4000,
+                        this->actor.shape.rot.y, 0, dropInfo->actorParams);
+        }
 
         Player_UpdateBottleHeld(play, this, ITEM_BOTTLE, PLAYER_IA_BOTTLE);
         return;
@@ -14722,9 +14760,9 @@ void Player_Action_ExchangeItem(Player* this, PlayState* play) {
 
             Player_StartTalking(play, talkActor);
         } else {
-            GetItemEntry giEntry = ItemTable_Retrieve(D_80854528[this->exchangeItemId - 1]);
+            if ((this->itemAction >= PLAYER_IA_ZELDAS_LETTER) && !OotmmBottles_IsAction(this->itemAction)) {
+                GetItemEntry giEntry = ItemTable_Retrieve(D_80854528[this->exchangeItemId - 1]);
 
-            if (this->itemAction >= PLAYER_IA_ZELDAS_LETTER) {
                 if (giEntry.gi >= 0) {
                     this->unk_862 = giEntry.gi;
                 } else {

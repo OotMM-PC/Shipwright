@@ -6,6 +6,8 @@
 
 #include "z_obj_bean.h"
 #include "soh/OotmmXflags.h"
+#include "soh/OotmmAqua.h"
+#include "soh/OotmmSession.h"
 #include "objects/object_mamenoki/object_mamenoki.h"
 #include "objects/gameplay_keep/gameplay_keep.h"
 #include "vt.h"
@@ -22,7 +24,7 @@ void ObjBean_WaitForPlayer(ObjBean* this, PlayState* play);
 void ObjBean_Fly(ObjBean* this, PlayState* play);
 void ObjBean_SetupFly(ObjBean* this);
 void ObjBean_WaitForWater(ObjBean* this, PlayState* play);
-void ObjBean_SetupWaitForWater(ObjBean* this);
+void ObjBean_SetupWaitForWater(ObjBean* this, PlayState* play);
 void ObjBean_SetupGrowWaterPhase1(ObjBean* this);
 void ObjBean_GrowWaterPhase1(ObjBean* this, PlayState* play);
 void ObjBean_GrowWaterPhase2(ObjBean* this, PlayState* play);
@@ -509,7 +511,7 @@ void ObjBean_Init(Actor* thisx, PlayState* play) {
             return;
         }
     } else if ((Flags_GetSwitch(play, this->dyna.actor.params & 0x3F) != 0) || (mREG(1) == 1)) {
-        ObjBean_SetupWaitForWater(this);
+        ObjBean_SetupWaitForWater(this, play);
     } else {
         ObjBean_SetupWaitForBean(this);
     }
@@ -622,27 +624,57 @@ void func_80B90050(ObjBean* this, PlayState* play) {
     this->dyna.actor.scale.y = Math_SinS(temp_a0) * 0.17434467f;
     this->dyna.actor.scale.x = this->dyna.actor.scale.z = Math_CosS(temp_a0) * 0.12207746f;
     if (this->unk_1B6.y < 0) {
-        ObjBean_SetupWaitForWater(this);
+        ObjBean_SetupWaitForWater(this, play);
     }
 }
 
-void ObjBean_SetupWaitForWater(ObjBean* this) {
+static ColliderCylinderInit sOotmmWaterCylinderInit = {
+    {
+        COLTYPE_NONE,
+        AT_NONE,
+        AC_ON | AC_TYPE_OTHER,
+        OC1_NONE,
+        OC2_TYPE_2,
+        COLSHAPE_CYLINDER,
+    },
+    {
+        ELEMTYPE_UNK0,
+        { 0x00000000, 0x00, 0x00 },
+        { 0xFFCFFFFF, 0x00, 0x00 },
+        TOUCH_NONE | TOUCH_SFX_NORMAL,
+        BUMP_ON,
+        OCELEM_NONE,
+    },
+    { 10, 10, 0, { 0, 0, 0 } },
+};
+
+void ObjBean_SetupWaitForWater(ObjBean* this, PlayState* play) {
     this->actionFunc = ObjBean_WaitForWater;
     ObjBean_SetDrawMode(this, BEAN_STATE_DRAW_LEAVES | BEAN_STATE_DRAW_SOIL);
     Actor_SetScale(&this->dyna.actor, 0.1f);
     ObjBean_SetupLeavesStill(this);
+    if (OotmmSession_IsActive()) {
+        Collider_SetCylinder(play, &this->collider, &this->dyna.actor, &sOotmmWaterCylinderInit);
+        Collider_UpdateCylinder(&this->dyna.actor, &this->collider);
+    }
 }
 
 void ObjBean_WaitForWater(ObjBean* this, PlayState* play) {
     this->transformFunc(this);
 
-    if (!(this->stateFlags & BEAN_STATE_BEEN_WATERED) && Flags_GetEnv(play, 5) && (D_80B90E30 == NULL) &&
-        (this->dyna.actor.xzDistToPlayer < 50.0f)) {
+    if (!(this->stateFlags & BEAN_STATE_BEEN_WATERED) &&
+        ((Flags_GetEnv(play, 5) && (D_80B90E30 == NULL) && (this->dyna.actor.xzDistToPlayer < 50.0f)) ||
+         (OotmmSession_IsActive() && (this->collider.base.acFlags & AC_HIT) && (this->collider.base.ac != NULL) &&
+          (this->collider.base.ac->id == gOotmmAquaId)))) {
         ObjBean_SetupGrowWaterPhase1(this);
         D_80B90E30 = this;
         OnePointCutscene_Init(play, 2210, -99, &this->dyna.actor, MAIN_CAM);
         this->dyna.actor.flags |= ACTOR_FLAG_UPDATE_CULLING_DISABLED;
         return;
+    }
+
+    if (OotmmSession_IsActive() && (this->dyna.actor.xzDistToPlayer < 150.0f)) {
+        CollisionCheck_SetAC(play, &play->colChkCtx, &this->collider.base);
     }
 
     if ((D_80B90E30 == this) && !Flags_GetEnv(play, 5)) {

@@ -15,12 +15,13 @@
 #include "OotmmItemProbe.h"
 #include "OotmmScales.h"
 #include "OotmmAgony.h"
+#include "OotmmBottles.h"
 #include "OotmmExtraSwords.h"
 #include "OotmmRegionState.h"
 #include "OotmmSpecialConds.h"
-#include "OotmmBrokenActors.h"
 #include "OotmmAgeless.h"
 #include "OotmmMasterSword.h"
+#include "OotmmBrokenActors.h"
 #include "OotmmSunlightArrows.h"
 #include "OotmmPresence.h"
 #include "OotmmXflags.h"
@@ -1026,15 +1027,16 @@ void OotmmSession_Init() {
         OotmmCustomItems_Init();
         OotmmScales_Init();
         OotmmAgony_Init();
+        OotmmBottles_Init();
         OotmmExtraSwords_Init();
         OotmmPresence_Init();
+        OotmmDeathLink_Init();
         OotmmSpecialConds_Init();
         OotmmRegionState_Init();
         OotmmSunlightArrows_Init();
-        OotmmBrokenActors_Init();
-        OotmmDeathLink_Init();
         OotmmAgeless_Init();
         OotmmMasterSword_Init();
+        OotmmBrokenActors_Init();
         GameInteractor::Instance->RegisterGameHook<GameInteractor::OnLoadGame>(
             [](int32_t fileNum) {
                 RecordActiveSaveFile(fileNum);
