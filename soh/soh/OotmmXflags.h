@@ -1,5 +1,7 @@
 #pragma once
 
+#include <stdint.h>
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -8,6 +10,7 @@ struct Actor;
 struct PlayState;
 
 int OotmmXflags_IsShuffled(struct Actor* actor);
+int64_t OotmmXflags_NativeId(struct Actor* actor);
 int OotmmXflags_Drop(struct Actor* actor, struct PlayState* play);
 int OotmmXflags_DropStill(struct Actor* actor, struct PlayState* play);
 int OotmmXflags_DropSlice(struct Actor* actor, struct PlayState* play, int slice, float x, float y, float z);

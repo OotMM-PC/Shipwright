@@ -208,8 +208,6 @@ bool sLedgerValid = true;
 std::unordered_map<int, nlohmann::json> sSaveSnapshots;
 std::unordered_map<int, nlohmann::json> sSharedSaveSnapshots;
 
-// Keyed per-game and per-save-tag: the other game's fresh-save reset cannot erase these records,
-// and a save recreated under a new tag starts from an empty ledger and re-grants everything.
 std::string LedgerPathFor(int fileNum) {
     const auto& state = OotmmSession_GetState();
     return state.GetBootConfig().StatePath + ".applied.oot-" + state.GetNativeSaveTag() + "." +
@@ -227,7 +225,6 @@ void EnsureLedger() {
     if (sLedgerLoaded) {
         return;
     }
-    // Older sessions shared one ledger between both games; adopt it once, then stay per-game.
     const bool legacyValid = sLedger.LoadLegacy(LedgerPath(), LegacyLedgerPath());
     sLedgerValid = legacyValid;
     const auto saved = sSaveSnapshots.find(gSaveContext.fileNum);
@@ -368,7 +365,6 @@ void ApplyOnce(PlayState* play, const std::string& key, uint8_t item) {
     if (item == ITEM_NONE) {
         return;
     }
-    // gItemSlots only covers inventory items, so SLOT()/INV_CONTENT() read past its end for equipment.
     if (item == ITEM_SWORD_KNIFE || item == ITEM_SWORD_BGS) {
         Item_Give(play, ITEM_SWORD_BGS);
         if (item == ITEM_SWORD_BGS) {
@@ -529,7 +525,6 @@ std::vector<uint8_t> OwnedTradeItems(uint8_t slot) {
     }
     EnsureLedger();
     const uint8_t current = gSaveContext.inventory.items[slot];
-    // Grants overwrite the slot, so remember natively obtained occupants before they vanish.
     if (std::find(candidates->begin(), candidates->end(), current) != candidates->end() &&
         !sLedger.Has(NativeTradeKey(current))) {
         sLedger.SetApplied(NativeTradeKey(current), 1);
@@ -1294,7 +1289,6 @@ extern "C" void OotmmItemApply_SetTradeItemOwned(uint8_t slot, uint8_t item, int
     }
     if (gSaveContext.inventory.items[slot] == item) {
         gSaveContext.inventory.items[slot] = ITEM_NONE;
-        // The debug-clear is asynchronous, so the removed item may still look granted.
         for (const uint8_t replacement : OwnedTradeItems(slot)) {
             if (replacement != item) {
                 gSaveContext.inventory.items[slot] = replacement;
@@ -1573,6 +1567,16 @@ void OotmmItemApply_RecordBossClear(int dungeonId) {
     if (dungeonId <= kLastOotBossDungeon) {
         sLedger.SetApplied("native:bossClearsApplied", sLedger.Applied("native:bossClearsApplied") | bit);
     }
+}
+
+nlohmann::json OotmmItemApply_TrapsApplied() {
+    nlohmann::json applied = nlohmann::json::object();
+    if (sLedgerValid) {
+        for (const auto& [id, setting] : Ship::kOotmmTraps) {
+            applied[std::string(id)] = sLedger.Applied(std::string(id));
+        }
+    }
+    return applied;
 }
 
 void OotmmItemApply_Init() {

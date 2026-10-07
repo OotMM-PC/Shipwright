@@ -5,6 +5,7 @@
 #include "soh/Enhancements/game-interactor/GameInteractor.h"
 #include "soh/Enhancements/controls/Mouse.h"
 #include "soh/OTRGlobals.h"
+#include "soh/OotmmDebugChecks.h"
 #include "soh/ResourceManagerHelpers.h"
 
 s32 D_8012D280 = 1;
@@ -404,6 +405,20 @@ void PadMgr_RequestPadData(PadMgr* padMgr, Input* inputs, s32 mode) {
     }
 
     PadMgr_UnlockPadData(padMgr);
+#if !defined(NDEBUG) || defined(OOTMM_RUNTIME_TEST)
+    if (mode == 0) {
+        uint16_t buttons;
+        int8_t x;
+        int8_t y;
+        if (OotmmDebugChecks_ReadRuntimePad(&buttons, &x, &y)) {
+            memset(&inputs[0], 0, sizeof(inputs[0]));
+            inputs[0].cur.button = buttons;
+            inputs[0].cur.stick_x = x;
+            inputs[0].cur.stick_y = y;
+            PadUtils_UpdateRelXY(&inputs[0]);
+        }
+    }
+#endif
 }
 
 void PadMgr_ThreadEntry(PadMgr* padMgr) {

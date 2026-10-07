@@ -7,6 +7,8 @@ extern "C" {
 struct PlayState;
 
 int OotmmPauseInfo_Draw(struct PlayState* play);
+int OotmmPauseInfo_Screen(void);
+int OotmmPauseInfo_Cursor(void);
 
 #ifdef __cplusplus
 }

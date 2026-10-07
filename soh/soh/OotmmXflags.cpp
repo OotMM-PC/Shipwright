@@ -835,6 +835,11 @@ int DropActor(Actor* actor, PlayState* play, bool still) {
 
 } // namespace
 
+extern "C" int64_t OotmmXflags_NativeId(Actor* actor) {
+    const auto xf = Resolve(actor);
+    return xf.has_value() && xf->Scene >= 0 ? (static_cast<int64_t>(xf->Scene) << 32) | NativeId(*xf) : -1;
+}
+
 extern "C" void* OotmmXflags_CsmcDL(Actor* actor, const char* family, void* vanilla) {
     const auto* placement = Shuffled(actor);
     if (placement == nullptr) {

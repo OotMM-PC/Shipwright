@@ -26,6 +26,11 @@
 #include <mutex>
 #include <memory>
 #include <ship/utils/AtomicFile.h>
+#if !defined(NDEBUG) || defined(OOTMM_RUNTIME_TEST)
+#include <libultraship/bridge/OotmmRuntimeTest.h>
+#include <chrono>
+#include <thread>
+#endif
 
 extern "C" SaveContext gSaveContext;
 using namespace std::string_literals;
@@ -756,6 +761,22 @@ void SaveManager::SaveFileThreaded(int fileNum, SaveContext* saveContext, int se
     std::lock_guard<std::mutex> lock(saveMtx);
     bool written = false;
     try {
+#if !defined(NDEBUG) || defined(OOTMM_RUNTIME_TEST)
+        if (sectionID == SECTION_ID_BASE && Ship::OotmmRuntimeTest::Get().Enabled()) {
+            const auto directory = std::filesystem::u8path(std::getenv("OOTMM_RUNTIME_TEST_DIR"));
+            const auto barrier = directory / ".ootmm-save-hold";
+            if (std::filesystem::exists(barrier)) {
+                std::ofstream(directory / ".ootmm-save-entered") << "ready\n";
+                const char* configuredHold = std::getenv("OOTMM_RUNTIME_SAVE_HOLD_SECONDS");
+                const auto holdSeconds = configuredHold == nullptr ? 60L :
+                    std::clamp(std::strtol(configuredHold, nullptr, 10), 1L, 600L);
+                const auto deadline = std::chrono::steady_clock::now() + std::chrono::seconds(holdSeconds);
+                while (std::filesystem::exists(barrier) && std::chrono::steady_clock::now() < deadline) {
+                    std::this_thread::sleep_for(std::chrono::milliseconds(10));
+                }
+            }
+        }
+#endif
         if (sectionID == SECTION_ID_BASE && fileNum >= 0 && fileNum < MaxFiles) {
             baseSaveSucceeded[fileNum].store(false);
         }

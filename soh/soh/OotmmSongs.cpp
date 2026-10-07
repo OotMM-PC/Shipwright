@@ -590,12 +590,15 @@ extern "C" void OotmmSongs_UpdateLastSafePos(PlayState* play, Player* player) {
     }
 }
 
+extern "C" uint16_t OotmmSongs_OwnedMask(void) {
+    return OotmmSession_IsActive() ? MaskFor(OwnsSong) : 0;
+}
+
 extern "C" uint16_t OotmmSongs_AvailableMask(void) {
     if (!OotmmSession_IsActive() || gPlayState == nullptr) {
         return 0;
     }
 
-    // Song-event staffs must accept MM songs; teaching and minigame modes must not.
     const u16 action = gPlayState->msgCtx.ocarinaAction;
     const bool staffAction =
         (action >= OCARINA_ACTION_CHECK_MINUET && action <= OCARINA_ACTION_CHECK_STORMS) ||
@@ -654,9 +657,6 @@ extern "C" void OotmmSongs_LoadPlayedText(void) {
     CustomMessage body("You played the %r" + std::string(Def(sPlayedSong).Name) + "%w.&&&");
     body.Format();
 
-    // Message_Decode only lifts the text clear of the note staff for vanilla 0x893's quick-text code
-    // and its three trailing newlines. The header goes on after Format, which would rewrite a shift
-    // byte of '&', '^' or '@'.
     CustomMessage message(std::string("\x08\x06") + static_cast<char>(CenteringShift(line)) +
                           body.GetEnglish(MF_RAW));
     message.LoadIntoFont();

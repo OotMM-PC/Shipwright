@@ -2926,6 +2926,15 @@ f32 Fishing_GetMinimumRequiredScore() {
     return sqrt(((f32)weight - 0.5f) / 0.0036f);
 }
 
+void Fishing_DebugState(s32* out) {
+    out[0] = sRodCastState;
+    out[1] = sLineHooked;
+    out[2] = sLureBitTimer;
+    out[3] = (s32)sLurePos.x;
+    out[4] = (s32)sLurePos.y;
+    out[5] = (s32)sLurePos.z;
+}
+
 bool getInstantFish() {
     return CVarGetInteger(CVAR_ENHANCEMENT("CustomizeFishing"), 0) &&
            CVarGetInteger(CVAR_ENHANCEMENT("InstantFishing"), 0);

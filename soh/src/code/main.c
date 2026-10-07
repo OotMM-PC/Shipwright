@@ -46,7 +46,8 @@ void Main_LogSystemHeap(void) {
 
 #ifdef _WIN32
 int SDL_main(int argc, char* argv[]) {
-    if (GetEnvironmentVariableA("OOTMM_PARENT_HWND", NULL, 0) == 0) {
+    if (GetEnvironmentVariableA("OOTMM_PARENT_HWND", NULL, 0) == 0 &&
+        GetEnvironmentVariableA("OOTMM_RUNTIME_TEST_DIR", NULL, 0) == 0) {
         AllocConsole();
         (void)freopen("CONIN$", "r", stdin);
         (void)freopen("CONOUT$", "w", stdout);

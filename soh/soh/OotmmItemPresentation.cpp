@@ -44,6 +44,10 @@ std::deque<Ship::GameIpcItemPresentation> sJunk;
 int sJunkCooldown = 0;
 std::optional<Ship::GameIpcItemPresentation> sCurrent;
 std::optional<std::pair<std::string, uint32_t>> sDeliveredCheck;
+#if !defined(NDEBUG) || defined(OOTMM_RUNTIME_TEST)
+OotmmChestPresentationDebugState sChestDebug;
+int sLastFanfare = -1;
+#endif
 
 std::string GameName(const std::string& game) {
     return OotmmItemPresentation_GameName(game);
@@ -278,6 +282,9 @@ void PlayItemFanfare(const std::string& itemId, bool isShort) {
         itemId, isShort,
         [&inventory](std::string_view id) { return inventory.Count(std::string(id)); },
         static_cast<uint32_t>(OotmmSession_GetState().GetIntSetting("strayFairyRewardCount", 15)));
+#if !defined(NDEBUG) || defined(OOTMM_RUNTIME_TEST)
+    sLastFanfare = static_cast<int>(fanfare);
+#endif
     switch (fanfare) {
         case Ship::OotmmFanfare::None:
             break;
@@ -319,6 +326,21 @@ extern "C" int OotmmItemPresentation_IsPending(void) {
     return sQueue.empty() ? 0 : 1;
 }
 
+#if !defined(NDEBUG) || defined(OOTMM_RUNTIME_TEST)
+OotmmChestPresentationDebugState OotmmItemPresentation_DebugChestState() {
+    auto state = sChestDebug;
+    state.Large = state.ActorId == ACTOR_EN_BOX && state.ActorScale >= 0.01f;
+    state.Delivered = sDeliveredCheck.has_value();
+    return state;
+}
+#endif
+
+#if !defined(NDEBUG) || defined(OOTMM_RUNTIME_TEST)
+int OotmmItemPresentation_DebugLastFanfare() {
+    return sLastFanfare;
+}
+#endif
+
 void OotmmItemPresentation_Queue(Ship::GameIpcItemPresentation presentation) {
     if (presentation.Background) {
         if (Ship::OotmmItemCatalog::IsNothing(presentation.ItemId)) {
@@ -344,6 +366,9 @@ bool OotmmItemPresentation_IsDelivering(const std::string& checkId) {
 }
 
 bool OotmmItemPresentation_ContinueChest(PlayState* play, Player* player, const std::string& checkId) {
+#if !defined(NDEBUG) || defined(OOTMM_RUNTIME_TEST)
+    ++sChestDebug.Attempts;
+#endif
     if (play == nullptr || player == nullptr || checkId.empty() || sDeliveredCheck.has_value()) {
         return false;
     }
@@ -354,6 +379,12 @@ bool OotmmItemPresentation_ContinueChest(PlayState* play, Player* player, const 
     if (queued == sQueue.end()) {
         return false;
     }
+#if !defined(NDEBUG) || defined(OOTMM_RUNTIME_TEST)
+    sChestDebug.MatchedQueue = true;
+    ++sChestDebug.Handoffs;
+    sChestDebug.ActorId = player->interactRangeActor == nullptr ? -1 : player->interactRangeActor->id;
+    sChestDebug.ActorScale = player->interactRangeActor == nullptr ? 0.0f : player->interactRangeActor->scale.x;
+#endif
     sCurrent = std::move(*queued);
     sQueue.erase(queued);
     const GetItemEntry entry = PresentationEntry();
