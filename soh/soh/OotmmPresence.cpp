@@ -182,6 +182,17 @@ void PuppetInitSkeleton(OotmmPuppetActor* puppet, PlayState* play, u8 age) {
     puppet->age = age & 1;
 }
 
+bool ActorStillSpawned(PlayState* play, const Actor* target) {
+    for (const auto& list : play->actorCtx.actorLists) {
+        for (const Actor* actor = list.head; actor != nullptr; actor = actor->next) {
+            if (actor == target) {
+                return true;
+            }
+        }
+    }
+    return false;
+}
+
 } // namespace
 
 static ColliderCylinderInit sPuppetCylinderInit = {
@@ -217,6 +228,7 @@ extern "C" void OotmmPuppet_Init(Actor* thisx, PlayState* play) {
     puppet->rightHandType = -1;
     puppet->tunic = puppet->boots = puppet->strength = puppet->mask = 0;
     puppet->pvpCooldown = 0;
+    puppet->pvpLastProjectile = nullptr;
     Collider_InitCylinder(play, &puppet->collider);
     Collider_SetCylinder(play, &puppet->collider, thisx, &sPuppetCylinderInit);
 }
@@ -250,8 +262,17 @@ extern "C" void OotmmPuppet_Update(Actor* thisx, PlayState* play) {
         if (puppet->pvpCooldown > 0) {
             puppet->pvpCooldown--;
         }
-        if ((puppet->collider.base.acFlags & AC_HIT) && puppet->pvpCooldown == 0) {
+        if (puppet->pvpLastProjectile != nullptr && !ActorStillSpawned(play, puppet->pvpLastProjectile)) {
+            puppet->pvpLastProjectile = nullptr;
+        }
+        Actor* source = puppet->collider.base.ac;
+        const bool projectile = source != nullptr && source != &GET_PLAYER(play)->actor;
+        if ((puppet->collider.base.acFlags & AC_HIT) && puppet->pvpCooldown == 0 &&
+            !(projectile && source == puppet->pvpLastProjectile)) {
             puppet->collider.base.acFlags &= ~AC_HIT;
+            if (projectile) {
+                puppet->pvpLastProjectile = source;
+            }
             puppet->pvpCooldown = 8; // one hit per swing, not one per contact frame
             int damage = 4;
             if (puppet->collider.info.acHitInfo != NULL && puppet->collider.info.acHitInfo->toucher.damage > 0) {
@@ -467,7 +488,7 @@ void PresenceTick() {
                 if (const auto it = gPuppets.find(hit.SourcePlayer); it != gPuppets.end() && it->second.actor != nullptr) {
                     source = it->second.actor;
                 }
-                func_8002F6D4(gPlayState, source, 6.0f, hit.Yaw, 5.0f, static_cast<u32>(std::max(1, hit.Damage)));
+                func_8002F6D4(gPlayState, source, 6.0f, hit.Yaw, 5.0f, static_cast<u32>(std::clamp(hit.Damage, 1, 255)));
             }
         }
     }

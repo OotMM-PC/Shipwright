@@ -42,6 +42,7 @@ typedef struct OotmmPuppetActor {
     // PvP hurtbox the local player's weapons connect with; hits are relayed to the victim.
     ColliderCylinder collider;
     u8 pvpCooldown;
+    Actor* pvpLastProjectile;
 } OotmmPuppetActor;
 
 void OotmmPuppet_Init(Actor* thisx, PlayState* play);

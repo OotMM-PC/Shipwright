@@ -6,6 +6,7 @@
 #include "OotmmRegionState.h"
 #include "OotmmFaroresWind.h"
 #include "OotmmIpc.h"
+#include "OotmmItemPresentation.h"
 #include "OotmmSession.h"
 #include "OotmmSilverRupees.h"
 #include "OotmmTriforce.h"
@@ -441,6 +442,9 @@ uint32_t ReadSharedValue(std::string_view key) {
     if (OotmmFaroresWind_IsSharedKey(key)) {
         return OotmmFaroresWind_ReadShared(key);
     }
+    if (const auto trap = Ship::OotmmTrapForSetting(key); !trap.empty()) {
+        return sLedger.Applied(std::string(trap));
+    }
     if (key == "bossClears") {
         return sLedger.Applied("native:bossClears");
     }
@@ -509,6 +513,9 @@ uint32_t SharedValueLimit(std::string_view key) {
     if (OotmmFaroresWind_IsSharedKey(key)) {
         return 2;
     }
+    if (!Ship::OotmmTrapForSetting(key).empty()) {
+        return 65535;
+    }
     if (key == "bossClears") {
         return 0xFFFF;
     }
@@ -534,6 +541,8 @@ void WriteSharedValue(std::string_view key, uint32_t value) {
     auto& inventory = gSaveContext.inventory;
     if (OotmmFaroresWind_IsSharedKey(key)) {
         OotmmFaroresWind_WriteShared(key, value);
+    } else if (const auto trap = Ship::OotmmTrapForSetting(key); !trap.empty()) {
+        sLedger.SetApplied(std::string(trap), std::max(sLedger.Applied(std::string(trap)), value));
     } else if (key == "bossClears") {
         const uint32_t mask = sLedger.Applied("native:bossClears") | value;
         sLedger.SetApplied("native:bossClears", mask);
@@ -930,6 +939,79 @@ void ApplyOne(PlayState* play, const std::string& itemId, uint32_t count) {
     }
 }
 
+constexpr u32 kTrapBlockingStates = PLAYER_STATE1_HOOKSHOT_FALLING | PLAYER_STATE1_TALKING | PLAYER_STATE1_DEAD |
+                                    PLAYER_STATE1_READY_TO_FIRE | PLAYER_STATE1_GETTING_ITEM | PLAYER_STATE1_ON_HORSE;
+
+void HurtForTrap(Player* player, s32 response, f32 speed, f32 yVelocity, s16 yaw) {
+    player->actor.colChkInfo.damage = 0;
+    func_80837C0C(gPlayState, player, response, speed, yVelocity, yaw, 20);
+}
+
+bool ApplyTrap(size_t type, Player* player) {
+    switch (type) {
+        case 0:
+            HurtForTrap(player, 3, 0, 0, 0);
+            return true;
+        case 1:
+            if (player->currentTunic == 2) {
+                return true;
+            }
+            HurtForTrap(player, 0, 0, 0, 0);
+            player->bodyIsBurning = true;
+            for (int part = 0; part < PLAYER_BODYPART_MAX; part++) {
+                player->bodyFlameTimers[part] = Rand_S16Offset(0, 200);
+            }
+            return true;
+        case 2:
+            HurtForTrap(player, 4, 0, 0, 0);
+            return true;
+        case 3:
+            gSaveContext.health = 1;
+            HurtForTrap(player, 0, 0, 0, 0);
+            return true;
+        case 4:
+            gSaveContext.magic = 0;
+            HurtForTrap(player, 0, 0, 0, 0);
+            return true;
+        case 5:
+            HurtForTrap(player, 1, Rand_ZeroFloat(20.0f), Rand_ZeroFloat(15.0f), static_cast<s16>(Rand_Next() & 0xFFFF));
+            return true;
+        case 6:
+            Rupees_ChangeBy(-10);
+            return true;
+        default:
+            return false;
+    }
+}
+
+void UpdateTraps() {
+    if (gPlayState == nullptr || !OotmmSession_IsActive() || !sLedgerValid ||
+        gSaveContext.gameMode != GAMEMODE_NORMAL || gPlayState->pauseCtx.state != 0 ||
+        gPlayState->msgCtx.msgMode != MSGMODE_NONE || OotmmItemPresentation_IsPending()) {
+        return;
+    }
+    const auto& inventory = OotmmIpc_GetInventory();
+    if (inventory.GetRevision() != sAppliedRevision) {
+        return;
+    }
+    for (size_t type = 0; type < Ship::kOotmmTraps.size(); type++) {
+        const std::string id(Ship::kOotmmTraps[type].first);
+        const uint32_t applied = sLedger.Applied(id);
+        if (inventory.Count(id) <= applied) {
+            continue;
+        }
+        Player* player = GET_PLAYER(gPlayState);
+        if (player == nullptr || (player->stateFlags1 & kTrapBlockingStates) || player->invincibilityTimer != 0) {
+            return;
+        }
+        if (ApplyTrap(type, player)) {
+            sLedger.SetApplied(id, applied + 1);
+            sLedger.Save(LedgerPath());
+        }
+        return;
+    }
+}
+
 } // namespace
 
 // TODO: the Master Sword is randomized, so owning it does not mean the pedestal check was completed;
@@ -1256,6 +1338,7 @@ void OotmmItemApply_Init() {
         OotmmItemApply_Reconcile);
     GameInteractor::Instance->RegisterGameHook<GameInteractor::OnPlayerUpdate>(
         []() { OotmmTriforce_Update(); });
+    GameInteractor::Instance->RegisterGameHook<GameInteractor::OnPlayerUpdate>(UpdateTraps);
     GameInteractor::Instance->RegisterGameHook<GameInteractor::OnLoadGame>([](int32_t) {
         sAppliedRevision = 0;
         sLedgerLoaded = false;

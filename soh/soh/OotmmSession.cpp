@@ -1,4 +1,5 @@
 #include "OotmmSession.h"
+#include "OotmmDeathLink.h"
 #include "OotmmCheckLedger.h"
 #include "OotmmFaroresWind.h"
 #include "OotmmChecks.h"
@@ -1031,6 +1032,7 @@ void OotmmSession_Init() {
         OotmmRegionState_Init();
         OotmmSunlightArrows_Init();
         OotmmBrokenActors_Init();
+        OotmmDeathLink_Init();
         GameInteractor::Instance->RegisterGameHook<GameInteractor::OnLoadGame>(
             [](int32_t fileNum) {
                 RecordActiveSaveFile(fileNum);
