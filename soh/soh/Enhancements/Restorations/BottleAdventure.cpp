@@ -181,7 +181,6 @@ void HandleRBAPaddingBytes() {
     // Writing to padding bytes is not implemented
 }
 
-// OoTMM stores silver rupee collection in SavedSceneFlags.unk, which vanilla leaves at zero.
 static bool SceneFlagsFieldIsOotmmOwned(u32 field) {
     return field >= offsetof(SavedSceneFlags, unk) &&
            field < offsetof(SavedSceneFlags, unk) + sizeof(u32) && OotmmSession_IsActive();

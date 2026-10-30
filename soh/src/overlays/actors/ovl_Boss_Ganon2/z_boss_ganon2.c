@@ -236,7 +236,6 @@ void func_808FD5F4(BossGanon2* this, PlayState* play) {
                 sBossGanon2Zelda->actor.world.pos.z = -214.0f;
                 sBossGanon2Zelda->actor.shape.rot.y = -0x7000;
 
-                // In Boss Rush, skip past the cutscene to the part where the player takes control again.
                 if (!IS_BOSS_RUSH) {
                     this->csState = 1;
                     this->csTimer = 0;

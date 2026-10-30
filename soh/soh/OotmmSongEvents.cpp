@@ -1,6 +1,5 @@
 #include "OotmmSongEvents.h"
 
-// Pre-loads the C++ half of the game headers; the extern "C" block below needs it first.
 #include "Enhancements/game-interactor/GameInteractor.h"
 #include "OotmmSession.h"
 
@@ -17,8 +16,6 @@ extern OcarinaSongInfo sOotmmSongNotes[];
 
 namespace {
 
-// Event ids follow the seed's songEventsOot order; the two fairy fountains share a
-// scene per type, so their entrance spawn picks the event.
 int32_t SongEventId(const Actor* actor, const PlayState* play) {
     if (actor == nullptr || play == nullptr) {
         return -1;
@@ -72,7 +69,6 @@ int32_t AssignedSong(const Actor* actor, const PlayState* play) {
     return song >= 0 && song < 20 ? song : -1;
 }
 
-// Song-event ids 12-19 in this branch's MM-song enum order.
 int32_t MmSongFor(int32_t song) {
     switch (song) {
         case 12:
@@ -169,7 +165,6 @@ int32_t OotmmSongEvents_HandleCheckPlayed(PlayState* play) {
     if (action >= OCARINA_ACTION_CHECK_OOTMM_HEALING && action <= OCARINA_ACTION_CHECK_OOTMM_ORDER) {
         const int32_t target = MmSongFor(12 + (action - OCARINA_ACTION_CHECK_OOTMM_HEALING));
         const int32_t played = OotmmSongs_Played();
-        // The full lullaby always satisfies a spot asking only for its intro.
         if (played == target || (target == OOTMM_SONG_GORON_HALF && played == OOTMM_SONG_GORON)) {
             OotmmSongs_ClearPlayed();
             play->msgCtx.ocarinaMode = OCARINA_MODE_03;

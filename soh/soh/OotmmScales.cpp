@@ -21,16 +21,13 @@ extern f32 sFontWidths[144];
 extern const char* fontTbl[140];
 }
 
-// z_play.c has no public prototype for this.
 extern "C" void Play_SetRespawnData(PlayState* play, s32 respawnMode, s16 entranceIndex, s32 roomIndex,
                                     s32 playerParams, Vec3f* pos, s16 yaw);
 
 namespace {
 
-// SoH spells bgCheckFlags out as raw values: bit 0 = standing on ground, bit 5 = touching a water box.
 constexpr uint32_t kBgOnGround = 0x1;
 constexpr uint32_t kBgInWater = 0x20;
-// Paces only the no-ground fallback; a respawn that is itself wet would re-void every frame.
 constexpr uint8_t kNoGroundVoidFrames = 20;
 constexpr int32_t kVoidPlayerParams = 0xDFF;
 
@@ -55,8 +52,6 @@ bool OnStandableGround(Player* player) {
            !(player->stateFlags1 & PLAYER_STATE1_IN_WATER) && player->actor.floorBgId == BGCHECK_SCENE;
 }
 
-// A frame into a scene change gSaveContext.entranceIndex already names the next scene, and voiding
-// to that entrance with this scene's coordinates would drop Link somewhere else entirely.
 bool EntranceLoadsCurrentScene(PlayState* play) {
     const uint16_t entrance = static_cast<uint16_t>(gSaveContext.entranceIndex);
     return entrance < static_cast<uint16_t>(ENTR_MAX) && gEntranceTable[entrance].scene == play->sceneNum;
@@ -98,7 +93,6 @@ void OnPlayerUpdate() {
     if (OotmmScales_Tier() != OOTMM_SCALE_NONE) {
         return;
     }
-    // Iron boots walk the floor rather than swim.
     if (CUR_EQUIP_VALUE(EQUIP_TYPE_BOOTS) == EQUIP_VALUE_BOOTS_IRON) {
         return;
     }
@@ -109,7 +103,6 @@ void OnPlayerUpdate() {
                                PLAYER_STATE1_TALKING | PLAYER_STATE1_GETTING_ITEM)) {
         return;
     }
-    // Voiding under an open prompt would discard an armed get-item or save dialog.
     if (gPlayState->pauseCtx.state != 0 || Message_GetState(&gPlayState->msgCtx) != TEXT_STATE_NONE) {
         return;
     }
@@ -128,7 +121,6 @@ void OnPlayerUpdate() {
     VoidToDryGround(gPlayState);
 }
 
-// Matches the bronze recolor the item model uses, so the icon and the 3D scale read as one item.
 constexpr uint8_t kBronzeTint[3] = { 255, 200, 100 };
 constexpr char kBronzeName[] = "Bronze Scale";
 
@@ -162,7 +154,6 @@ extern "C" int OotmmScales_DrawSlotName(struct PlayState* play) {
         width += sFontWidths[kBronzeName[i] - ' '];
     }
 
-    // Frame-scoped so every glyph keeps its own vertices until the display list runs.
     Vtx* verts = static_cast<Vtx*>(Graph_Alloc(play->state.gfxCtx, sizeof(Vtx) * 4 * length));
     if (verts == nullptr) {
         return 0;

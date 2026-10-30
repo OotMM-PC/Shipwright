@@ -2294,7 +2294,7 @@ extern "C" uint32_t OTRGetGameRenderHeight() {
     return height;
 }
 
-f32 floorf(f32 x); // Avoids a conflicting exception specification from the platform header.
+f32 floorf(f32 x);
 f32 ceilf(f32 x);  // This gets annoying
 
 extern "C" int16_t OTRGetRectDimensionFromLeftEdge(float v) {

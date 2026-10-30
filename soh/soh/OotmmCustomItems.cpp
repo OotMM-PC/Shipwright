@@ -133,7 +133,6 @@ extern "C" void* OotmmCustomItems_ButtonIcon(uint8_t item) {
     if (const char* bottle = OotmmBottles_IconPath(item); bottle != nullptr) {
         return const_cast<char*>(bottle);
     }
-    // gItemIcons only covers vanilla ids; anything else would read past its end.
     return item < ARRAY_COUNT(gItemIcons) ? gItemIcons[item] : nullptr;
 }
 
@@ -287,7 +286,6 @@ constexpr std::array<int16_t, 34> kStoneMaskBlindActors = { {
     ACTOR_EN_GE2,     ACTOR_EN_BILI,     ACTOR_EN_VALI,    ACTOR_EN_HEISHI2,
 } };
 
-// The blast mask display lists branch through segments 0x08 and 0x09; OoT binds neither.
 constexpr int16_t kKegFuseFrames = 200;
 int16_t sKegFuse = 0;
 
@@ -365,7 +363,6 @@ extern "C" int OotmmCustomItems_TryBlastMask(PlayState* play, Player* player) {
     EnBom* explosive = reinterpret_cast<EnBom*>(bomb);
 
     explosive->timer = 0;
-    // EnBom only centres its explosion sphere from EnBom_Draw, which an instant fuse skips.
     explosive->explosionCollider.elements[0].dim.worldSphere.center.x =
         static_cast<s16>(bomb->world.pos.x);
     explosive->explosionCollider.elements[0].dim.worldSphere.center.y =
@@ -378,7 +375,6 @@ extern "C" int OotmmCustomItems_TryBlastMask(PlayState* play, Player* player) {
 }
 
 extern "C" void OotmmCustomItems_CaptureMaskMatrix(PlayState* play, Player* player) {
-    // Dark Link borrows this limb callback with a Player struct he never initialises.
     if (player != GET_PLAYER(play) || OotmmCustomItems_MaskDList(player->currentMask) == nullptr) {
         return;
     }
@@ -393,7 +389,6 @@ extern "C" void OotmmCustomItems_DrawMaskWithMatrix(PlayState* play, uint8_t mas
 
     OPEN_DISPS(play->state.gfxCtx);
 
-    // Drawn after the skeleton so the mask's envelope colour cannot reach Link's body.
     gSPMatrix(POLY_OPA_DISP++, matrix, G_MTX_NOPUSH | G_MTX_LOAD | G_MTX_MODELVIEW);
     gSPSegment(POLY_OPA_DISP++, 0x09, reinterpret_cast<uintptr_t>(sEmptyDList));
 
@@ -425,7 +420,6 @@ extern "C" void OotmmCustomItems_DrawWornMask(PlayState* play, Player* player) {
 }
 
 extern "C" void OotmmCustomItems_MarkExplosive(Actor* spawned, int explosiveType) {
-    // EnBom grows its explosion by (shape.rot.z + 8) per frame.
     spawned->shape.rot.z = explosiveType == 2 ? 12 : 0;
     EnBom* bomb = reinterpret_cast<EnBom*>(spawned);
 

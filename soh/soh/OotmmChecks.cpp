@@ -33,8 +33,6 @@ namespace {
 
 constexpr uint32_t kChestFlagMask = 0x1F;
 
-// The chest placement bound while its give sequence runs; the slow-chest cutscene
-// decision fires later in the same open and reads it.
 const Ship::OotmmPlacement* sActiveChest = nullptr;
 std::string sOpeningChestCheck;
 uint32_t sChestOpeningFinishedFrame = 0;
@@ -185,8 +183,6 @@ void ChestOpenAfterPutAway(PlayState* play, Player* player) {
     player->stateFlags1 |= PLAYER_STATE1_GETTING_ITEM | PLAYER_STATE1_IN_CUTSCENE;
 }
 
-// Chests already opened in the save whose checks never reached the launcher —
-// a crash between the flag landing and the acknowledgement — are reported here.
 void SweepSavedChests() {
     for (const auto& placement : OotmmSession_GetState().GetPlacements()) {
         if (placement.CheckGame != Ship::OotmmGame::Oot || placement.CheckType != "chest" ||
@@ -478,7 +474,6 @@ void OotmmChecks_Init() {
             SweepSavedBossContainers();
         });
 
-    // A reconnect replays anything the launcher never acknowledged.
     GameInteractor::Instance->RegisterGameHook<GameInteractor::OnPlayerUpdate>([]() {
         const bool connected = OotmmIpc_IsConnected();
         if (connected && !sWasConnected) {

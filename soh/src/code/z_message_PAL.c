@@ -930,8 +930,6 @@ void Message_HandleOcarina(PlayState* play) {
         } else {
             // "Ocarina（%d）"
             osSyncPrintf("オカリナ（%d） ", msgCtx->ocarinaAction);
-            // The warp-song check actions are unused by vanilla callers; shuffled song-event
-            // staffs open with them and need the interactive staff, not Sheik's playback mode.
             if (msgCtx->ocarinaAction == OCARINA_ACTION_UNK_0 || msgCtx->ocarinaAction == OCARINA_ACTION_FREE_PLAY ||
                 msgCtx->ocarinaAction >= OCARINA_ACTION_CHECK_MINUET) {
                 msgCtx->msgMode = MSGMODE_OCARINA_STARTING;
@@ -3423,8 +3421,6 @@ void Message_DrawMain(PlayState* play, Gfx** p) {
                                      msgCtx->ocarinaAction <= OCARINA_ACTION_CHECK_STORMS) ||
                                     (msgCtx->ocarinaAction >= OCARINA_ACTION_CHECK_OOTMM_HEALING &&
                                      msgCtx->ocarinaAction <= OCARINA_ACTION_CHECK_OOTMM_ORDER))) {
-                            // Song-event staffs need the free-play checker: only it matches MM
-                            // songs, and it resets the note window the staff checker leaves stale.
                             func_800ECC04(sOcarinaSongBitFlags + 0xC000);
                         } else {
                             // "On Stage Performance"
@@ -3468,8 +3464,6 @@ void Message_DrawMain(PlayState* play, Gfx** p) {
                         sOcarinaNoteBufPos++;
                     }
                 }
-                // A guided staff forgives mistakes: straying from the asked song's notes
-                // restarts the attempt instead of letting another song resolve.
                 if (sOcarinaNoteBufPos != 0) {
                     u8 guideNotes[8];
                     s16 guideLen = OotmmSongEvents_GuideNotes(play, guideNotes, 8);
@@ -3855,16 +3849,12 @@ void Message_DrawMain(PlayState* play, Gfx** p) {
                 if (msgCtx->stateTimer == 0) {
                     if (OotmmSongs_Played() != OOTMM_SONG_NONE) {
                         Message_CloseTextbox(play);
-                        // A staff whose asked song was just played consumes it; otherwise the
-                        // song keeps its free-play behavior.
                         if (!OotmmSongEvents_HandleCheckPlayed(play)) {
                             OotmmSongs_Begin(play);
                         }
                         GameInteractor_ExecuteOnOcarinaSongAction();
                         break;
                     }
-                    // A warp song that answers the staff asking for it resolves below instead
-                    // of prompting a warp; any other warp song still offers one.
                     if (msgCtx->lastPlayedSong < OCARINA_SONG_SARIAS &&
                         (msgCtx->ocarinaAction < OCARINA_ACTION_PLAYBACK_MINUET ||
                          msgCtx->ocarinaAction >= OCARINA_ACTION_PLAYBACK_SARIA) &&

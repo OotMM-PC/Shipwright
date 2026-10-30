@@ -4,7 +4,6 @@
 extern "C" {
 #endif
 
-/// Scene backing an OoTMM dungeon code such as "GTG", or -1 when the code names no OoT dungeon.
 int OotmmDungeons_SceneForCode(const char* code);
 const char* OotmmDungeons_CodeForScene(int sceneNum);
 int OotmmDungeons_MaxSmallKeys(int sceneNum);

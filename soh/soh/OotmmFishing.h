@@ -6,7 +6,6 @@
 extern "C" {
 #endif
 
-/// A physically caught fish keeps priority; no-op unless pond fish shuffle is active.
 void OotmmFishing_PeekOnHandFish(float* onHandLength, uint8_t* onHandIsLoach);
 
 void OotmmFishing_TakeOnHandFish(float* onHandLength, uint8_t* onHandIsLoach);

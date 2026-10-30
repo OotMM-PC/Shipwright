@@ -1518,7 +1518,6 @@ s32 Player_OverrideLimbDrawGameplayDefault(PlayState* play, s32 limbIndex, Gfx**
             }
 
             if (this == GET_PLAYER(play)) {
-                // A custom local model keeps its skeleton's waist limb; puppets do the same ("").
                 gOotmmEquipDlCapture[3] = !Player_IsCustomLinkModel() ? (const char*)this->waistDLists[0] : NULL;
             }
         }

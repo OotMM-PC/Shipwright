@@ -509,7 +509,6 @@ typedef enum {
     /* 0x2F */ OCARINA_ACTION_FROGS,
     /* 0x30 */ OCARINA_ACTION_CHECK_NOWARP, // Check for any of sarias - storms
     /* 0x31 */ OCARINA_ACTION_CHECK_NOWARP_DONE,
-    // OoTMM song-event staffs targeting this port's MM songs; order matches song ids 12-19.
     /* 0x32 */ OCARINA_ACTION_CHECK_OOTMM_HEALING,
     /* 0x33 */ OCARINA_ACTION_CHECK_OOTMM_SOARING,
     /* 0x34 */ OCARINA_ACTION_CHECK_OOTMM_AWAKENING,

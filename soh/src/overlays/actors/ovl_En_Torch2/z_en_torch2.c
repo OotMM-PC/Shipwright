@@ -128,7 +128,6 @@ void EnTorch2_Init(Actor* thisx, PlayState* play2) {
     PlayState* play = play2;
     Player* this = (Player*)thisx;
 
-    // Change Dark Link to regular enemy instead of boss with crowd control.
     // This way Dark Link will be considered for "clear enemy" rooms properly.
     if (CVarGetInteger(CVAR_REMOTE_CROWD_CONTROL("Enabled"), 0)) {
         Actor_ChangeCategory(play, &play->actorCtx, thisx, ACTORCAT_ENEMY);

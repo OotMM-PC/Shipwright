@@ -369,7 +369,6 @@ SpawnVerdict ResolveSpawn(PlayState* play, int16_t actorId, uint16_t params) {
 void ReplaceMissingActor(PlayState* play, int16_t actorId) {
     switch (actorId) {
         case ACTOR_BOSS_MO:
-            // unk_74[0] is the water opacity the Water Temple boss draw config reads.
             play->roomCtx.unk_74[0] = 0xFF;
             if (play->colCtx.colHeader != nullptr && play->colCtx.colHeader->numWaterBoxes > 0) {
                 play->colCtx.colHeader->waterBoxes[0].ySurface = -500;

@@ -182,7 +182,6 @@ void EnBomBowMan_CheckBeatenDC(EnBomBowlMan* this, PlayState* play) {
         this->eyeMode = CHU_GIRL_EYES_AWAKE;
         this->blinkTimer = (s16)Rand_ZeroFloat(60.0f) + 20;
 
-        // check if we have beaten Dodongo's Cavern
         bool bombchuBowlingClosed =
             !GameInteractor_Should(VB_BE_ABLE_TO_PLAY_BOMBCHU_BOWLING,
                                    (Flags_GetEventChkInf(EVENTCHKINF_USED_DODONGOS_CAVERN_BLUE_WARP)) || BREG(2));

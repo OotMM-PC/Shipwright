@@ -81,11 +81,9 @@ std::optional<uint32_t> sPendingExtendedSource;
 std::optional<uint32_t> sLastResolvedEntrance;
 uint16_t sGrottoExitSource = 0;
 uint16_t sGrottoReturnEntrance = 0;
-// respawnFlag value that restores respawn[RESPAWN_MODE_RETURN].
 constexpr int32_t kRespawnGrottoPopOut = 2;
 
 std::filesystem::path ActiveFileMarkerPath() {
-    // Beside the session state, where MM can read it too.
     return std::filesystem::path(sGameState.GetBootConfig().StatePath + ".last-file");
 }
 
@@ -99,7 +97,6 @@ void DeleteForeignSave(int32_t fileNum) {
         std::filesystem::remove(dir / (stem + ".json"), ec);
         std::filesystem::remove(dir / (stem + "backup.json"), ec);
     }
-    // A surviving ledger would suppress every re-grant onto the file that replaces this one.
     if (!boot.StatePath.empty()) {
         std::filesystem::remove(boot.StatePath + ".applied." + std::to_string(fileNum), ec);
     }

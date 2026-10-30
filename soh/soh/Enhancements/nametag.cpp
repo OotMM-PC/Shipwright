@@ -92,7 +92,6 @@ void DrawNameTag(PlayState* play, const NameTag* nameTag) {
 
     posY += nameTag->yOffset + 16;
 
-    // Set position, billboard effect, scale, then center nametag
     Matrix_Translate(nameTag->actor->world.pos.x, posY, nameTag->actor->world.pos.z, MTXMODE_NEW);
     Matrix_ReplaceRotation(&play->billboardMtxF);
     Matrix_Scale(scale, -scale, 1.0f, MTXMODE_APPLY);

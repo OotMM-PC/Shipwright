@@ -1181,9 +1181,7 @@ OcarinaSongInfo gOcarinaSongNotes[OCARINA_SONG_MAX] = {
     { 0, { 0, 0, 0, 0, 0, 0, 0, 0 } },
 };
 
-// Ported from OoTMM packages/generator/src/oot/ocarina.c, indexed by OotmmSongId - 1.
 OcarinaNote sOotmmSongs[OOTMM_SONG_COUNT][20] = {
-    // Song of Soaring
     {
         { 5, 0, 18, 84, 0, 0, 0 },
         { 11, 0, 18, 80, 0, 0, 0 },
@@ -1193,7 +1191,6 @@ OcarinaNote sOotmmSongs[OOTMM_SONG_COUNT][20] = {
         { 14, 0, 108, 96, 2, 0, 0 },
         { 0xFF, 0, 0, 90, 0, 0, 0 },
     },
-    // Elegy of Emptiness
     {
         { 9, 0, 85, 93, 0, 0, 0 },
         { 11, 0, 43, 91, 0, 0, 0 },
@@ -1204,7 +1201,6 @@ OcarinaNote sOotmmSongs[OOTMM_SONG_COUNT][20] = {
         { 11, 0, 85, 95, 0, 0, 0 },
         { 0xFF, 0, 0, 94, 0, 0, 0 },
     },
-    // Song of Double Time
     {
         { 9, 0, 29, 84, 0, 0, 0 },
         { 0xFF, 0, 3, 84, 0, 0, 0 },
@@ -1219,7 +1215,6 @@ OcarinaNote sOotmmSongs[OOTMM_SONG_COUNT][20] = {
         { 5, 0, 99, 84, 0, 0, 0 },
         { 0xFF, 0, 0, 0, 0, 0, 0 },
     },
-    // Song of Healing
     {
         { 11, 0, 32, 88, 0, 0, 0 },
         { 9, 0, 33, 88, 0, 0, 0 },
@@ -1230,7 +1225,6 @@ OcarinaNote sOotmmSongs[OOTMM_SONG_COUNT][20] = {
         { 0xFF, 0, 10, 84, 0, 0, 0 },
         { 0xFF, 0, 0, 90, 0, 0, 0 },
     },
-    // Sonata of Awakening
     {
         { 14, 0, 19, 92, 0, 0, 0 },
         { 11, 0, 19, 90, 0, 0, 0 },
@@ -1241,7 +1235,6 @@ OcarinaNote sOotmmSongs[OOTMM_SONG_COUNT][20] = {
         { 2, 0, 77, 82, 0, 0, 0 },
         { 0xFF, 0, 0, 86, 0, 0, 0 },
     },
-    // Goron Lullaby
     {
         { 2, 0, 41, 80, 0, 0, 0 },
         { 9, 0, 40, 72, 0, 0, 0 },
@@ -1254,7 +1247,6 @@ OcarinaNote sOotmmSongs[OOTMM_SONG_COUNT][20] = {
         { 0xFF, 0, 40, 76, 0, 0, 0 },
         { 0xFF, 0, 0, 66, 0, 0, 0 },
     },
-    // Goron Lullaby Intro
     {
         { 2, 0, 32, 78, 0, 0, 0 },
         { 9, 0, 33, 90, 0, 0, 0 },
@@ -1264,7 +1256,6 @@ OcarinaNote sOotmmSongs[OOTMM_SONG_COUNT][20] = {
         { 11, 0, 130, 80, 0, 0, 0 },
         { 0xFF, 0, 0, 66, 0, 0, 0 },
     },
-    // New Wave Bossa Nova
     {
         { 11, 0, 64, 74, 0, 0, 0 },
         { 14, 0, 13, 88, 0, 0, 0 },
@@ -1275,7 +1266,6 @@ OcarinaNote sOotmmSongs[OOTMM_SONG_COUNT][20] = {
         { 9, 0, 114, 76, 6, 0, 0 },
         { 0xFF, 0, 0, 90, 0, 0, 0 },
     },
-    // Oath to Order
     {
         { 9, 0, 97, 104, 0, 0, 0 },
         { 5, 0, 48, 88, 0, 0, 0 },
@@ -1288,31 +1278,22 @@ OcarinaNote sOotmmSongs[OOTMM_SONG_COUNT][20] = {
 };
 
 OcarinaSongInfo sOotmmSongNotes[OOTMM_SONG_COUNT] = {
-    // Song of Soaring
     { 6, { OCARINA_NOTE_F4, OCARINA_NOTE_B4, OCARINA_NOTE_D5, OCARINA_NOTE_F4, OCARINA_NOTE_B4, OCARINA_NOTE_D5 } },
-    // Elegy of Emptiness
     { 7,
       { OCARINA_NOTE_A4, OCARINA_NOTE_B4, OCARINA_NOTE_A4, OCARINA_NOTE_F4, OCARINA_NOTE_A4, OCARINA_NOTE_D5,
         OCARINA_NOTE_B4 } },
-    // Song of Double Time
     { 6, { OCARINA_NOTE_A4, OCARINA_NOTE_A4, OCARINA_NOTE_D4, OCARINA_NOTE_D4, OCARINA_NOTE_F4, OCARINA_NOTE_F4 } },
-    // Song of Healing
     { 6, { OCARINA_NOTE_B4, OCARINA_NOTE_A4, OCARINA_NOTE_F4, OCARINA_NOTE_B4, OCARINA_NOTE_A4, OCARINA_NOTE_F4 } },
-    // Sonata of Awakening
     { 7,
       { OCARINA_NOTE_D5, OCARINA_NOTE_B4, OCARINA_NOTE_D5, OCARINA_NOTE_B4, OCARINA_NOTE_D4, OCARINA_NOTE_A4,
         OCARINA_NOTE_D4 } },
-    // Goron Lullaby
     { 8,
       { OCARINA_NOTE_D4, OCARINA_NOTE_A4, OCARINA_NOTE_B4, OCARINA_NOTE_D4, OCARINA_NOTE_A4, OCARINA_NOTE_B4,
         OCARINA_NOTE_A4, OCARINA_NOTE_D4 } },
-    // Goron Lullaby Intro
     { 6, { OCARINA_NOTE_D4, OCARINA_NOTE_A4, OCARINA_NOTE_B4, OCARINA_NOTE_D4, OCARINA_NOTE_A4, OCARINA_NOTE_B4 } },
-    // New Wave Bossa Nova
     { 7,
       { OCARINA_NOTE_B4, OCARINA_NOTE_D5, OCARINA_NOTE_B4, OCARINA_NOTE_A4, OCARINA_NOTE_F4, OCARINA_NOTE_B4,
         OCARINA_NOTE_A4 } },
-    // Oath to Order
     { 6, { OCARINA_NOTE_A4, OCARINA_NOTE_F4, OCARINA_NOTE_D4, OCARINA_NOTE_F4, OCARINA_NOTE_A4, OCARINA_NOTE_D5 } },
 };
 
@@ -1745,7 +1726,6 @@ void func_800ED200(void) {
                         }
                     }
 
-                    // D_80131878 is consumed every frame, so a non-zero value means vanilla matched first.
                     if (j == sOotmmSongNotes[i].len && D_80131878 == 0) {
                         D_80131878 = OOTMM_SONG_STAFF_BASE + i + 2;
                         sOcarinaInpEnabled = 0;

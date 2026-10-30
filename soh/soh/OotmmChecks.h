@@ -32,6 +32,5 @@ int OotmmChecks_SpawnCollectibleDrop(struct PlayState* play, int flag, float x, 
 }
 
 void OotmmChecks_Init();
-/// Arms a chest open whose vanilla give is suppressed; nothing is granted.
 void OotmmChecks_OpenChestSilently(struct PlayState* play, struct Player* player);
 #endif

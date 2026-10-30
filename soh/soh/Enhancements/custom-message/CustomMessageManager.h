@@ -46,7 +46,6 @@ class CustomMessage {
                   TextBoxPosition position_ = TEXTBOX_POS_BOTTOM);
     CustomMessage(std::string english_, TextBoxType type_ = TEXTBOX_TYPE_BLACK,
                   TextBoxPosition position_ = TEXTBOX_POS_BOTTOM);
-    // Adding capital and type parameters here conflicts with the multilingual overload.
     CustomMessage(std::string english_, std::vector<std::string> colors_, std::vector<bool> capital_ = {},
                   TextBoxType type_ = TEXTBOX_TYPE_BLACK, TextBoxPosition position_ = TEXTBOX_POS_BOTTOM);
 

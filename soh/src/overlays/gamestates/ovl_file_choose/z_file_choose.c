@@ -1883,7 +1883,6 @@ void FileChoose_ConfigModeDraw(GameState* thisx) {
         FileChoose_DrawWindowContents(&this->state);
     }
 
-    // Draw Boss Rush Options Menu
     if (this->configMode == CM_BOSS_RUSH_MENU || this->configMode == CM_ROTATE_TO_BOSS_RUSH_MENU ||
         this->configMode == CM_START_BOSS_RUSH_MENU || this->configMode == CM_BOSS_RUSH_TO_QUEST) {
         // window

@@ -337,7 +337,6 @@ void EnItem00_SetupAction(EnItem00* this, EnItem00ActionFunc actionFunc) {
 }
 
 void EnItem00_SetObjectDependency(EnItem00* this, PlayState* play, s16 objectIndex) {
-    // Remove object dependency for Crowd Control to allow Like-likes to
     // drop equipment correctly in rooms where Like-likes normally don't spawn.
     if (CVarGetInteger(CVAR_REMOTE_CROWD_CONTROL("Enabled"), 0)) {
         this->actor.objBankIndex = 0;

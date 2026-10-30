@@ -18,7 +18,7 @@ typedef struct EnBom {
     /* 0x01FC */ f32 flashIntensity;
     /* 0x0200 */ u8 bumpOn;
     /* 0x0204 */ EnBomActionFunc actionFunc;
-    /* 0x0208 */ u8 isPowderKeg; // SOH [OoTMM]
+    /* 0x0208 */ u8 isPowderKeg;
 } EnBom; // size = 0x020C
 
 typedef enum {

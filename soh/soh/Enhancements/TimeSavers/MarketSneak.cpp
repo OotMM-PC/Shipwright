@@ -10,7 +10,6 @@ extern "C" {
 extern PlayState* gPlayState;
 }
 
-// TODO: Port the remaining Market Sneak behavior.
 
 void BuildNightGuardMessage(uint16_t* textId, bool* loadFromMessageTable) {
     // Other guards should not have their text overridden

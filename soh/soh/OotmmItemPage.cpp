@@ -173,7 +173,6 @@ extern "C" void OotmmItemPage_UpdateCursor(PlayState* play) {
         sCursor = onPage - 1;
     }
 
-    // An empty vanilla inventory parks the cursor on a page-turn arrow, which blocks ours.
     pauseCtx->cursorSpecialPos = 0;
 
     if (pauseCtx->state == 6 && pauseCtx->unk_1E4 == 0) {
@@ -295,7 +294,6 @@ extern "C" void OotmmItemPage_Draw(PlayState* play) {
 
 extern "C" void OotmmItemPage_DrawPageIndicator(PlayState* play) {
     PauseContext* pauseCtx = &play->pauseCtx;
-    // KaleidoScope_SwitchPage raises unk_1E4 on the frame the cube starts turning.
     if (!OotmmSession_IsActive() || pauseCtx->pageIndex != PAUSE_ITEM || pauseCtx->state != 6 ||
         pauseCtx->unk_1E4 != 0) {
         return;
@@ -315,7 +313,6 @@ extern "C" void OotmmItemPage_DrawPageIndicator(PlayState* play) {
     GfxPrint printer;
     GfxPrint_Init(&printer);
     GfxPrint_Open(&printer, gfx);
-    // The page background's top right corner sits at roughly column 35, row 5.
     GfxPrint_SetColor(&printer, 255, 255, 255, pauseCtx->alpha);
     GfxPrint_SetPos(&printer, 27, 6);
     GfxPrint_Printf(&printer, "%d/%d (L)", static_cast<int>(sPage + 1), static_cast<int>(pages));

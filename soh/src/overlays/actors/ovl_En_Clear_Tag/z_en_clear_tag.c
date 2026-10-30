@@ -260,7 +260,6 @@ void EnClearTag_Init(Actor* thisx, PlayState* play) {
         Audio_PlayActorSound2(&this->actor, NA_SE_IT_SWORD_REFLECT_MG);
     } else { // Initialize the Arwing.
 
-        // Change Arwing to regular enemy instead of boss with crowd control.
         // This way Arwings will be considered for "clear enemy" rooms properly.
         if (CVarGetInteger(CVAR_REMOTE_CROWD_CONTROL("Enabled"), 0)) {
             Actor_ChangeCategory(play, &play->actorCtx, thisx, ACTORCAT_ENEMY);

@@ -41,8 +41,6 @@ const ActorInit En_Okarina_Tag_InitVars = {
 extern CutsceneData D_80ABF9D0[];
 extern CutsceneData D_80ABFB40[];
 
-// The launcher bakes OoTMM's song-glyph art into ootmm_assets.o2r, indexed by the
-// seed's song-event song ids. The resource system only resolves asset-aligned names.
 static const ALIGN_ASSET(2) char sSongTagLullabyTex[] = "__OTR__objects/ootmm_song_tags/gSongTagLullabyTex";
 static const ALIGN_ASSET(2) char sSongTagEponaTex[] = "__OTR__objects/ootmm_song_tags/gSongTagEponaTex";
 static const ALIGN_ASSET(2) char sSongTagSariaTex[] = "__OTR__objects/ootmm_song_tags/gSongTagSariaTex";
@@ -215,7 +213,6 @@ static void EnOkarinaTag_DrawOotmm(Actor* thisx, PlayState* play) {
                              sOotmmSongTagColors[song].r, sOotmmSongTagColors[song].g, sOotmmSongTagColors[song].b);
 }
 
-// A shuffled spot must not run the played song's own world effect on top of the event.
 static void EnOkarinaTag_InhibitShuffledSongEffect(PlayState* play) {
     if (OotmmSongEvents_Enabled()) {
         play->msgCtx.ocarinaAction = OCARINA_ACTION_CHECK_NOWARP_DONE;

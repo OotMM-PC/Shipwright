@@ -1650,7 +1650,6 @@ u8 Return_Item(u8 itemID, ModIndex modId, ItemID returnItem) {
 
     ExtendedVanillaItem extendedVanillaItem = RetrieveExtendedVanillaItemFromItemID(itemID);
     if (extendedVanillaItem != EXT_MAX) {
-        // Vanilla ItemID with an associated ExtendedVanillaItem (These are items in extendedVanillaGetItemTable)
         return Return_Item_Entry(ItemTable_RetrieveEntry(MOD_EXTENDED_VANILLA, extendedVanillaItem), returnItem);
     }
 

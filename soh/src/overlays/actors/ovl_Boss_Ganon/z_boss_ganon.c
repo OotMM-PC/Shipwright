@@ -972,7 +972,6 @@ void BossGanon_IntroCutscene(BossGanon* this, PlayState* play) {
             }
 
             if ((this->csTimer > 80) && (Message_GetState(&play->msgCtx) == TEXT_STATE_NONE)) {
-                // In Boss Rush, skip past dark waves section straight to title card phase of the cutscene.
                 if (IS_BOSS_RUSH) {
                     this->timers[2] = 30;
                     this->csCamAt.x = this->unk_1FC.x - 10.0f;
@@ -1684,7 +1683,6 @@ void BossGanon_DeathAndTowerCutscene(BossGanon* this, PlayState* play) {
             }
             // fallthrough
         case 104:
-            // In Boss Rush, fade out the white here as the earlier part is skipped.
             if (IS_BOSS_RUSH) {
                 Math_ApproachZeroF(&this->whiteFillAlpha, 1.0f, 10.0f);
             }
@@ -1706,7 +1704,6 @@ void BossGanon_DeathAndTowerCutscene(BossGanon* this, PlayState* play) {
             }
 
             if (this->csTimer == 50) {
-                // In Boss Rush, skip the rest of the cutscene after the crystal around Zelda dissapears.
                 if (!IS_BOSS_RUSH) {
                     sBossGanonZelda->unk_3C8 = 4;
                 } else {

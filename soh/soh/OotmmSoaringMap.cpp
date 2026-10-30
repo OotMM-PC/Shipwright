@@ -58,8 +58,6 @@ constexpr std::array<f32, 10> kOwlCursorX = { { -50.0f, -38.0f, 6.0f, 11.0f, 8.0
 constexpr std::array<f32, 10> kOwlCursorY = { { -14.0f, -39.0f, 23.0f, 11.0f, -8.0f, -15.0f, -31.0f, -30.0f, -10.0f,
                                                 11.0f } };
 
-// Kaleido vertices project through a 60 degree view whose eye sits PAUSE_EYE_DIST from the origin,
-// so a page's screen scale is fixed by the depth its matrix translates to.
 constexpr f32 kProjection = 207.846f;
 constexpr f32 kEyeDistance = 64.0f;
 constexpr f32 kPageScale = 0.78f * kProjection / (kEyeDistance + 93.0f);
@@ -67,7 +65,6 @@ constexpr f32 kCursorScale = kProjection / (kEyeDistance + 100.0f);
 
 constexpr f32 kCenterX = 160.0f;
 constexpr f32 kCenterY = 120.0f;
-// The world map's matrix drops it 0.9 units, and lands it at a depth that projects one to one.
 constexpr f32 kMapCenterY = 120.9f;
 
 constexpr s16 kMapWidth = 216;
@@ -109,7 +106,6 @@ void DrawBackdrop(Gfx** gfxp) {
     gDPSetRenderMode(gfx++, G_RM_XLU_SURF, G_RM_XLU_SURF2);
     gDPSetCombineMode(gfx++, G_CC_PRIMITIVE, G_CC_PRIMITIVE);
     gDPSetPrimColor(gfx++, 0, 0, 0, 0, 0, kBackdropAlpha);
-    // The renderer widens exactly this rectangle to cover the pillarbox, as it does for screen fades.
     gDPFillRectangle(gfx++, 0, 0, SCREEN_WIDTH - 1, SCREEN_HEIGHT - 1);
 
     *gfxp = gfx;

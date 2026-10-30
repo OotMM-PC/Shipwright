@@ -30,7 +30,6 @@ struct Drop {
     std::string CheckId;
     uint32_t RecipientPlayer;
     int CollectibleFlag;
-    // What the drop draws as; differs from the item itself for disguised traps.
     std::string DrawItemId;
     std::string DrawItemName;
 };
@@ -52,10 +51,8 @@ void PickDisguise(std::string& drawItemId, std::string& drawItemName) {
     drawItemName = pick->ItemName;
 }
 
-// Spawned drop -> its item; entries whose actors die without a pickup are pruned.
 std::unordered_map<Actor*, Drop> sDrops;
 
-// Item_DropCollectible's own starting countdown; refreshed every frame so drops never blink out.
 constexpr s16 kDespawnRefresh = 220;
 constexpr float kWorldScale = 0.25f;
 

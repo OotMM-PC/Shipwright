@@ -6,8 +6,6 @@
 #include "soh/Enhancements/game-interactor/GameInteractor_Hooks.h"
 #include "soh/OotmmScales.h"
 
-// The cursor rows are UPG_QUIVER, UPG_BOMB_BAG, UPG_STRENGTH, UPG_SCALE in order, so cursorY
-// doubles as the upgrade index.
 static s32 KaleidoScope_UpgradeSlotFilled(s32 upgrade) {
     return CUR_UPG_VALUE(upgrade) != 0 || (upgrade == UPG_SCALE && OotmmScales_SlotFilled());
 }
@@ -785,7 +783,6 @@ void KaleidoScope_DrawEquipment(PlayState* play) {
         gSPVertex(POLY_OPA_DISP++, &pauseCtx->equipVtx[j], 16, 0);
         bool drawGreyItems = !CVarGetInteger(CVAR_CHEAT("TimelessEquipment"), 0);
         if ((sChildUpgrades[i] == UPG_SCALE) && OotmmScales_DrawSlotIcon(play)) {
-            // Bronze leaves UPG_SCALE at zero, so neither age branch below would draw the slot.
         } else if (LINK_AGE_IN_YEARS == YEARS_CHILD) {
             point = CUR_UPG_VALUE(sChildUpgrades[i]);
             if ((point != 0) && (CUR_UPG_VALUE(sChildUpgrades[i]) != 0)) {
@@ -816,7 +813,6 @@ void KaleidoScope_DrawEquipment(PlayState* play) {
                     32, 32, 0);
                 gSPGrayscale(POLY_OPA_DISP++, false);
             } else if (CUR_UPG_VALUE(sAdultUpgrades[i]) != 0) {
-                // Grey Out the Goron Bracelet when Toggle Strength Option is off
                 // Grey Out Strength Upgrades when Disabled and the Toggle Strength Option is on
                 if ((drawGreyItems &&
                      (((sAdultUpgradeItemBases[i] + CUR_UPG_VALUE(sAdultUpgrades[i]) - 1) == ITEM_BRACELET &&

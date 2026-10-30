@@ -1561,7 +1561,6 @@ void BossGoma_CeilingIdle(BossGoma* this, PlayState* play) {
             BossGoma_SetupCeilingPrepareSpawnGohmas(this);
         } else if (this->childrenGohmaState[0] < 0 && this->childrenGohmaState[1] < 0 &&
                    this->childrenGohmaState[2] < 0) {
-            // if all children gohmas are dead
             BossGoma_SetupFallJump(this);
         } else {
             for (i = 0; i < ARRAY_COUNT(this->childrenGohmaState); i++) {

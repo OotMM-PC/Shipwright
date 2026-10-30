@@ -238,8 +238,6 @@ void func_80A74398(Actor* thisx, PlayState* play) {
 
     if (this->switchFlags != 0xFF) {
         // In vanilla gameplay, Iron Knuckles are despawned based on specific flags in specific scenarios.
-        // In Crowd Control, this made the Iron Knuckles despawn when the same flag was set by
-        // other objects. Instead, rely on the "Clear enemy room" flag for Iron Knuckles that
         // aren't Nabooru.
         if ((Flags_GetSwitch(play, this->switchFlags) && !enemyRandoCCActive) ||
             (thisx->params != 0 && Flags_GetClear(play, play->roomCtx.curRoom.num) && enemyRandoCCActive)) {
@@ -663,7 +661,6 @@ void func_80A75A38(EnIk* this, PlayState* play) {
             }
             if (this->unk_2F9 == 0) {
                 Item_DropCollectibleRandom(play, &this->actor, &this->actor.world.pos, 0xB0);
-                // Don't set flag when CrowdControl is on.
                 // Instead Iron Knuckles rely on the "clear room" flag.
                 if (this->switchFlags != 0xFF && !(CVarGetInteger(CVAR_REMOTE_CROWD_CONTROL("Enabled"), 0))) {
                     Flags_SetSwitch(play, this->switchFlags);
@@ -1454,7 +1451,6 @@ void EnIk_Init(Actor* thisx, PlayState* play) {
         func_80A780D0(this, play);
     }
 
-    // Immediately trigger Iron Knuckle for Crowd Control
     if ((CVarGetInteger(CVAR_REMOTE_CROWD_CONTROL("Enabled"), 0)) &&
         (thisx->params == 2 || thisx->params == 3)) {
         this->skelAnime.playSpeed = 1.0f;

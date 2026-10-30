@@ -15185,7 +15185,6 @@ static s32 Player_KamaroDanceSeq(void) {
 static void Player_StopKamaroDance(PlayState* play, Player* this) {
     s32 danceSeq = Player_KamaroDanceSeq();
 
-    // 0x100000FF is the audio queue's stop-sequence command.
     if (danceSeq >= 0 && func_800FA0B4(SEQ_PLAYER_FANFARE) == (u16)danceSeq) {
         Audio_QueueSeqCmd(0x100000FF | ((u8)SEQ_PLAYER_FANFARE << 24));
     }

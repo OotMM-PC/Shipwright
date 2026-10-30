@@ -1,6 +1,5 @@
 #include "OotmmCsmc.h"
 
-// Pre-loads the C++ half of the game headers; the extern "C" block below needs it first.
 #include "Enhancements/game-interactor/GameInteractor.h"
 #include "OotmmSession.h"
 #include "soh/frame_interpolation.h"
@@ -26,10 +25,8 @@ Gfx* ResourceMgr_LoadGfxByName(const char* path);
 
 namespace {
 
-// Test chests placed by the debug menu, shown as a fixed class.
 std::unordered_map<EnBox*, Ship::OotmmCsmcClass> sChestOverrides;
 
-// Every grant path — shared or separate, launcher or debug — lands in the quest bit.
 bool HasAgonyStone() {
     return CHECK_QUEST_ITEM(QUEST_STONE_OF_AGONY);
 }
@@ -75,8 +72,6 @@ void ApplyClassLook(EnBox* chest, Ship::OotmmCsmcClass itemClass) {
     Actor_SetScale(&chest->dyna.actor, large ? 0.01f : 0.005f);
     Actor_SetFocus(&chest->dyna.actor, large ? 40.0f : 20.0f);
 
-    // The launcher bakes OoTMM's own chest art into ootmm_assets.o2r; SoH's shipped
-    // variants cover a build where that archive is not mounted yet.
     const char* bakedBody = nullptr;
     const char* bakedLid = nullptr;
     const char* body;

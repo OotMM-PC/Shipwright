@@ -73,7 +73,6 @@ class AudioCollection {
 #else
 void AudioCollection_AddToCollection(char* otrPath, uint16_t seqNum);
 const char* AudioCollection_GetSequenceName(uint16_t seqId);
-/// Sequence id registered under this label, or -1 when no track carries it.
 int32_t AudioCollection_GetSequenceNumByName(const char* name);
 bool AudioCollection_HasSequenceNum(uint16_t seqId);
 size_t AudioCollection_SequenceMapSize();
