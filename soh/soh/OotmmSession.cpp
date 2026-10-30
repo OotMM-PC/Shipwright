@@ -996,6 +996,45 @@ void BootIntoGame(GameState* gameState) {
     GameInteractor_ExecuteOnLoadGame(fileNum);
 }
 
+uint32_t WallmasterSource(int16_t sceneNum, int8_t room) {
+    switch (sceneNum) {
+        case SCENE_FOREST_TEMPLE:
+            return room == 0x14 ? 0xF11 : 0xF10;
+        case SCENE_SHADOW_TEMPLE:
+            return 0xF12;
+        case SCENE_SPIRIT_TEMPLE:
+            switch (room) {
+                case 0x02:
+                    return 0xF13;
+                case 0x05:
+                    return 0xF16;
+                case 0x08:
+                    return 0xF15;
+                case 0x0F:
+                    return 0xF14;
+                default:
+                    return 0;
+            }
+        case SCENE_BOTTOM_OF_THE_WELL:
+            switch (room) {
+                case 0x00:
+                    return 0xF17;
+                case 0x01:
+                    return 0xF18;
+                case 0x03:
+                    return 0xF19;
+                default:
+                    return 0;
+            }
+        case SCENE_GERUDO_TRAINING_GROUND:
+            return 0xF1A;
+        case SCENE_INSIDE_GANONS_CASTLE:
+            return room == 0x0A ? 0xF1C : 0xF1B;
+        default:
+            return 0;
+    }
+}
+
 } // namespace
 
 bool OotmmSession_BeginCrossGameTransition(const Ship::OotmmEntranceMapping& mapping) {
@@ -1183,6 +1222,22 @@ extern "C" void OotmmSession_PrepareGrottoReturn(void) {
         sPendingExtendedSource = source;
         sGrottoExitSource = 0;
     }
+}
+
+extern "C" int32_t OotmmSession_WallmasterTakePlayer(PlayState* play, Actor* wallmaster) {
+    if (!OotmmSession_IsActive() || sGameState.GetStringSetting("erWallmasters", "none") == "none") {
+        return 0;
+    }
+    const uint32_t source = WallmasterSource(play->sceneNum, wallmaster->room);
+    if (source == 0 || sGameState.FindEntrance(Ship::OotmmGame::Oot, source) == nullptr) {
+        return 0;
+    }
+    sPendingExtendedSource = source;
+    sLastResolvedEntrance.reset();
+    play->nextEntranceIndex = gSaveContext.entranceIndex;
+    play->transitionTrigger = TRANS_TRIGGER_START;
+    play->transitionType = TRANS_TYPE_FADE_BLACK;
+    return 1;
 }
 
 extern "C" int32_t OotmmSession_ReturnToSpawn(void) {

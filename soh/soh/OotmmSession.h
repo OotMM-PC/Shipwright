@@ -20,6 +20,7 @@ void OotmmSession_FixLoadSpawn(void);
 int32_t OotmmSession_TryStartLoadSpawnHandoff(void);
 void OotmmSession_NotePlayerExitTransition(void);
 void OotmmSession_PrepareGrottoReturn(void);
+int32_t OotmmSession_WallmasterTakePlayer(struct PlayState* play, struct Actor* wallmaster);
 void OotmmSession_ApplyDeathRespawn(void);
 int32_t OotmmSession_ReturnToSpawn(void);
 int32_t OotmmSession_ApplyResolvedOotEntrance(uint32_t entrance);
