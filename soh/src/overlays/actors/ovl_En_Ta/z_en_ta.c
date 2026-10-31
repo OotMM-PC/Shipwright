@@ -10,6 +10,7 @@
 #include "soh/OTRGlobals.h"
 #include "soh/ResourceManagerHelpers.h"
 #include "soh/Enhancements/game-interactor/GameInteractor_Hooks.h"
+#include "soh/OotmmNpcChecks.h"
 
 #define FLAGS (ACTOR_FLAG_ATTENTION_ENABLED | ACTOR_FLAG_FRIENDLY)
 
@@ -517,7 +518,7 @@ void EnTa_IdleAtRanch(EnTa* this, PlayState* play) {
 }
 
 s32 func_80B14DD8(void) {
-    if (gSaveContext.rupees < 30) {
+    if (gSaveContext.rupees < OotmmNpcChecks_MerchantPrice(OOTMM_MERCHANT_TALON, 30)) {
         return 0;
     } else if (!Inventory_HasEmptyBottle()) {
         return 1;
@@ -915,7 +916,7 @@ void func_80B15FE8(EnTa* this, PlayState* play) {
                     case 2:
                         this->unk_2E0 |= 2;
                         EnTa_SetupAction(this, EnTa_GiveItemInLonLonHouse, EnTa_AnimRunToEnd);
-                        Rupees_ChangeBy(-30);
+                        Rupees_ChangeBy(-OotmmNpcChecks_MerchantPrice(OOTMM_MERCHANT_TALON, 30));
                         if (GameInteractor_Should(VB_GIVE_ITEM_FROM_TALONS_CHICKENS, true, &this->actor)) {
                             GetItemEntry itemEntry = ItemTable_Retrieve(GI_MILK);
                             gSaveContext.ship.pendingSale = itemEntry.itemId;

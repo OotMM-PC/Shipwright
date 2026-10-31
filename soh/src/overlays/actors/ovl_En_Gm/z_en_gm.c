@@ -11,6 +11,7 @@
 #include "soh/Enhancements/game-interactor/GameInteractor_Hooks.h"
 #include "soh/OotmmCustomItems.h"
 #include "soh/OotmmCustomItemsPlayer.h"
+#include "soh/OotmmNpcChecks.h"
 #include <assert.h>
 #include "soh/ResourceManagerHelpers.h"
 
@@ -269,7 +270,9 @@ void EnGm_ProcessChoiceIndex(EnGm* this, PlayState* play) {
                     this->actionFunc = func_80A3DD7C;
                     break;
                 }
-                if (GameInteractor_Should(VB_CHECK_PRICE_OF_MEDIGORON, gSaveContext.rupees < 200, this)) {
+                if (GameInteractor_Should(
+                        VB_CHECK_PRICE_OF_MEDIGORON,
+                        gSaveContext.rupees < OotmmNpcChecks_MerchantPrice(OOTMM_MERCHANT_MEDIGORON, 200), this)) {
                     Message_ContinueTextbox(play, 0xC8);
                     this->actionFunc = func_80A3DD7C;
                 } else {
@@ -300,7 +303,7 @@ void func_80A3DF00(EnGm* this, PlayState* play) {
 
 void func_80A3DF60(EnGm* this, PlayState* play) {
     if ((Message_GetState(&play->msgCtx) == TEXT_STATE_DONE) && Message_ShouldAdvance(play)) {
-        Rupees_ChangeBy(-200);
+        Rupees_ChangeBy(-OotmmNpcChecks_MerchantPrice(OOTMM_MERCHANT_MEDIGORON, 200));
         this->actionFunc = func_80A3DC44;
     }
 }

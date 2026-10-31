@@ -232,6 +232,7 @@ std::string RewardName(const char* nativeId) {
 }
 
 constexpr uint32_t kScrubPriceBase = 0x40;
+constexpr uint32_t kMerchantPriceBase = 0x66;
 
 enum ScrubItem {
     kScrubNuts,
@@ -337,6 +338,40 @@ void BuildScrubText(uint16_t* textId, bool* loadFromMessageTable) {
     *loadFromMessageTable = false;
 }
 
+void LoadMerchantOffer(const char* site, int merchant, int vanillaPrice, bool* loadFromMessageTable) {
+    const auto* placement = Find(site);
+    if (placement == nullptr) {
+        return;
+    }
+    const std::string price = std::to_string(OotmmNpcChecks_MerchantPrice(merchant, vanillaPrice));
+    CustomMessage message(merchant == OOTMM_MERCHANT_MEDIGORON
+                              ? "How about buying " + PlacementName(*placement) + " for %r" + price + " Rupees%w?" +
+                                    CustomMessage::TWO_WAY_CHOICE() + "%gBuy&Don't buy%w"
+                              : PlacementName(*placement) + "!&How about %r" + price + " Rupees%w?" +
+                                    CustomMessage::TWO_WAY_CHOICE() + "%gYes&No%w");
+    message.AutoFormat();
+    message.LoadIntoFont();
+    *loadFromMessageTable = false;
+}
+
+void BuildMedigoronOfferText(uint16_t*, bool* loadFromMessageTable) {
+    if (!OotmmNpcChecks_IsCollected("OOT_MEDIGORON")) {
+        LoadMerchantOffer("OOT_MEDIGORON", OOTMM_MERCHANT_MEDIGORON, 200, loadFromMessageTable);
+    }
+}
+
+void BuildCarpetMerchantText(uint16_t*, bool* loadFromMessageTable) {
+    LoadMerchantOffer("OOT_CARPET_MERCHANT", OOTMM_MERCHANT_CARPET, 200, loadFromMessageTable);
+}
+
+void BuildGrannyOfferText(uint16_t*, bool* loadFromMessageTable) {
+    LoadMerchantOffer("OOT_WITCH_BLUE_POTION", OOTMM_MERCHANT_GRANNY, 100, loadFromMessageTable);
+}
+
+void BuildTalonMilkText(uint16_t*, bool* loadFromMessageTable) {
+    LoadMerchantOffer("OOT_TALON_MILK", OOTMM_MERCHANT_TALON, 30, loadFromMessageTable);
+}
+
 void BuildSkulltulaHouseText(uint16_t*, bool* loadFromMessageTable) {
     if (gPlayState == nullptr) {
         return;
@@ -368,6 +403,13 @@ void BuildSkulltulaHouseText(uint16_t*, bool* loadFromMessageTable) {
 
 std::string OotmmNpcChecks_PlacementName(const Ship::OotmmPlacement& placement) {
     return PlacementName(placement);
+}
+
+extern "C" int OotmmNpcChecks_MerchantPrice(int merchant, int vanillaPrice) {
+    if (!OotmmSession_IsActive()) {
+        return vanillaPrice;
+    }
+    return OotmmSession_GetState().GetPrice(kMerchantPriceBase + merchant).value_or(vanillaPrice);
 }
 
 extern "C" int OotmmNpcChecks_ScrubPrice(Actor* scrub, PlayState* play, int vanillaPrice) {
@@ -540,6 +582,10 @@ void OotmmNpcChecks_Init(void) {
     GameInteractor::Instance->RegisterGameHook<GameInteractor::OnOpenText>(BuildSkulltulaHouseText);
 
     GameInteractor::Instance->RegisterGameHook<GameInteractor::OnOpenText>(BuildScrubText);
+    GameInteractor::Instance->RegisterGameHookForID<GameInteractor::OnOpenText>(0x304F, BuildMedigoronOfferText);
+    GameInteractor::Instance->RegisterGameHookForID<GameInteractor::OnOpenText>(0x6077, BuildCarpetMerchantText);
+    GameInteractor::Instance->RegisterGameHookForID<GameInteractor::OnOpenText>(0x500C, BuildGrannyOfferText);
+    GameInteractor::Instance->RegisterGameHookForID<GameInteractor::OnOpenText>(0x208B, BuildTalonMilkText);
     REGISTER_VB_SHOULD(VB_GIVE_ITEM_FROM_BUSINESS_SCRUB, {
         EnDns* scrub = va_arg(args, EnDns*);
         if (!IsShuffledScrub(scrub)) {

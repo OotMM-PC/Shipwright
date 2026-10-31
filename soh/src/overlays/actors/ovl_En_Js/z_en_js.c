@@ -9,6 +9,7 @@
 #include "soh/OTRGlobals.h"
 #include "soh/ResourceManagerHelpers.h"
 #include "soh/Enhancements/game-interactor/GameInteractor_Hooks.h"
+#include "soh/OotmmNpcChecks.h"
 
 #define FLAGS (ACTOR_FLAG_ATTENTION_ENABLED | ACTOR_FLAG_FRIENDLY)
 
@@ -145,21 +146,23 @@ void func_80A891C4(EnJs* this, PlayState* play) {
     if (Message_GetState(&play->msgCtx) == TEXT_STATE_CHOICE && Message_ShouldAdvance(play)) {
         switch (play->msgCtx.choiceIndex) {
             case 0: // yes
-                if (GameInteractor_Should(VB_CHECK_PRICE_OF_CARPET_SALESMAN, gSaveContext.rupees < 200, this)) {
+                if (GameInteractor_Should(
+                        VB_CHECK_PRICE_OF_CARPET_SALESMAN,
+                        gSaveContext.rupees < OotmmNpcChecks_MerchantPrice(OOTMM_MERCHANT_CARPET, 200), this)) {
                     Message_ContinueTextbox(play, 0x6075);
                     func_80A89008(this);
                 } else {
                     if (!GameInteractor_Should(VB_GIVE_ITEM_FROM_CARPET_SALESMAN, false, this)) {
                         if (GameInteractor_Should(VB_GIVE_BOMBCHUS_FROM_CARPET_SALESMAN, true, this) ||
                             Actor_HasParent(&this->actor, play)) {
-                            Rupees_ChangeBy(-200);
+                            Rupees_ChangeBy(-OotmmNpcChecks_MerchantPrice(OOTMM_MERCHANT_CARPET, 200));
                             En_Js_SetupAction(this, func_80A89160);
                         } else {
                             Message_ContinueTextbox(play, 0x6073);
                             func_80A89008(this);
                         }
                     } else {
-                        Rupees_ChangeBy(-200);
+                        Rupees_ChangeBy(-OotmmNpcChecks_MerchantPrice(OOTMM_MERCHANT_CARPET, 200));
                         En_Js_SetupAction(this, func_80A8910C);
                     }
                 }

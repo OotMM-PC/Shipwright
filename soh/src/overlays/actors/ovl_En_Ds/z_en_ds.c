@@ -9,6 +9,7 @@
 #include "soh/OTRGlobals.h"
 #include "soh/ResourceManagerHelpers.h"
 #include "soh/Enhancements/game-interactor/GameInteractor_Hooks.h"
+#include "soh/OotmmNpcChecks.h"
 
 #define FLAGS (ACTOR_FLAG_ATTENTION_ENABLED | ACTOR_FLAG_FRIENDLY)
 
@@ -166,7 +167,8 @@ void EnDs_OfferOddPotion(EnDs* this, PlayState* play) {
 }
 
 s32 EnDs_CheckRupeesAndBottle() {
-    if (GameInteractor_Should(VB_GRANNY_SAY_INSUFFICIENT_RUPEES, gSaveContext.rupees < 100, NULL)) {
+    if (GameInteractor_Should(VB_GRANNY_SAY_INSUFFICIENT_RUPEES,
+                              gSaveContext.rupees < OotmmNpcChecks_MerchantPrice(OOTMM_MERCHANT_GRANNY, 100), NULL)) {
         return 0;
     } else if (GameInteractor_Should(VB_NEED_BOTTLE_FOR_GRANNYS_ITEM, Inventory_HasEmptyBottle() == 0)) {
         return 1;
@@ -198,7 +200,7 @@ void EnDs_OfferBluePotion(EnDs* this, PlayState* play) {
                         return;
                     case 2: // have 100 rupees and empty bottle
                         if (GameInteractor_Should(VB_GRANNY_TAKE_MONEY, true, this)) {
-                            Rupees_ChangeBy(-100);
+                            Rupees_ChangeBy(-OotmmNpcChecks_MerchantPrice(OOTMM_MERCHANT_GRANNY, 100));
                         }
                         this->actor.flags &= ~ACTOR_FLAG_TALK_OFFER_AUTO_ACCEPTED;
 

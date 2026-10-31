@@ -6,6 +6,8 @@ extern "C" {
 
 int OotmmNpcChecks_IsShuffled(const char* nativeId);
 int OotmmNpcChecks_ScrubPrice(struct Actor* scrub, struct PlayState* play, int vanillaPrice);
+enum OotmmMerchant { OOTMM_MERCHANT_MEDIGORON, OOTMM_MERCHANT_CARPET, OOTMM_MERCHANT_GRANNY, OOTMM_MERCHANT_TALON };
+int OotmmNpcChecks_MerchantPrice(int merchant, int vanillaPrice);
 int OotmmNpcChecks_IsCollected(const char* nativeId);
 int OotmmNpcChecks_Collect(const char* nativeId);
 int OotmmNpcChecks_Done(const char* nativeId, int vanillaDone);
