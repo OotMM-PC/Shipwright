@@ -104,6 +104,30 @@ const std::unordered_map<std::string, uint8_t> kQuestFlags = {
     { "SHARED_STONE_OF_AGONY", QUEST_STONE_OF_AGONY },
 };
 
+struct SongNotes {
+    const char* SongItemId;
+    const char* SongName;
+    const char* NoteItemId;
+    const char* SharedNoteItemId;
+    uint32_t Needed;
+};
+
+constexpr SongNotes kSongNotes[] = {
+    { "OOT_SONG_TP_FOREST", "Minuet of Forest", "OOT_SONG_NOTE_TP_FOREST", "SHARED_SONG_NOTE_TP_FOREST", 6 },
+    { "OOT_SONG_TP_FIRE", "Bolero of Fire", "OOT_SONG_NOTE_TP_FIRE", "SHARED_SONG_NOTE_TP_FIRE", 8 },
+    { "OOT_SONG_TP_WATER", "Serenade of Water", "OOT_SONG_NOTE_TP_WATER", "SHARED_SONG_NOTE_TP_WATER", 5 },
+    { "OOT_SONG_TP_SPIRIT", "Requiem of Spirit", "OOT_SONG_NOTE_TP_SPIRIT", "SHARED_SONG_NOTE_TP_SPIRIT", 6 },
+    { "OOT_SONG_TP_SHADOW", "Nocturne of Shadow", "OOT_SONG_NOTE_TP_SHADOW", "SHARED_SONG_NOTE_TP_SHADOW", 7 },
+    { "OOT_SONG_TP_LIGHT", "Prelude of Light", "OOT_SONG_NOTE_TP_LIGHT", "SHARED_SONG_NOTE_TP_LIGHT", 6 },
+    { "OOT_SONG_ZELDA", "Zelda's Lullaby", "OOT_SONG_NOTE_ZELDA", "SHARED_SONG_NOTE_ZELDA", 6 },
+    { "OOT_SONG_EPONA", "Epona's Song", "OOT_SONG_NOTE_EPONA", "SHARED_SONG_NOTE_EPONA", 6 },
+    { "OOT_SONG_SARIA", "Saria's Song", "OOT_SONG_NOTE_SARIA", "SHARED_SONG_NOTE_SARIA", 6 },
+    { "OOT_SONG_SUN", "Sun's Song", "OOT_SONG_NOTE_SUN", "SHARED_SONG_NOTE_SUN", 6 },
+    { "OOT_SONG_TIME", "Song of Time", "OOT_SONG_NOTE_TIME", "SHARED_SONG_NOTE_TIME", 6 },
+    { "OOT_SONG_STORMS", "Song of Storms", "OOT_SONG_NOTE_STORMS", "SHARED_SONG_NOTE_STORMS", 6 },
+};
+
+
 int DungeonSceneOf(std::string_view suffix) {
     const size_t underscore = suffix.rfind('_');
     const std::string_view code =
@@ -1123,6 +1147,25 @@ void UpdateTraps() {
     }
 }
 
+void ApplyCompletedSongNotes(const Ship::OotmmInventory& inventory) {
+    for (const auto& song : kSongNotes) {
+        const uint8_t quest = kQuestFlags.at(song.SongItemId);
+        const std::string key = std::string("@notes:") + song.SongItemId;
+        if (sLedger.Applied(key) != 0 || CHECK_QUEST_ITEM(quest) ||
+            inventory.Count(song.NoteItemId) + inventory.Count(song.SharedNoteItemId) < song.Needed) {
+            continue;
+        }
+        gSaveContext.inventory.questItems |= gBitFlags[quest];
+        sLedger.SetApplied(key, 1);
+        Ship::GameIpcItemPresentation presentation;
+        presentation.ItemId = song.SongItemId;
+        presentation.ItemName = song.SongName;
+        presentation.ItemGame = "oot";
+        presentation.DestinationGame = "oot";
+        OotmmItemPresentation_Queue(presentation);
+    }
+}
+
 } // namespace
 
 extern "C" int32_t OotmmItemApply_FoundMasterSword(void) {
@@ -1318,6 +1361,7 @@ void OotmmItemApply_Reconcile() {
         }
         ApplyOne(gPlayState, itemId, count);
     }
+    ApplyCompletedSongNotes(inventory);
     if (!sRetryMagicApplication) {
         sAppliedRevision = inventory.GetRevision();
     }
