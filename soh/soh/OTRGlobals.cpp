@@ -1517,7 +1517,6 @@ extern "C" void InitOTR(int argc, char* argv[]) {
     ItemTableManager::Instance = new ItemTableManager();
     GameInteractor::Instance = new GameInteractor();
     SaveManager::Instance = new SaveManager();
-    OotmmSession_Init();
 
     std::shared_ptr<Ship::Config> conf = OTRGlobals::Instance->context->GetConfig();
     conf->RegisterVersionUpdater(std::make_shared<SOH::ConfigVersion1Updater>());
@@ -1527,6 +1526,7 @@ extern "C" void InitOTR(int argc, char* argv[]) {
     conf->RegisterVersionUpdater(std::make_shared<SOH::ConfigVersion5Updater>());
     conf->RegisterVersionUpdater(std::make_shared<SOH::ConfigVersion6Updater>());
     conf->RunVersionUpdates();
+    OotmmSession_Init();
 
     SohGui::SetupGuiElements();
     SohGui::SetupMenuElements();
