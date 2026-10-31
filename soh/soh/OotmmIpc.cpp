@@ -126,6 +126,10 @@ bool OotmmIpc_SendDeathLink() {
     return sSession.Send(nlohmann::json{ { "type", "deathLink" }, { "death", nlohmann::json::object() } }.dump());
 }
 
+bool OotmmIpc_SendEndgameReached(const char* boss) {
+    return sSession.Send(nlohmann::json{ { "type", "endgameReached" }, { "boss", boss } }.dump());
+}
+
 bool OotmmIpc_TakeRemotePresence(std::vector<Ship::OotmmPlayerPose>& poses,
                                  std::vector<Ship::OotmmPvpHit>& hits) {
     return sSession.TakeRemotePresence(poses, hits);

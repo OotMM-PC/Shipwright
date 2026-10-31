@@ -1037,6 +1037,10 @@ uint32_t WallmasterSource(int16_t sceneNum, int8_t room) {
 
 } // namespace
 
+bool OotmmSession_HasEntranceShuffle() {
+    return SeedHasEntranceShuffle();
+}
+
 bool OotmmSession_BeginCrossGameTransition(const Ship::OotmmEntranceMapping& mapping) {
     return OotmmSession_IsActive() && gPlayState != nullptr && BeginSavedCrossGameTransition(mapping);
 }

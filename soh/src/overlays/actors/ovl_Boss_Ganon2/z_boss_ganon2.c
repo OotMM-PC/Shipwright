@@ -8,6 +8,7 @@
 #include "objects/object_geff/object_geff.h"
 #include "soh/frame_interpolation.h"
 #include "soh/OTRGlobals.h"
+#include "soh/OotmmTriforce.h"
 #include "soh/ResourceManagerHelpers.h"
 #include "soh/Enhancements/game-interactor/GameInteractor_Hooks.h"
 
@@ -1848,6 +1849,9 @@ void func_8090120C(BossGanon2* this, PlayState* play) {
                 break;
             }
         case 20:
+            if (OotmmTriforce_OnGanonDefeated(play)) {
+                break;
+            }
             play->nextEntranceIndex = ENTR_CHAMBER_OF_THE_SAGES_0;
             gSaveContext.nextCutsceneIndex = 0xFFF2;
             play->transitionTrigger = TRANS_TRIGGER_START;

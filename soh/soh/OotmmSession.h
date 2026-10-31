@@ -37,4 +37,5 @@ bool OotmmSession_IsCrossGameTransitionPending();
 void OotmmSession_Init();
 const Ship::OotmmGameState& OotmmSession_GetState();
 std::string OotmmSession_GetSaveSubdirectory();
+bool OotmmSession_HasEntranceShuffle();
 #endif

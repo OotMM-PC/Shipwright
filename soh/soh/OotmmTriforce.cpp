@@ -21,6 +21,10 @@ extern PlayState* gPlayState;
 namespace {
 
 const std::string kWinKey = "@triforce_win";
+const std::string kGanonKey = "@endgame_ganon";
+constexpr const char* kGanonToken = "OOT_TRIFORCE_FULL";
+constexpr const char* kMajoraToken = "MM_MASK_MAJORA";
+constexpr uint16_t kEndgameResendFrames = 60;
 
 std::string Goal() {
     return OotmmSession_GetState().GetStringSetting("goal", "both");
@@ -49,6 +53,29 @@ int PieceCount() {
 }
 
 uint8_t sSafeFrames = 0;
+uint16_t sEndgameResendTimer = 0;
+
+bool GoalMet(bool ganon, bool majora) {
+    const std::string goal = Goal();
+    if ((goal == "ganon" || goal == "both") && !ganon) {
+        return false;
+    }
+    if ((goal == "majora" || goal == "both") && !majora) {
+        return false;
+    }
+    return true;
+}
+
+void ResendEndgame() {
+    if (OotmmItemApply_LedgerGet(kGanonKey) == 0 || OotmmIpc_GetInventory().Count(kGanonToken) > 0) {
+        sEndgameResendTimer = 0;
+        return;
+    }
+    if (sEndgameResendTimer == 0) {
+        OotmmIpc_SendEndgameReached("ganon");
+    }
+    sEndgameResendTimer = (sEndgameResendTimer + 1) % kEndgameResendFrames;
+}
 
 bool OnSafeFrame(PlayState* play) {
     if (play == nullptr || gSaveContext.gameMode != GAMEMODE_NORMAL || gSaveContext.minigameState == 1) {
@@ -128,7 +155,45 @@ extern "C" int OotmmTriforce_HasWon(void) {
     return OotmmTriforce_Active() && OotmmItemApply_LedgerGet(kWinKey) != 0;
 }
 
+extern "C" int OotmmTriforce_OnGanonDefeated(PlayState* play) {
+    if (!OotmmSession_IsActive()) {
+        return 0;
+    }
+    if (play->transitionTrigger != TRANS_TRIGGER_OFF || play->transitionMode != TRANS_MODE_OFF) {
+        return play->nextEntranceIndex != ENTR_CHAMBER_OF_THE_SAGES_0;
+    }
+    OotmmItemApply_LedgerSet(kGanonKey, 1);
+    OotmmIpc_SendEndgameReached("ganon");
+
+    const bool entranceShuffle = OotmmSession_HasEntranceShuffle();
+    const s32 linkAge = gSaveContext.linkAge;
+    const s32 cutsceneIndex = gSaveContext.cutsceneIndex;
+    const s32 entranceIndex = gSaveContext.entranceIndex;
+    const s16 savedSceneNum = gSaveContext.savedSceneNum;
+    gSaveContext.linkAge = LINK_AGE_ADULT;
+    gSaveContext.cutsceneIndex = 0;
+    gSaveContext.entranceIndex = entranceShuffle ? ENTR_GANONS_TOWER_0 : ENTR_CASTLE_GROUNDS_RAINBOW_BRIDGE_EXIT;
+    gSaveContext.savedSceneNum = entranceShuffle ? SCENE_GANONS_TOWER : SCENE_OUTSIDE_GANONS_CASTLE;
+    SaveManager::Instance->SaveFile(gSaveContext.fileNum);
+
+    if (GoalMet(true, OotmmIpc_GetInventory().Count(kMajoraToken) > 0)) {
+        gSaveContext.linkAge = linkAge;
+        gSaveContext.cutsceneIndex = cutsceneIndex;
+        gSaveContext.entranceIndex = entranceIndex;
+        gSaveContext.savedSceneNum = savedSceneNum;
+        return 0;
+    }
+    play->nextEntranceIndex = gSaveContext.entranceIndex;
+    play->transitionTrigger = TRANS_TRIGGER_START;
+    play->transitionType = TRANS_TYPE_FADE_WHITE;
+    play->linkAgeOnLoad = LINK_AGE_ADULT;
+    return 1;
+}
+
 extern "C" void OotmmTriforce_Update(void) {
+    if (OotmmSession_IsActive()) {
+        ResendEndgame();
+    }
     if (!OotmmTriforce_Active() || OotmmTriforce_HasWon()) {
         return;
     }
