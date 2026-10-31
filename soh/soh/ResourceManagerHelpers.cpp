@@ -1,5 +1,6 @@
 #include "ResourceManagerHelpers.h"
 #include "OTRGlobals.h"
+#include "OotmmSession.h"
 #include "variables.h"
 #include "z64.h"
 #include "cvar_prefixes.h"
@@ -87,6 +88,10 @@ u32 IsSceneMasterQuest(s16 sceneNum) {
 
     if (mqMode == WARP_MODE_OVERRIDE_VANILLA_AS_MQ) {
         return false;
+    }
+
+    if (OotmmSession_IsActive()) {
+        return OTRGlobals::Instance->HasMasterQuest() && OotmmSession_IsSceneMasterQuest(sceneNum);
     }
 
     if (OTRGlobals::Instance->HasMasterQuest()) {
