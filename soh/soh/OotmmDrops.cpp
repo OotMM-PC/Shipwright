@@ -20,6 +20,7 @@ extern PlayState* gPlayState;
 }
 
 extern "C" void OotmmDrops_DrawActor(Actor* actor, PlayState* play);
+extern "C" void func_8001E5C8(EnItem00* item, PlayState* play);
 
 namespace {
 
@@ -32,6 +33,7 @@ struct Drop {
     int CollectibleFlag;
     std::string DrawItemId;
     std::string DrawItemName;
+    bool Collected = false;
 };
 
 void PickDisguise(std::string& drawItemId, std::string& drawItemName) {
@@ -63,6 +65,24 @@ void Present(const Drop& drop) {
     }
     const bool collected = OotmmCheckLedger_Contains(drop.CheckId) || OotmmIpc_IsCheckCompleted(drop.CheckId);
     OotmmDrops_Report(drop.CheckId, drop.ItemId, !collected);
+}
+
+bool FloatAboveHead(EnItem00* item, Drop& drop) {
+    if (!Ship::OotmmItemCatalog::IsFast(drop.ItemId)) {
+        return false;
+    }
+    drop.Collected = true;
+    drop.DrawItemId = drop.ItemId;
+    drop.DrawItemName = drop.ItemName;
+    item->unk_15A = 15;
+    item->unk_154 = 35;
+    item->getItemId = GI_NONE;
+    item->actor.shape.rot.z = 0;
+    item->actor.speedXZ = 0.0f;
+    item->actor.velocity.y = 0.0f;
+    item->actor.gravity = 0.0f;
+    item->actionFunc = func_8001E5C8;
+    return true;
 }
 
 void Track(EnItem00* item, Drop drop) {
@@ -163,9 +183,11 @@ void OotmmDrops_Init() {
                 Flags_SetCollectible(gPlayState, it->second.CollectibleFlag);
             }
             Present(it->second);
-            Actor_Kill(&item->actor);
-            sDrops.erase(it);
             *should = false;
+            if (!FloatAboveHead(item, it->second)) {
+                Actor_Kill(&item->actor);
+                sDrops.erase(it);
+            }
         }
     });
 
@@ -178,7 +200,9 @@ void OotmmDrops_Init() {
              actor = actor->next) {
             const auto it = sDrops.find(actor);
             if (it != sDrops.end()) {
-                reinterpret_cast<EnItem00*>(actor)->unk_15A = kDespawnRefresh;
+                if (!it->second.Collected) {
+                    reinterpret_cast<EnItem00*>(actor)->unk_15A = kDespawnRefresh;
+                }
                 alive.emplace(actor, std::move(it->second));
             }
         }
