@@ -485,7 +485,19 @@ int DamageMultiplier(const std::string& value) {
     return value == "ohko" ? 8 : 0;
 }
 
+void DefaultCVar(const char* name, int32_t value) {
+    if (CVarGet(name) == nullptr) {
+        CVarSetInteger(name, value);
+    }
+}
+
 void ApplyEnhancements() {
+    DefaultCVar(CVAR_ENHANCEMENT("SkipText"), 1);
+    DefaultCVar(CVAR_ENHANCEMENT("TextSpeed"), 5);
+    DefaultCVar(CVAR_ENHANCEMENT("SlowTextSpeed"), 5);
+    DefaultCVar(CVAR_ENHANCEMENT("BowReticle"), 1);
+    DefaultCVar(CVAR_ENHANCEMENT("HookshotableReticle"), 1);
+    DefaultCVar(CVAR_ENHANCEMENT("AssignableTunicsAndBoots"), 1);
     CVarSetInteger(CVAR_ENHANCEMENT("DisableCritWiggle"),
                    sGameState.GetBoolSetting("critWiggleDisable", true) ? 1 : 0);
     CVarSetInteger(CVAR_ENHANCEMENT("TimeSavers.SkipCutscene.Intro"), 1);
