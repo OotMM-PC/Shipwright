@@ -5,7 +5,12 @@
 #include "Enhancements/game-interactor/GameInteractor_Hooks.h"
 #include "OotmmItemModels.h"
 #include "OotmmIpc.h"
+#include "OotmmSession.h"
+#include "OotmmSongs.h"
+#include "Enhancements/audio/AudioCollection.h"
+#include <libultraship/bridge/OotmmItemFanfare.h>
 #include "OTRGlobals.h"
+#include "ResourceManagerHelpers.h"
 
 #include <spdlog/spdlog.h>
 
@@ -150,15 +155,124 @@ void PumpPresentation() {
     }
 
     sQueue.pop_front();
-    Audio_PlaySoundGeneral(NA_SE_SY_GET_ITEM, &gSfxDefaultPos, 4, &gSfxDefaultFreqAndVolScale,
-                           &gSfxDefaultFreqAndVolScale, &gSfxDefaultReverb);
+    OotmmItemPresentation_PlayFanfare(1);
     Message_StartTextbox(gPlayState, kPresentationTextId, nullptr);
     if (!sCurrent->CheckKey.empty()) {
         sDeliveredCheck = std::make_pair(sCurrent->CheckKey, gPlayState->gameplayFrames);
     }
 }
 
+void PlaySfx(uint16_t sfx) {
+    Audio_PlaySoundGeneral(sfx, &gSfxDefaultPos, 4, &gSfxDefaultFreqAndVolScale, &gSfxDefaultFreqAndVolScale,
+                           &gSfxDefaultReverb);
+}
+
+int32_t SongFanfare(int32_t song) {
+    const int32_t seq = OotmmSongs_FanfareSeqId(song);
+    return seq > 0 ? seq : NA_BGM_ITEM_GET | 0x900;
+}
+
+int32_t ForeignFanfare(const char* name, const char* fontPath) {
+    const int32_t seq = AudioCollection::Instance->GetSequenceNumByName(name);
+    SoundFont* font = ResourceMgr_LoadAudioSoundFontByName(fontPath);
+    SequenceData* data = ResourceMgr_LoadSeqPtrByName((std::string("custom/music/") + name + "_fanfare").c_str());
+    if (seq <= 0 || font == nullptr || data == nullptr) {
+        return NA_BGM_ITEM_GET | 0x900;
+    }
+    data->fonts[0] = static_cast<uint8_t>(font->fntIndex);
+    data->numFonts = 1;
+    return seq;
+}
+
+int32_t FanfareSeq(Ship::OotmmFanfare fanfare) {
+    using F = Ship::OotmmFanfare;
+    switch (fanfare) {
+        case F::HeartContainer:
+            return NA_BGM_HEART_GET | 0x900;
+        case F::HeartPiece:
+            return NA_BGM_SMALL_ITEM_GET;
+        case F::Song:
+            return NA_BGM_OCA_FAIRY_GET;
+        case F::SongTime:
+            return NA_BGM_OCA_TIME;
+        case F::SongEpona:
+            return NA_BGM_OCA_EPONA;
+        case F::SongSun:
+            return NA_BGM_OCA_SUNS;
+        case F::SongStorms:
+            return NA_BGM_OCA_STORM;
+        case F::Medallion:
+            return NA_BGM_MEDALLION_GET;
+        case F::Stone:
+            return NA_BGM_SPIRITUAL_STONE;
+        case F::SongZelda:
+            return NA_BGM_OCA_ZELDA;
+        case F::SongSaria:
+            return NA_BGM_OCA_SARIA;
+        case F::SongLight:
+            return NA_BGM_OCA_LIGHT;
+        case F::SongForest:
+            return NA_BGM_OCA_MINUET;
+        case F::SongFire:
+            return NA_BGM_OCA_BOLERO;
+        case F::SongWater:
+            return NA_BGM_OCA_SERENADE;
+        case F::SongShadow:
+            return NA_BGM_OCA_NOCTURNE;
+        case F::SongSpirit:
+            return NA_BGM_OCA_REQUIEM;
+        case F::SongSoaring:
+            return SongFanfare(OOTMM_SONG_SOARING);
+        case F::SongHealing:
+            return SongFanfare(OOTMM_SONG_HEALING);
+        case F::SongAwakening:
+            return SongFanfare(OOTMM_SONG_AWAKENING);
+        case F::SongGoronHalf:
+            return SongFanfare(OOTMM_SONG_GORON_HALF);
+        case F::SongGoron:
+            return SongFanfare(OOTMM_SONG_GORON);
+        case F::SongZora:
+            return SongFanfare(OOTMM_SONG_ZORA);
+        case F::SongEmptiness:
+            return SongFanfare(OOTMM_SONG_ELEGY);
+        case F::SongOrder:
+            return SongFanfare(OOTMM_SONG_ORDER);
+        case F::Mask:
+            return ForeignFanfare("GetMask", "custom/fonts/MmGetMask");
+        default:
+            return NA_BGM_ITEM_GET | 0x900;
+    }
+}
+
 } // namespace
+
+extern "C" int OotmmItemPresentation_PlayFanfare(int isShort) {
+    if (!sCurrent.has_value()) {
+        return 0;
+    }
+    const auto& inventory = OotmmIpc_GetInventory();
+    const auto fanfare = Ship::OotmmItemFanfare_Resolve(
+        sCurrent->ItemId, isShort != 0,
+        [&inventory](std::string_view id) { return inventory.Count(std::string(id)); },
+        static_cast<uint32_t>(OotmmSession_GetState().GetIntSetting("strayFairyRewardCount", 15)));
+    switch (fanfare) {
+        case Ship::OotmmFanfare::None:
+            break;
+        case Ship::OotmmFanfare::SfxRupee:
+            PlaySfx(NA_SE_SY_GET_RUPY);
+            break;
+        case Ship::OotmmFanfare::SfxMinor:
+            PlaySfx(NA_SE_SY_GET_ITEM);
+            break;
+        case Ship::OotmmFanfare::SfxMinorQuick:
+            PlaySfx(NA_SE_SY_GET_BOXITEM);
+            break;
+        default:
+            Audio_PlayFanfare(static_cast<u16>(FanfareSeq(fanfare)));
+            break;
+    }
+    return 1;
+}
 
 void OotmmItemPresentation_Init() {
     GameInteractor::Instance->RegisterGameHook<GameInteractor::OnOpenText>(OpenPresentationText);

@@ -19,6 +19,7 @@ extern "C" {
 #endif
 
 int OotmmItemPresentation_IsPending(void);
+int OotmmItemPresentation_PlayFanfare(int isShort);
 
 #ifdef __cplusplus
 }

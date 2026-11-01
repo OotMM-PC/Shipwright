@@ -40,6 +40,7 @@
 #include "soh/OTRGlobals.h"
 #include "soh/OotmmSession.h"
 #include "soh/OotmmNpcChecks.h"
+#include "soh/OotmmItemPresentation.h"
 #include "soh/ResourceManagerHelpers.h"
 
 #include <string.h>
@@ -14218,7 +14219,9 @@ s32 func_8084DFF4(PlayState* play, Player* this) {
         }
 
         // Use this if we do have a getItemEntry
-        if (giEntry.modIndex == MOD_NONE) {
+        if (giEntry.getItemFrom == ITEM_FROM_OOTMM_PRESENTATION) {
+            OotmmItemPresentation_PlayFanfare(0);
+        } else if (giEntry.modIndex == MOD_NONE) {
             if (((giEntry.itemId >= ITEM_RUPEE_GREEN) && (giEntry.itemId <= ITEM_RUPEE_RED)) ||
                 ((giEntry.itemId >= ITEM_RUPEE_PURPLE) && (giEntry.itemId <= ITEM_RUPEE_GOLD)) ||
                 (giEntry.itemId == ITEM_HEART)) {
