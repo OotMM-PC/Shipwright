@@ -275,6 +275,21 @@ std::optional<uint16_t> ResolveOotEntrance(uint32_t entrance) {
     return entrance < ENTR_MAX ? std::optional<uint16_t>(static_cast<uint16_t>(entrance)) : std::nullopt;
 }
 
+uint32_t OverrideSource(uint32_t entrance) {
+    switch (entrance) {
+        case ENTR_ZORAS_RIVER_3:
+            return ENTR_ZORAS_RIVER_WEST_EXIT;
+        case ENTR_HYRULE_FIELD_14:
+            return ENTR_HYRULE_FIELD_RIVER_EXIT;
+        case ENTR_CASTLE_GROUNDS_GREAT_FAIRY_EXIT:
+            return gPlayState->sceneNum == SCENE_GREAT_FAIRYS_FOUNTAIN_MAGIC ? 0x0F00 : entrance;
+        case ENTR_LOST_WOODS_SOUTH_EXIT:
+            return gPlayState->sceneNum == SCENE_LOST_WOODS ? 0x0F01 : entrance;
+        default:
+            return entrance;
+    }
+}
+
 uint32_t CurrentGrottoExitSource() {
     if (sGrottoExitSource != 0) {
         return sGrottoExitSource;
@@ -862,7 +877,8 @@ void UpdateEntranceTransition() {
         return;
     }
     if (!sPendingExtendedSource.has_value() && nextEntrance < ENTR_MAX &&
-        gEntranceTable[nextEntrance].scene == gPlayState->sceneNum) {
+        gEntranceTable[nextEntrance].scene == gPlayState->sceneNum &&
+        !(playerExit && sGameState.FindEntrance(Ship::OotmmGame::Oot, OverrideSource(nextEntrance)) != nullptr)) {
         sLastResolvedEntrance = nextEntrance;
         sGrottoReturnEntrance = 0;
         return;
@@ -875,9 +891,7 @@ void UpdateEntranceTransition() {
         const uint32_t grottoEntry =
             TranslateGrottoEntry(static_cast<uint16_t>(nextEntrance), gPlayState->sceneNum,
                                  gSaveContext.respawn[RESPAWN_MODE_RETURN].data);
-        if (grottoEntry != 0) {
-            source = grottoEntry;
-        }
+        source = grottoEntry != 0 ? grottoEntry : OverrideSource(nextEntrance);
     }
     const auto* mapping = sGameState.FindEntrance(Ship::OotmmGame::Oot, source);
     if (mapping == nullptr || !mapping->ToNativeId.has_value()) {
