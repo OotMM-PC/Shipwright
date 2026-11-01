@@ -45,6 +45,9 @@ void OotmmIpc_Pump() {
         gOotmmShowNames = sSettings.ShowNames ? 1 : 0;
         sSession.AcknowledgeSettings(sSettings.Revision);
     }
+    if (sSettings.ZTargetHold >= 0 && gSaveContext.zTargetSetting != sSettings.ZTargetHold) {
+        gSaveContext.zTargetSetting = static_cast<u8>(sSettings.ZTargetHold);
+    }
     std::string response;
     while (sSession.TryReceive(response)) {
         auto parsed = nlohmann::json::parse(response, nullptr, false);
