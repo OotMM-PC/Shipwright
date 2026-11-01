@@ -11,6 +11,7 @@
 #include "soh/ResourceManagerHelpers.h"
 #include "soh/Enhancements/game-interactor/GameInteractor_Hooks.h"
 #include "soh/OotmmNpcChecks.h"
+#include "soh/OotmmItemApply.h"
 
 #define FLAGS (ACTOR_FLAG_ATTENTION_ENABLED | ACTOR_FLAG_FRIENDLY)
 
@@ -337,6 +338,7 @@ void EnTa_IdleAsleepInCastle(EnTa* this, PlayState* play) {
 
         switch (exchangeItemId) {
             case EXCH_ITEM_CHICKEN:
+                OotmmItemApply_ConsumeTradeItem(SLOT_TRADE_CHILD, ITEM_CHICKEN);
                 player->actor.textId = 0x702B;
                 EnTa_SetupAction(this, func_80B14570, EnTa_AnimRepeatCurrent);
                 this->unk_2CC = 40;

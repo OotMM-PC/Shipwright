@@ -31,6 +31,8 @@ int32_t OotmmItemApply_OwnedTradeItems(uint8_t slot, uint8_t* outItems, int32_t 
 /// Keeps the native slot occupant, the ownership ledger and launcher debug grants consistent.
 void OotmmItemApply_SetTradeItemOwned(uint8_t slot, uint8_t item, int32_t owned);
 
+void OotmmItemApply_ConsumeTradeItem(uint8_t slot, uint8_t item);
+
 #ifdef __cplusplus
 }
 

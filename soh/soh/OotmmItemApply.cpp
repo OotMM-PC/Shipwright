@@ -497,14 +497,25 @@ bool IsGrantedTradeItem(const std::string& itemId, uint32_t count, uint8_t item)
     return false;
 }
 
+std::string SpentTradeKey(uint8_t item) {
+    return "OOT_TRADE_SPENT:" + std::to_string(item);
+}
+
+uint32_t GrantedTradeCount(uint8_t item) {
+    uint32_t total = 0;
+    for (const auto& [itemId, count] : OotmmIpc_GetInventory().GetValues()) {
+        if (IsGrantedTradeItem(itemId, count, item)) {
+            total += count;
+        }
+    }
+    return total;
+}
+
 std::vector<uint8_t> GrantedTradeItems(const std::vector<uint8_t>& candidates) {
     std::vector<uint8_t> granted;
-    for (const auto& [itemId, count] : OotmmIpc_GetInventory().GetValues()) {
-        for (const uint8_t item : candidates) {
-            if (IsGrantedTradeItem(itemId, count, item)) {
-                granted.push_back(item);
-                break;
-            }
+    for (const uint8_t item : candidates) {
+        if (GrantedTradeCount(item) > sLedger.Applied(SpentTradeKey(item))) {
+            granted.push_back(item);
         }
     }
     return granted;
@@ -1267,6 +1278,39 @@ extern "C" void OotmmItemApply_SetTradeItemOwned(uint8_t slot, uint8_t item, int
     if (gSaveContext.inventory.items[slot] == item) {
         gSaveContext.inventory.items[slot] = ITEM_NONE;
         // The debug-clear is asynchronous, so the removed item may still look granted.
+        for (const uint8_t replacement : OwnedTradeItems(slot)) {
+            if (replacement != item) {
+                gSaveContext.inventory.items[slot] = replacement;
+                break;
+            }
+        }
+    }
+}
+
+extern "C" void OotmmItemApply_ConsumeTradeItem(uint8_t slot, uint8_t item) {
+    if (!OotmmSession_IsActive()) {
+        return;
+    }
+    const std::vector<uint8_t>* candidates = TradeItemsForSlot(slot);
+    if (candidates == nullptr ||
+        std::find(candidates->begin(), candidates->end(), item) == candidates->end()) {
+        return;
+    }
+    EnsureLedger();
+    sLedger.Erase(NativeTradeKey(item));
+    if (const uint32_t granted = GrantedTradeCount(item); granted > 0) {
+        sLedger.SetApplied(SpentTradeKey(item), granted);
+    }
+    sLedger.Save(LedgerPath());
+
+    for (size_t button = 1; button < ARRAY_COUNT(gSaveContext.equips.buttonItems); button++) {
+        if (gSaveContext.equips.buttonItems[button] == item) {
+            gSaveContext.equips.buttonItems[button] = ITEM_NONE;
+            gSaveContext.equips.cButtonSlots[button - 1] = SLOT_NONE;
+        }
+    }
+    if (gSaveContext.inventory.items[slot] == item) {
+        gSaveContext.inventory.items[slot] = ITEM_NONE;
         for (const uint8_t replacement : OwnedTradeItems(slot)) {
             if (replacement != item) {
                 gSaveContext.inventory.items[slot] = replacement;

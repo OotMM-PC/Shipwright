@@ -534,11 +534,17 @@ extern "C" void OotmmNpcChecks_HatchEgg(PlayState* play, int adult) {
     if (play == nullptr || INV_CONTENT(slotItem) != egg) {
         return;
     }
-    if (Collect(adult ? "OOT_POCKET_EGG" : "OOT_WEIRD_EGG")) {
-        OotmmItemApply_SetTradeItemOwned(adult ? SLOT_TRADE_ADULT : SLOT_TRADE_CHILD, egg, 0);
-    } else {
-        Inventory_ReplaceItem(play, egg, adult ? ITEM_POCKET_CUCCO : ITEM_CHICKEN);
+    const uint8_t slot = adult ? SLOT_TRADE_ADULT : SLOT_TRADE_CHILD;
+    if (!Collect(adult ? "OOT_POCKET_EGG" : "OOT_WEIRD_EGG")) {
+        const uint8_t hatched = adult ? ITEM_POCKET_CUCCO : ITEM_CHICKEN;
+        Inventory_ReplaceItem(play, egg, hatched);
+        OotmmItemApply_SetTradeItemOwned(slot, hatched, 1);
     }
+    OotmmItemApply_ConsumeTradeItem(slot, egg);
+}
+
+static void ConsumeAdultTrade(uint8_t item) {
+    OotmmItemApply_ConsumeTradeItem(SLOT_TRADE_ADULT, item);
 }
 
 void OotmmNpcChecks_Init(void) {
@@ -617,32 +623,38 @@ void OotmmNpcChecks_Init(void) {
         }
     });
     REGISTER_VB_SHOULD(VB_TRADE_POCKET_CUCCO, {
+        ConsumeAdultTrade(ITEM_POCKET_CUCCO);
         if (Collect("OOT_TRADE_COJIRO")) {
             *should = false;
         }
     });
 
     REGISTER_VB_SHOULD(VB_TRADE_COJIRO, {
+        ConsumeAdultTrade(ITEM_COJIRO);
         if (Collect("OOT_TRADE_ODD_MUSHROOM")) {
             *should = false;
         }
     });
     REGISTER_VB_SHOULD(VB_TRADE_ODD_MUSHROOM, {
+        ConsumeAdultTrade(ITEM_ODD_MUSHROOM);
         if (Collect("OOT_TRADE_ODD_POTION")) {
             *should = false;
         }
     });
     REGISTER_VB_SHOULD(VB_TRADE_ODD_POTION, {
+        ConsumeAdultTrade(ITEM_ODD_POTION);
         if (Collect("OOT_TRADE_POACHER_SAW")) {
             *should = false;
         }
     });
     REGISTER_VB_SHOULD(VB_TRADE_SAW, {
+        ConsumeAdultTrade(ITEM_SAW);
         if (Collect("OOT_TRADE_BROKEN_GORON_SWORD")) {
             *should = false;
         }
     });
     REGISTER_VB_SHOULD(VB_TRADE_FROG, {
+        ConsumeAdultTrade(ITEM_FROG);
         if (Collect("OOT_TRADE_EYE_DROPS")) {
             *should = false;
         }
@@ -655,6 +667,9 @@ void OotmmNpcChecks_Init(void) {
 
     REGISTER_VB_SHOULD(VB_ADULT_KING_ZORA_ITEM_GIVE, {
         EnKz* kz = va_arg(args, EnKz*);
+        if (kz != nullptr && kz->isTrading) {
+            ConsumeAdultTrade(ITEM_PRESCRIPTION);
+        }
         if (kz != nullptr &&
             Collect(kz->isTrading ? "OOT_TRADE_EYEBALL_FROG" : "OOT_ZORA_KING_TUNIC")) {
             *should = false;
@@ -662,6 +677,11 @@ void OotmmNpcChecks_Init(void) {
     });
     REGISTER_VB_SHOULD(VB_GIVE_ITEM_FROM_GORON, {
         EnGo2* goron = va_arg(args, EnGo2*);
+        if (goron != nullptr && goron->getItemId == GI_PRESCRIPTION) {
+            ConsumeAdultTrade(ITEM_SWORD_BROKEN);
+        } else if (goron != nullptr && goron->getItemId == GI_CLAIM_CHECK) {
+            ConsumeAdultTrade(ITEM_EYEDROPS);
+        }
         if (goron != nullptr && Collect(GoronSite(goron->getItemId))) {
             *should = false;
         }
