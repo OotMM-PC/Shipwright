@@ -844,6 +844,19 @@ extern "C" void* OotmmXflags_CsmcDL(Actor* actor, const char* family, void* vani
     return dl != nullptr ? dl : vanilla;
 }
 
+extern "C" int OotmmXflags_TreeColor(Actor* actor, unsigned char* rgb) {
+    const auto xf = Resolve(actor);
+    if (!xf.has_value() || Excluded(actor) || Lookup(*xf) == nullptr) {
+        return 0;
+    }
+    const auto* pending = Pending(xf);
+    const uint32_t color = OotmmCsmc_TreeColor(pending);
+    rgb[0] = (color >> 16) & 0xFF;
+    rgb[1] = (color >> 8) & 0xFF;
+    rgb[2] = color & 0xFF;
+    return pending != nullptr ? 2 : 1;
+}
+
 extern "C" int OotmmXflags_IsShuffled(Actor* actor) {
     return Shuffled(actor) != nullptr;
 }

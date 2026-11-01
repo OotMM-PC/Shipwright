@@ -176,6 +176,32 @@ void* OotmmCsmc_ContainerDL(const Ship::OotmmPlacement& placement, const char* f
     return category != nullptr ? LoadCsmcDL(family, category) : nullptr;
 }
 
+uint32_t OotmmCsmc_TreeColor(const Ship::OotmmPlacement* placement) {
+    if (placement == nullptr) {
+        return 0x32AA46;
+    }
+    switch (Revealing() ? RevealedClass(*placement) : Ship::OotmmCsmcClass::Major) {
+        case Ship::OotmmCsmcClass::BossKey:
+            return 0x0000FF;
+        case Ship::OotmmCsmcClass::Major:
+            return 0xFFFF00;
+        case Ship::OotmmCsmcClass::Key:
+            return 0x444444;
+        case Ship::OotmmCsmcClass::Spider:
+            return 0xFFFFFF;
+        case Ship::OotmmCsmcClass::Fairy:
+            return 0xFF7AFB;
+        case Ship::OotmmCsmcClass::Heart:
+            return 0xFF0000;
+        case Ship::OotmmCsmcClass::Soul:
+            return 0x340B9C;
+        case Ship::OotmmCsmcClass::MapCompass:
+            return 0xC75000;
+        default:
+            return 0x32AA46;
+    }
+}
+
 void* OotmmCsmc_SkulltulaDL(const Ship::OotmmPlacement* placement, const char* part) {
     if (placement == nullptr || !Revealing() || !OotmmSession_GetState().GetBoolSetting("csmcSkulltula", false)) {
         return nullptr;

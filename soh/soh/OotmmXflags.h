@@ -20,6 +20,7 @@ void OotmmXflags_ClearSpawn(void);
 void OotmmXflags_ClaimSpawn(struct Actor* actor);
 int OotmmXflags_PrepareFairy(struct Actor* butterfly);
 void* OotmmXflags_CsmcDL(struct Actor* actor, const char* family, void* vanilla);
+int OotmmXflags_TreeColor(struct Actor* actor, unsigned char* rgb);
 
 #ifdef __cplusplus
 }

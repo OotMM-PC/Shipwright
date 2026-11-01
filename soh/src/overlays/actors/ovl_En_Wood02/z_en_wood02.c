@@ -462,6 +462,19 @@ void EnWood02_Draw(Actor* thisx, PlayState* play) {
         red = green = blue = 255;
     }
 
+    s32 drawType = this->drawType & 0xF;
+    u8 csmcColor[3];
+    s32 csmc = 0;
+    if (type < WOOD_LEAF_GREEN) {
+        csmc = OotmmXflags_TreeColor(thisx, csmcColor);
+    }
+    if (csmc) {
+        red = csmcColor[0];
+        green = csmcColor[1];
+        blue = csmcColor[2];
+        drawType = type <= WOOD_TREE_KAKARIKO_ADULT ? WOOD_DRAW_TREE_OVAL : WOOD_DRAW_BUSH_GREEN;
+    }
+
     Gfx_SetupDL_25Xlu(gfxCtx);
     if (GameInteractor_Should(VB_TREE_SETUP_DRAW,
                               (this->actor.params == WOOD_LEAF_GREEN) || (this->actor.params == WOOD_LEAF_YELLOW),
@@ -469,15 +482,17 @@ void EnWood02_Draw(Actor* thisx, PlayState* play) {
         Gfx_SetupDL_25Opa(gfxCtx);
         gDPSetPrimColor(POLY_OPA_DISP++, 0, 0, red, green, blue, 127);
         Gfx_DrawDListOpa(play, object_wood02_DL_000700);
-    } else if (GameInteractor_Should(VB_TREE_SETUP_DRAW, D_80B3BF70[this->drawType & 0xF] != NULL, this)) {
-        Gfx_DrawDListOpa(play, D_80B3BF54[this->drawType & 0xF]);
+    } else if (GameInteractor_Should(VB_TREE_SETUP_DRAW, D_80B3BF70[drawType] != NULL, this)) {
+        Gfx_DrawDListOpa(play, D_80B3BF54[drawType]);
         gDPSetEnvColor(POLY_XLU_DISP++, red, green, blue, 0);
         gSPMatrix(POLY_XLU_DISP++, MATRIX_NEWMTX(gfxCtx), G_MTX_NOPUSH | G_MTX_LOAD | G_MTX_MODELVIEW);
-        gSPDisplayList(POLY_XLU_DISP++, D_80B3BF70[this->drawType & 0xF]);
+        gSPDisplayList(POLY_XLU_DISP++, D_80B3BF70[drawType]);
     } else {
         Gfx_SetupDL_25Xlu(gfxCtx);
         gSPMatrix(POLY_XLU_DISP++, MATRIX_NEWMTX(gfxCtx), G_MTX_NOPUSH | G_MTX_LOAD | G_MTX_MODELVIEW);
-        gSPDisplayList(POLY_XLU_DISP++, D_80B3BF54[this->drawType & 0xF]);
+        gSPDisplayList(POLY_XLU_DISP++, csmc == 2 && drawType == WOOD_DRAW_BUSH_GREEN
+                                            ? (Gfx*)OotmmXflags_CsmcDL(thisx, "Wood02Bush", D_80B3BF54[drawType])
+                                            : D_80B3BF54[drawType]);
     }
 
     CLOSE_DISPS(gfxCtx);
