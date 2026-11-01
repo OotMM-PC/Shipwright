@@ -898,6 +898,11 @@ void UpdateEntranceTransition() {
         return;
     }
     if (!mapping->IsCrossGame()) {
+        const bool grottoExitTarget = *mapping->ToNativeId >= kOotGrottoExitBase &&
+                                      *mapping->ToNativeId < kOotGrottoExitBase + kOotGrottoCount;
+        if (!grottoExitTarget && gSaveContext.respawnFlag == kRespawnGrottoPopOut) {
+            gSaveContext.respawnFlag = 0;
+        }
         if (const auto target = ResolveOotEntrance(*mapping->ToNativeId); target.has_value()) {
             gPlayState->nextEntranceIndex = static_cast<int16_t>(*target);
             sLastResolvedEntrance = *target;
