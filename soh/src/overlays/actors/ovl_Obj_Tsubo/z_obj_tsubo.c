@@ -6,6 +6,7 @@
 
 #include "z_obj_tsubo.h"
 #include "soh/OotmmXflags.h"
+#include "soh/OotmmSession.h"
 #include "overlays/effects/ovl_Effect_Ss_Kakera/z_eff_ss_kakera.h"
 #include "objects/gameplay_dangeon_keep/gameplay_dangeon_keep.h"
 #include "objects/object_tsubo/object_tsubo.h"
@@ -241,6 +242,17 @@ void ObjTsubo_SetupIdle(ObjTsubo* this) {
     this->actionFunc = ObjTsubo_Idle;
 }
 
+void Player_Action_Roll(Player* this, PlayState* play);
+
+s32 ObjTsubo_RolledInto(ObjTsubo* this, PlayState* play) {
+    Player* player = GET_PLAYER(play);
+
+    return OotmmSession_IsActive() && (player->actionFunc == Player_Action_Roll) &&
+           (player->skelAnime.curFrame >= 8.0f) && (player->skelAnime.curFrame < 18.0f) &&
+           (this->actor.xzDistToPlayer < this->collider.dim.radius + 12.0f + player->linearVelocity) &&
+           (fabsf(this->actor.yDistToPlayer) < this->collider.dim.height);
+}
+
 void ObjTsubo_Idle(ObjTsubo* this, PlayState* play) {
     s32 pad;
     s16 temp_v0;
@@ -253,8 +265,9 @@ void ObjTsubo_Idle(ObjTsubo* this, PlayState* play) {
         SoundSource_PlaySfxAtFixedWorldPos(play, &this->actor.world.pos, 20, NA_SE_EV_POT_BROKEN);
         ObjTsubo_SpawnCollectible(this, play);
         Actor_Kill(&this->actor);
-    } else if ((this->collider.base.acFlags & AC_HIT) &&
-               (this->collider.info.acHitInfo->toucher.dmgFlags & 0x4FC1FFFC)) {
+    } else if (((this->collider.base.acFlags & AC_HIT) &&
+                (this->collider.info.acHitInfo->toucher.dmgFlags & 0x4FC1FFFC)) ||
+               ObjTsubo_RolledInto(this, play)) {
         ObjTsubo_AirBreak(this, play);
         ObjTsubo_SpawnCollectible(this, play);
         SoundSource_PlaySfxAtFixedWorldPos(play, &this->actor.world.pos, 20, NA_SE_EV_POT_BROKEN);
