@@ -1,5 +1,6 @@
 #include "OotmmSession.h"
 #include "OotmmDeathLink.h"
+#include "OotmmDungeonRespawn.h"
 #include "OotmmCheckLedger.h"
 #include "OotmmFaroresWind.h"
 #include "OotmmChecks.h"
@@ -676,11 +677,20 @@ void ApplyBootEntrance() {
     sLoadSpawnHandoffReady = false;
     sGrottoExitSource = 0;
     gSaveContext.respawnFlag = 0;
+    if (*boot.BootEntrance == OOTMM_ENTR_DUNGEON_RESPAWN) {
+        gSaveContext.cutsceneIndex = 0;
+        if (!OotmmDungeonRespawn_ApplyArrival()) {
+            SPDLOG_ERROR("[OoTMM] Dungeon entrance arrival without an OoT dungeon entrance");
+        }
+        sBootRespawnPending = gSaveContext.respawnFlag != 0;
+        return;
+    }
     if (*boot.BootEntrance == OOTMM_ENTR_FW_CROSS) {
         gSaveContext.cutsceneIndex = 0;
         if (!OotmmFaroresWind_ApplyArrival()) {
             SPDLOG_ERROR("[OoTMM] Farore's Wind arrival without an OoT warp point");
         }
+        OotmmDungeonRespawn_RestoreForFaroresWind();
         sBootRespawnPending = gSaveContext.respawnFlag != 0;
         return;
     }
@@ -1083,6 +1093,7 @@ bool OotmmSession_IsCrossGameTransitionPending() {
 void OotmmSession_Init() {
     if (sGameState.LoadFromEnvironment()) {
         ApplyEnhancements();
+        OotmmDungeonRespawn_Init();
         OotmmItemPresentation_Init();
         OotmmCheckLedger_Init();
         OotmmChecks_Init();
@@ -1267,6 +1278,7 @@ extern "C" int32_t OotmmSession_WallmasterTakePlayer(PlayState* play, Actor* wal
     if (source == 0 || sGameState.FindEntrance(Ship::OotmmGame::Oot, source) == nullptr) {
         return 0;
     }
+    OotmmDungeonRespawn_Clear();
     sPendingExtendedSource = source;
     sLastResolvedEntrance.reset();
     play->nextEntranceIndex = gSaveContext.entranceIndex;

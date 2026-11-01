@@ -28,6 +28,7 @@
 #include "soh/OotmmBottles.h"
 #include "soh/OotmmCustomItemsPlayer.h"
 #include "soh/OotmmFaroresWind.h"
+#include "soh/OotmmDungeonRespawn.h"
 #include "soh/OotmmSongs.h"
 #include "soh/OotmmSongsPlayer.h"
 #include "soh/OotmmSpinUpgrade.h"
@@ -15382,6 +15383,7 @@ void Player_Action_8085063C(Player* this, PlayState* play) {
         s32 respawnData = gSaveContext.respawn[RESPAWN_MODE_TOP].data;
 
         if (play->msgCtx.choiceIndex == 0) { // Returns to FW
+            OotmmDungeonRespawn_RestoreForFaroresWind();
             if (OotmmFaroresWind_BeginCrossWarp()) {
                 return;
             }
@@ -15501,6 +15503,7 @@ void Player_Action_808507F4(Player* this, PlayState* play) {
             if (this->av2.actionVar2 == 0) {
                 gSaveContext.respawn[RESPAWN_MODE_TOP].data = 1;
                 Play_SetupRespawnPoint(play, RESPAWN_MODE_TOP, 0x6FF);
+                OotmmDungeonRespawn_SaveForFaroresWind();
                 gSaveContext.fw.set = 1;
                 gSaveContext.fw.pos.x = gSaveContext.respawn[RESPAWN_MODE_DOWN].pos.x;
                 gSaveContext.fw.pos.y = gSaveContext.respawn[RESPAWN_MODE_DOWN].pos.y;
