@@ -801,6 +801,11 @@ void func_80082850(PlayState* play, s16 maxAlpha) {
     }
 }
 
+static s32 Interface_IsTradeOrCustomMask(u8 item) {
+    return ((item >= ITEM_WEIRD_EGG) && (item <= ITEM_CLAIM_CHECK)) || (item == ITEM_OOTMM_MASK_BLAST) ||
+           (item == ITEM_OOTMM_MASK_STONE) || (item == ITEM_OOTMM_MASK_KAMARO);
+}
+
 void func_80083108(PlayState* play) {
     MessageContext* msgCtx = &play->msgCtx;
     Player* player = GET_PLAYER(play);
@@ -1128,8 +1133,7 @@ void func_80083108(PlayState* play) {
                             (gSaveContext.equips.buttonItems[i] >= ITEM_MASK_KEATON) &&
                             (gSaveContext.equips.buttonItems[i] <= ITEM_MASK_TRUTH)) {
                             gSaveContext.buttonStatus[BUTTON_STATUS_INDEX(i)] = BTN_ENABLED;
-                        } else if ((gSaveContext.equips.buttonItems[i] >= ITEM_WEIRD_EGG) &&
-                                   (gSaveContext.equips.buttonItems[i] <= ITEM_CLAIM_CHECK)) {
+                        } else if (Interface_IsTradeOrCustomMask(gSaveContext.equips.buttonItems[i])) {
                             if (gSaveContext.buttonStatus[BUTTON_STATUS_INDEX(i)] == BTN_ENABLED) {
                                 sp28 = 1;
                             }
@@ -1139,8 +1143,7 @@ void func_80083108(PlayState* play) {
                     }
                 } else if (interfaceCtx->restrictions.tradeItems == 0) {
                     for (i = 1; i < ARRAY_COUNT(gSaveContext.equips.buttonItems); i++) {
-                        if ((gSaveContext.equips.buttonItems[i] >= ITEM_WEIRD_EGG) &&
-                            (gSaveContext.equips.buttonItems[i] <= ITEM_CLAIM_CHECK)) {
+                        if (Interface_IsTradeOrCustomMask(gSaveContext.equips.buttonItems[i])) {
                             if (gSaveContext.buttonStatus[BUTTON_STATUS_INDEX(i)] == BTN_DISABLED) {
                                 sp28 = 1;
                             }
@@ -1247,16 +1250,22 @@ void func_80083108(PlayState* play) {
 
                 if (interfaceCtx->restrictions.all != 0) {
                     for (i = 1; i < ARRAY_COUNT(gSaveContext.equips.buttonItems); i++) {
-                        if ((gSaveContext.equips.buttonItems[i] != ITEM_OCARINA_FAIRY) &&
-                            (gSaveContext.equips.buttonItems[i] != ITEM_OCARINA_TIME) &&
-                            !((gSaveContext.equips.buttonItems[i] >= ITEM_BOTTLE) &&
-                              (gSaveContext.equips.buttonItems[i] <= ITEM_POE)) &&
-                            !OotmmBottles_IsItem(gSaveContext.equips.buttonItems[i]) &&
-                            !((gSaveContext.equips.buttonItems[i] >= ITEM_SHIELD_DEKU) && // Never disable equipment
-                              (gSaveContext.equips.buttonItems[i] <=
-                               ITEM_BOOTS_HOVER)) && // (tunics/boots) on C-buttons
-                            !((gSaveContext.equips.buttonItems[i] >= ITEM_WEIRD_EGG) &&
-                              (gSaveContext.equips.buttonItems[i] <= ITEM_CLAIM_CHECK))) {
+                        if ((gSaveContext.equips.buttonItems[i] == ITEM_OOTMM_GREAT_FAIRY_SWORD) &&
+                            (interfaceCtx->restrictions.bButton == 0)) {
+                            if (gSaveContext.buttonStatus[BUTTON_STATUS_INDEX(i)] == BTN_DISABLED) {
+                                sp28 = 1;
+                            }
+
+                            gSaveContext.buttonStatus[BUTTON_STATUS_INDEX(i)] = BTN_ENABLED;
+                        } else if ((gSaveContext.equips.buttonItems[i] != ITEM_OCARINA_FAIRY) &&
+                                   (gSaveContext.equips.buttonItems[i] != ITEM_OCARINA_TIME) &&
+                                   !((gSaveContext.equips.buttonItems[i] >= ITEM_BOTTLE) &&
+                                     (gSaveContext.equips.buttonItems[i] <= ITEM_POE)) &&
+                                   !OotmmBottles_IsItem(gSaveContext.equips.buttonItems[i]) &&
+                                   !((gSaveContext.equips.buttonItems[i] >= ITEM_SHIELD_DEKU) && // Never disable equipment
+                                     (gSaveContext.equips.buttonItems[i] <=
+                                      ITEM_BOOTS_HOVER)) && // (tunics/boots) on C-buttons
+                                   !Interface_IsTradeOrCustomMask(gSaveContext.equips.buttonItems[i])) {
                             if ((play->sceneNum != SCENE_TREASURE_BOX_SHOP) ||
                                 (gSaveContext.equips.buttonItems[i] != ITEM_LENS)) {
                                 if (gSaveContext.buttonStatus[BUTTON_STATUS_INDEX(i)] == BTN_ENABLED) {
@@ -1285,8 +1294,7 @@ void func_80083108(PlayState* play) {
                             !((gSaveContext.equips.buttonItems[i] >= ITEM_BOTTLE) &&
                               (gSaveContext.equips.buttonItems[i] <= ITEM_POE)) &&
                             !OotmmBottles_IsItem(gSaveContext.equips.buttonItems[i]) &&
-                            !((gSaveContext.equips.buttonItems[i] >= ITEM_WEIRD_EGG) &&
-                              (gSaveContext.equips.buttonItems[i] <= ITEM_CLAIM_CHECK))) {
+                            !Interface_IsTradeOrCustomMask(gSaveContext.equips.buttonItems[i])) {
                             if (gSaveContext.buttonStatus[BUTTON_STATUS_INDEX(i)] == BTN_DISABLED) {
                                 sp28 = 1;
                             }
