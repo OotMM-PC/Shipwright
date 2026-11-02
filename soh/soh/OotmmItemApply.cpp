@@ -1147,7 +1147,8 @@ void UpdateTraps() {
             continue;
         }
         Player* player = GET_PLAYER(gPlayState);
-        if (player == nullptr || (player->stateFlags1 & kTrapBlockingStates) || player->invincibilityTimer != 0) {
+        if (player == nullptr || (player->stateFlags1 & kTrapBlockingStates) ||
+            (player->stateFlags2 & PLAYER_STATE2_CRAWLING) || player->invincibilityTimer != 0) {
             return;
         }
         if (ApplyTrap(type, player)) {
