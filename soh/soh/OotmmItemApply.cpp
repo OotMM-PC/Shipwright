@@ -53,7 +53,7 @@ const std::vector<Ladder> kLadders = {
     { "SHIELD", { ITEM_SHIELD_DEKU, ITEM_SHIELD_HYLIAN, ITEM_SHIELD_MIRROR } },
     { "BOMB_BAG", { ITEM_BOMB_BAG_20, ITEM_BOMB_BAG_30, ITEM_BOMB_BAG_40 } },
     { "BOW", { ITEM_BOW, ITEM_QUIVER_40, ITEM_QUIVER_50 } },
-    { "SLINGSHOT", { ITEM_BULLET_BAG_30, ITEM_BULLET_BAG_40, ITEM_BULLET_BAG_50 } },
+    { "SLINGSHOT", { ITEM_SLINGSHOT, ITEM_BULLET_BAG_40, ITEM_BULLET_BAG_50 } },
     { "HOOKSHOT", { ITEM_HOOKSHOT, ITEM_LONGSHOT } },
     { "OCARINA", { ITEM_OCARINA_FAIRY, ITEM_OCARINA_TIME } },
     { "STRENGTH", { ITEM_BRACELET, ITEM_GAUNTLETS_SILVER, ITEM_GAUNTLETS_GOLD } },
@@ -1376,10 +1376,38 @@ void OotmmItemApply_ResetLedgerForNewSave() {
     sAppliedRevision = 0;
 }
 
+static void RepairFirstBulletBagGrant(PlayState* play) {
+    auto& items = gSaveContext.inventory.items;
+    for (size_t slot = 0; slot < ARRAY_COUNT(gSaveContext.inventory.items); slot++) {
+        if (items[slot] == ITEM_BULLET_BAG_30) {
+            const bool ownsSticks = slot == SLOT_STICK && (CUR_UPG_VALUE(UPG_STICKS) != 0 || AMMO(ITEM_STICK) > 0);
+            items[slot] = ownsSticks ? ITEM_STICK : ITEM_NONE;
+        }
+    }
+    for (size_t button = 1; button < ARRAY_COUNT(gSaveContext.equips.buttonItems); button++) {
+        if (gSaveContext.equips.buttonItems[button] != ITEM_BULLET_BAG_30) {
+            continue;
+        }
+        const uint8_t slot = gSaveContext.equips.cButtonSlots[button - 1];
+        const uint8_t restored = slot < ARRAY_COUNT(gSaveContext.inventory.items) ? items[slot] : ITEM_NONE;
+        gSaveContext.equips.buttonItems[button] = restored;
+        if (restored == ITEM_NONE) {
+            gSaveContext.equips.cButtonSlots[button - 1] = SLOT_NONE;
+        } else {
+            Interface_LoadItemIcon1(play, static_cast<u16>(button));
+        }
+    }
+    if (INV_CONTENT(ITEM_SLINGSHOT) == ITEM_SLINGSHOT && CUR_UPG_VALUE(UPG_BULLET_BAG) == 0) {
+        Inventory_ChangeUpgrade(UPG_BULLET_BAG, 1);
+        AMMO(ITEM_SLINGSHOT) = CUR_CAPACITY(UPG_BULLET_BAG);
+    }
+}
+
 void OotmmItemApply_Reconcile() {
     if (gPlayState == nullptr || !OotmmSession_IsActive()) {
         return;
     }
+    RepairFirstBulletBagGrant(gPlayState);
     const auto& inventory = OotmmIpc_GetInventory();
     if (inventory.GetRevision() == sAppliedRevision) {
         return;
