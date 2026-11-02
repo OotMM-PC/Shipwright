@@ -65,11 +65,17 @@ Gfx* PuppetLoadGfx(const char* canonicalPath) {
     if (canonicalPath != nullptr && std::strncmp(canonicalPath, "__OTR__", 7) == 0) {
         canonicalPath += 7;
     }
+    if (canonicalPath == nullptr) {
+        return nullptr;
+    }
+    if (std::strncmp(canonicalPath, "alt/", 4) == 0) {
+        canonicalPath += 4;
+    }
     char ns[128];
     if (PuppetNamespaced(ns, sizeof(ns), gPuppetPlayerId, canonicalPath) != nullptr) {
         return ResourceMgr_LoadGfxByName(ns + 7);
     }
-    return ResourceMgr_LoadGfxByName(canonicalPath);
+    return ResourceMgr_FileExists(canonicalPath) ? ResourceMgr_LoadGfxByName(canonicalPath) : nullptr;
 }
 
 } // namespace
@@ -133,15 +139,20 @@ extern "C" s32 OotmmPuppet_OverrideLimbDraw(PlayState* play, s32 limbIndex, Gfx*
         } else if (limbIndex == PLAYER_LIMB_WAIST) {
             name = puppet->dlWaist;
         }
-        if (name != NULL && name[0] != '\0') {
-            *dList = (name[0] == '-') ? NULL : PuppetLoadGfx(name);
+        if (name != NULL && name[0] == '-') {
+            *dList = NULL;
+        } else if (name != NULL && name[0] != '\0') {
+            if (Gfx* equipped = PuppetLoadGfx(name); equipped != NULL) {
+                *dList = equipped;
+            }
         }
         // The Great Fairy Sword composes its hand model at runtime, so the puppet rebuilds it
         // from the synced item action rather than a display list path.
         if (limbIndex == PLAYER_LIMB_L_HAND && gPuppetItemAction == PLAYER_IA_SWORD_OOTMM_GREAT_FAIRY) {
-            *dList = OotmmCustomItems_GreatFairySwordHand(
-                play,
-                PuppetLoadGfx(reinterpret_cast<const char*>(gPlayerLeftHandClosedDLs[gPuppetDrawAge & 1])));
+            if (Gfx* fist = PuppetLoadGfx(reinterpret_cast<const char*>(gPlayerLeftHandClosedDLs[gPuppetDrawAge & 1]));
+                fist != NULL) {
+                *dList = OotmmCustomItems_GreatFairySwordHand(play, fist);
+            }
         }
     }
     return false;
@@ -336,8 +347,9 @@ extern "C" void OotmmPuppet_Draw(Actor* thisx, PlayState* play) {
             Matrix_SetTranslateRotateYXZ(97.0f, -1203.0f, 240.0f, &earRot);
             Matrix_ToMtx(earMtx, const_cast<char*>(__FILE__), __LINE__);
         }
-        const char* maskName = kChildMaskDls[puppet->mask - 1];
-        gSPDisplayList(POLY_OPA_DISP++, PuppetLoadGfx(maskName));
+        if (Gfx* maskDl = PuppetLoadGfx(kChildMaskDls[puppet->mask - 1]); maskDl != NULL) {
+            gSPDisplayList(POLY_OPA_DISP++, maskDl);
+        }
     }
     gPuppetDrawAge = -1;
     gPuppetPlayerId = 0;
@@ -402,6 +414,9 @@ std::string CanonicalDl(const char* name) {
     }
     if (std::strncmp(name, "__OTR__", 7) == 0) {
         name += 7;
+    }
+    if (std::strncmp(name, "alt/", 4) == 0) {
+        name += 4;
     }
     return name;
 }
