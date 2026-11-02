@@ -14,6 +14,7 @@
 #include "soh/ResourceManagerHelpers.h"
 #include "soh/Enhancements/game-interactor/GameInteractor_Hooks.h"
 #include "soh/OotmmNpcChecks.h"
+#include "soh/OotmmSession.h"
 
 #define FLAGS (ACTOR_FLAG_UPDATE_CULLING_DISABLED | ACTOR_FLAG_DRAW_CULLING_DISABLED | ACTOR_FLAG_UPDATE_DURING_OCARINA)
 
@@ -774,10 +775,10 @@ void BgDyYoseizo_Give_Reward(BgDyYoseizo* this, PlayState* play) {
                                                        itemPos.y, itemPos.z, 0, 0, 0, sExItemTypes[actionIndex]);
 
             if (this->item != NULL) {
-                if (gSaveContext.isMagicAcquired == 0) {
-                    gSaveContext.isMagicAcquired = 1;
-                } else {
+                if (gSaveContext.isMagicAcquired != 0) {
                     Magic_Fill(play);
+                } else if (!OotmmSession_IsActive()) {
+                    gSaveContext.isMagicAcquired = 1;
                 }
 
                 this->itemSpawned = true;
