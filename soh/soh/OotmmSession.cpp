@@ -1101,6 +1101,7 @@ void OotmmSession_Init() {
         OotmmShops_Init();
         OotmmHints_Init();
         OotmmDrops_Init();
+        OotmmIpc_InitHooks();
         OotmmXflags_Init();
         OotmmDebugChecks_Init();
         OotmmItemProbe_Init();

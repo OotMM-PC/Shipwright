@@ -31,6 +31,7 @@ extern void* sMouthTextures[2][4];
 
 Gfx* ResourceMgr_LoadGfxByName(const char* path);
 uint8_t ResourceMgr_FileExists(const char* resName);
+void ResourceMgr_UnregisterSkeleton(SkelAnime* skelAnime);
 
 void Player_DrawImpl(PlayState* play, void** skeleton, Vec3s* jointTable, s32 dListCount, s32 lod, s32 tunic,
                      s32 boots, s32 face, OverrideLimbDrawOpa overrideLimbDraw, PostLimbDrawOpa postLimbDraw,
@@ -168,6 +169,7 @@ std::vector<PendingPvpHit> gPendingPvpHits;
 // The puppet wears its player's synced skeleton when the pNN namespace provides one; an
 // unparseable resource falls back to the shared skeleton rather than reach SkelAnime.
 void PuppetInitSkeleton(OotmmPuppetActor* puppet, PlayState* play, u8 age) {
+    ResourceMgr_UnregisterSkeleton(&puppet->skelAnime);
     FlexSkeletonHeader* skeleton = gPlayerSkelHeaders[age & 1];
     const char* live = reinterpret_cast<const char*>(skeleton);
     puppet->skelPath[0] = '\0';
@@ -235,6 +237,7 @@ extern "C" void OotmmPuppet_Init(Actor* thisx, PlayState* play) {
 
 extern "C" void OotmmPuppet_Destroy(Actor* thisx, PlayState* play) {
     OotmmPuppetActor* puppet = (OotmmPuppetActor*)thisx;
+    ResourceMgr_UnregisterSkeleton(&puppet->skelAnime);
     Collider_DestroyCylinder(play, &puppet->collider);
 }
 
@@ -544,6 +547,16 @@ void PresenceTick() {
 }
 
 } // namespace
+
+extern "C" void OotmmPresence_RefreshPuppetModel(uint16_t playerId) {
+    const auto it = gPuppets.find(playerId);
+    if (gPlayState == nullptr || it == gPuppets.end() || it->second.actor == nullptr ||
+        !ActorStillSpawned(gPlayState, it->second.actor)) {
+        return;
+    }
+    auto* puppet = (OotmmPuppetActor*)it->second.actor;
+    PuppetInitSkeleton(puppet, gPlayState, puppet->age);
+}
 
 extern "C" void OotmmPresence_Init(void) {
     GameInteractor::Instance->RegisterGameHook<GameInteractor::OnGameFrameUpdate>([]() { PresenceTick(); });
