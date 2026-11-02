@@ -459,8 +459,8 @@ void Play_Init(GameState* thisx) {
 
     if ((gEntranceTable[((void)0, gSaveContext.entranceIndex)].scene == SCENE_HYRULE_FIELD) && !LINK_IS_ADULT &&
         !IS_CUTSCENE_LAYER) {
-        if (CHECK_QUEST_ITEM(QUEST_KOKIRI_EMERALD) && CHECK_QUEST_ITEM(QUEST_GORON_RUBY) &&
-            CHECK_QUEST_ITEM(QUEST_ZORA_SAPPHIRE)) {
+        if (OotmmSession_IsActive() || (CHECK_QUEST_ITEM(QUEST_KOKIRI_EMERALD) && CHECK_QUEST_ITEM(QUEST_GORON_RUBY) &&
+                                        CHECK_QUEST_ITEM(QUEST_ZORA_SAPPHIRE))) {
             gSaveContext.sceneSetupIndex = 1;
         } else {
             gSaveContext.sceneSetupIndex = 0;
