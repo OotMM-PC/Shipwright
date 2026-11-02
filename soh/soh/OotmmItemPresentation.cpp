@@ -3,6 +3,7 @@
 #include "Enhancements/custom-message/CustomMessageManager.h"
 #include "Enhancements/game-interactor/GameInteractor.h"
 #include "Enhancements/game-interactor/GameInteractor_Hooks.h"
+#include "OotmmDrops.h"
 #include "OotmmItemModels.h"
 #include "OotmmIpc.h"
 #include "OotmmSession.h"
@@ -37,7 +38,10 @@ namespace {
 
 constexpr uint16_t kPresentationTextId = 0xF120;
 constexpr uint16_t kGrounded = 1;
+constexpr int kJunkSpacingFrames = 20;
 std::deque<Ship::GameIpcItemPresentation> sQueue;
+std::deque<Ship::GameIpcItemPresentation> sJunk;
+int sJunkCooldown = 0;
 std::optional<Ship::GameIpcItemPresentation> sCurrent;
 std::optional<std::pair<std::string, uint32_t>> sDeliveredCheck;
 
@@ -88,7 +92,7 @@ void OpenPresentationText(uint16_t* textId, bool* loadFromMessageTable) {
     if (*textId != kPresentationTextId || !sCurrent.has_value()) {
         return;
     }
-    CustomMessage message(BuildMessage(*sCurrent), TEXTBOX_TYPE_BLUE);
+    CustomMessage message(BuildMessage(*sCurrent) + (sCurrent->Background ? "\x0E\x50" : ""), TEXTBOX_TYPE_BLUE);
     message.AutoFormat();
     message.LoadIntoFont();
     *loadFromMessageTable = false;
@@ -102,7 +106,26 @@ GetItemEntry PresentationEntry() {
     return entry;
 }
 
+void PlayItemFanfare(const std::string& itemId, bool isShort);
+
+void PumpJunk() {
+    if (sJunkCooldown > 0) {
+        sJunkCooldown--;
+    }
+    if (sJunk.empty() || sJunkCooldown > 0 || gPlayState == nullptr ||
+        gPlayState->transitionTrigger != TRANS_TRIGGER_OFF || gSaveContext.gameMode != GAMEMODE_NORMAL) {
+        return;
+    }
+    const auto& junk = sJunk.front();
+    if (OotmmDrops_ShowOverhead(gPlayState, junk.ItemId, junk.ItemName)) {
+        PlayItemFanfare(junk.ItemId, true);
+        sJunk.pop_front();
+        sJunkCooldown = kJunkSpacingFrames;
+    }
+}
+
 void PumpPresentation() {
+    PumpJunk();
     if (gPlayState != nullptr && sDeliveredCheck.has_value() &&
         sDeliveredCheck->second != gPlayState->gameplayFrames) {
         const Player* player = GET_PLAYER(gPlayState);
@@ -137,7 +160,8 @@ void PumpPresentation() {
     GetItemEntry entry = PresentationEntry();
     sCurrent = sQueue.front();
 
-    if ((player->actor.bgCheckFlags & kGrounded) && !(player->stateFlags1 & PLAYER_STATE1_IN_WATER)) {
+    if (!sCurrent->Background && (player->actor.bgCheckFlags & kGrounded) &&
+        !(player->stateFlags1 & PLAYER_STATE1_IN_WATER)) {
         player->getItemEntry = entry;
         player->getItemId = entry.getItemId;
         player->interactRangeActor = &player->actor;
@@ -155,6 +179,9 @@ void PumpPresentation() {
     }
 
     sQueue.pop_front();
+    if (sCurrent->Background) {
+        OotmmDrops_ShowOverhead(gPlayState, sCurrent->ItemId, sCurrent->ItemName);
+    }
     OotmmItemPresentation_PlayFanfare(1);
     Message_StartTextbox(gPlayState, kPresentationTextId, nullptr);
     if (!sCurrent->CheckKey.empty()) {
@@ -244,15 +271,10 @@ int32_t FanfareSeq(Ship::OotmmFanfare fanfare) {
     }
 }
 
-} // namespace
-
-extern "C" int OotmmItemPresentation_PlayFanfare(int isShort) {
-    if (!sCurrent.has_value()) {
-        return 0;
-    }
+void PlayItemFanfare(const std::string& itemId, bool isShort) {
     const auto& inventory = OotmmIpc_GetInventory();
     const auto fanfare = Ship::OotmmItemFanfare_Resolve(
-        sCurrent->ItemId, isShort != 0,
+        itemId, isShort,
         [&inventory](std::string_view id) { return inventory.Count(std::string(id)); },
         static_cast<uint32_t>(OotmmSession_GetState().GetIntSetting("strayFairyRewardCount", 15)));
     switch (fanfare) {
@@ -271,6 +293,15 @@ extern "C" int OotmmItemPresentation_PlayFanfare(int isShort) {
             Audio_PlayFanfare(static_cast<u16>(FanfareSeq(fanfare)));
             break;
     }
+}
+
+} // namespace
+
+extern "C" int OotmmItemPresentation_PlayFanfare(int isShort) {
+    if (!sCurrent.has_value()) {
+        return 0;
+    }
+    PlayItemFanfare(sCurrent->ItemId, isShort != 0);
     return 1;
 }
 
@@ -288,6 +319,18 @@ extern "C" int OotmmItemPresentation_IsPending(void) {
 }
 
 void OotmmItemPresentation_Queue(Ship::GameIpcItemPresentation presentation) {
+    if (presentation.Background) {
+        if (Ship::OotmmItemCatalog::IsNothing(presentation.ItemId)) {
+            return;
+        }
+        if (Ship::OotmmItemCatalog::IsFast(presentation.ItemId)) {
+            sJunk.emplace_back(std::move(presentation));
+            return;
+        }
+        if (presentation.Quiet) {
+            return;
+        }
+    }
     sQueue.emplace_back(std::move(presentation));
 }
 

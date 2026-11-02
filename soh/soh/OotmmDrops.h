@@ -12,6 +12,7 @@ bool OotmmDrops_Spawn(PlayState* play, float x, float y, float z, const std::str
                       const std::string& checkId);
 Actor* OotmmDrops_SpawnPlacement(PlayState* play, float x, float y, float z,
                                  const Ship::OotmmPlacement& placement, int collectibleFlag = -1);
+bool OotmmDrops_ShowOverhead(PlayState* play, const std::string& itemId, const std::string& itemName);
 bool OotmmDrops_Adopt(Actor* actor, const Ship::OotmmPlacement& placement, int collectibleFlag);
 bool OotmmDrops_HasCheck(const std::string& checkId);
 void OotmmDrops_Report(const std::string& checkId, const std::string& itemId, bool present);

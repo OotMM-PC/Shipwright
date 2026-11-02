@@ -67,10 +67,7 @@ void Present(const Drop& drop) {
     OotmmDrops_Report(drop.CheckId, drop.ItemId, !collected);
 }
 
-bool FloatAboveHead(EnItem00* item, Drop& drop) {
-    if (!Ship::OotmmItemCatalog::IsFast(drop.ItemId)) {
-        return false;
-    }
+void StartOverhead(EnItem00* item, Drop& drop) {
     drop.Collected = true;
     drop.DrawItemId = drop.ItemId;
     drop.DrawItemName = drop.ItemName;
@@ -82,6 +79,13 @@ bool FloatAboveHead(EnItem00* item, Drop& drop) {
     item->actor.velocity.y = 0.0f;
     item->actor.gravity = 0.0f;
     item->actionFunc = func_8001E5C8;
+}
+
+bool FloatAboveHead(EnItem00* item, Drop& drop) {
+    if (!Ship::OotmmItemCatalog::IsFast(drop.ItemId)) {
+        return false;
+    }
+    StartOverhead(item, drop);
     return true;
 }
 
@@ -142,6 +146,20 @@ bool OotmmDrops_Spawn(PlayState* play, float x, float y, float z, const std::str
 Actor* OotmmDrops_SpawnPlacement(PlayState* play, float x, float y, float z,
                                  const Ship::OotmmPlacement& placement, int collectibleFlag) {
     return Spawn(play, x, y, z, PlacementDrop(placement, collectibleFlag));
+}
+
+bool OotmmDrops_ShowOverhead(PlayState* play, const std::string& itemId, const std::string& itemName) {
+    if (play == nullptr) {
+        return false;
+    }
+    const Player* player = GET_PLAYER(play);
+    Actor* actor = Spawn(play, player->actor.world.pos.x, player->actor.world.pos.y, player->actor.world.pos.z,
+                         Drop{ itemId, itemName, "", "", 0, -1, itemId, itemName });
+    if (actor == nullptr) {
+        return false;
+    }
+    StartOverhead(reinterpret_cast<EnItem00*>(actor), sDrops.at(actor));
+    return true;
 }
 
 bool OotmmDrops_Adopt(Actor* actor, const Ship::OotmmPlacement& placement, int collectibleFlag) {
