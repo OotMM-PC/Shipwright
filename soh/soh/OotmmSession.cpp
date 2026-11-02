@@ -329,6 +329,21 @@ void OpenWellForAdult(void* actorRef) {
     }
 }
 
+void RemoveIdleOwl(void* actorRef) {
+    auto* actor = static_cast<Actor*>(actorRef);
+    const int type = (actor->params & 0xFC0) >> 6;
+    if (type < 7 || type > 9) {
+        Actor_Kill(actor);
+    }
+}
+
+void RemoveAutoTalkTrigger(void* actorRef) {
+    auto* actor = static_cast<Actor*>(actorRef);
+    if ((actor->params & 0xF000) == 0x4000) {
+        Actor_Kill(actor);
+    }
+}
+
 void KeepKakarikoGateLocked(void* actorRef) {
     auto* gate = static_cast<BgGateShutter*>(actorRef);
     if (gPlayState != nullptr && gPlayState->sceneNum == SCENE_KAKARIKO_VILLAGE &&
@@ -1168,6 +1183,9 @@ void OotmmSession_Init() {
                                                                                      OpenWellForAdult);
         GameInteractor::Instance->RegisterGameHookForID<GameInteractor::OnActorInit>(ACTOR_BG_GATE_SHUTTER,
                                                                                      KeepKakarikoGateLocked);
+        GameInteractor::Instance->RegisterGameHookForID<GameInteractor::OnActorInit>(ACTOR_EN_OWL, RemoveIdleOwl);
+        GameInteractor::Instance->RegisterGameHookForID<GameInteractor::OnActorInit>(ACTOR_EN_WONDER_TALK2,
+                                                                                     RemoveAutoTalkTrigger);
         GameInteractor::Instance->RegisterGameHook<GameInteractor::OnSceneSpawnActors>(SpawnAdultKakarikoGate);
         GameInteractor::Instance->RegisterGameHook<GameInteractor::OnSceneSpawnActors>(AlterLostWoodsExits);
         if (sGameState.GetBoolSetting("ootHyperEnemies", false)) {
