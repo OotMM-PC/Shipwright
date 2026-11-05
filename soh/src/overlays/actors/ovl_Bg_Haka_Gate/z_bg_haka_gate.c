@@ -5,6 +5,7 @@
  */
 
 #include "z_bg_haka_gate.h"
+#include "soh/OotmmSession.h"
 #include "objects/gameplay_keep/gameplay_keep.h"
 #include "objects/object_haka_objects/object_haka_objects.h"
 
@@ -193,7 +194,11 @@ void BgHakaGate_StatueTurn(BgHakaGate* this, PlayState* play) {
     s16 turnAngle;
 
     this->vTurnRateDeg10++;
-    this->vTurnRateDeg10 = CLAMP_MAX(this->vTurnRateDeg10, 10);
+    if (!OotmmSession_IsActive()) {
+        this->vTurnRateDeg10 = CLAMP_MAX(this->vTurnRateDeg10, 10);
+    } else if (this->vTurnRateDeg10 >= 25) {
+        this->vTurnRateDeg10 = 5;
+    }
     turnFinished = Math_StepToS(&this->vTurnAngleDeg10, 600, this->vTurnRateDeg10);
     turnAngle = this->vTurnAngleDeg10 * this->vTurnDirection;
     this->dyna.actor.shape.rot.y = (this->vRotYDeg10 + turnAngle) * 0.1f * (0x10000 / 360.0f);
@@ -213,7 +218,7 @@ void BgHakaGate_StatueTurn(BgHakaGate* this, PlayState* play) {
         this->vRotYDeg10 = (this->vRotYDeg10 + turnAngle) % 3600;
         this->vTurnRateDeg10 = CVarGetInteger(CVAR_ENHANCEMENT("FasterBlockPush"), 0) * 2;
         this->vTurnAngleDeg10 = 0;
-        this->vTimer = 5 - ((CVarGetInteger(CVAR_ENHANCEMENT("FasterBlockPush"), 0) * 3) / 5);
+        this->vTimer = OotmmSession_IsActive() ? 0 : 5 - ((CVarGetInteger(CVAR_ENHANCEMENT("FasterBlockPush"), 0) * 3) / 5);
         this->actionFunc = BgHakaGate_StatueIdle;
         this->dyna.unk_150 = 0.0f;
     }

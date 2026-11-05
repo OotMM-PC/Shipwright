@@ -5,6 +5,7 @@
  */
 
 #include "z_en_rr.h"
+#include "soh/OotmmSession.h"
 #include "objects/object_rr/object_rr.h"
 #include "vt.h"
 #include "soh/Enhancements/game-interactor/GameInteractor_Hooks.h"
@@ -307,7 +308,7 @@ void EnRr_SetupReleasePlayer(EnRr* this, PlayState* play) {
             this->retreat = true;
         }
     }
-    if (CUR_EQUIP_VALUE(EQUIP_TYPE_TUNIC) != EQUIP_VALUE_TUNIC_KOKIRI) {
+    if (!OotmmSession_IsActive() && (CUR_EQUIP_VALUE(EQUIP_TYPE_TUNIC) != EQUIP_VALUE_TUNIC_KOKIRI)) {
         tunic = Inventory_DeleteEquipment(play, EQUIP_TYPE_TUNIC);
         if (tunic != 0) {
             this->eatenTunic = tunic;

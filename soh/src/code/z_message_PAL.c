@@ -3495,6 +3495,14 @@ void Message_DrawMain(PlayState* play, Gfx** p) {
                         msgCtx->msgMode = MSGMODE_OCARINA_STARTING;
                     } else {
                         OotmmSongs_NotePlayed(msgCtx->ocarinaStaff->state - OOTMM_SONG_STAFF_BASE);
+                        if (OotmmSongs_Played() == OOTMM_SONG_ELEGY &&
+                            msgCtx->ocarinaAction != OCARINA_ACTION_CHECK_OOTMM_ELEGY) {
+                            Audio_PlaySoundGeneral(NA_SE_SY_TRE_BOX_APPEAR, &gSfxDefaultPos, 4,
+                                                   &gSfxDefaultFreqAndVolScale, &gSfxDefaultFreqAndVolScale,
+                                                   &gSfxDefaultReverb);
+                            OotmmSongs_Begin(play);
+                            break;
+                        }
                         Message_ContinueTextbox(play, 0x86F); // Ocarina
                         msgCtx->msgMode = MSGMODE_SONG_PLAYED;
                         msgCtx->textBoxType = TEXTBOX_TYPE_OCARINA;

@@ -8,6 +8,7 @@
 #include "overlays/actors/ovl_Obj_Switch/z_obj_switch.h"
 #include "objects/gameplay_dangeon_keep/gameplay_dangeon_keep.h"
 #include "soh/ResourceManagerHelpers.h"
+#include "soh/OotmmSession.h"
 
 #define FLAGS ACTOR_FLAG_UPDATE_CULLING_DISABLED
 
@@ -277,7 +278,10 @@ void ObjOshihiki_Init(Actor* thisx, PlayState* play2) {
     ObjOshihiki_CheckType(this, play);
 
     if ((((this->dyna.actor.params >> 8) & 0xFF) >= 0) && (((this->dyna.actor.params >> 8) & 0xFF) <= 0x3F)) {
-        if (Flags_GetSwitch(play, (this->dyna.actor.params >> 8) & 0x3F)) {
+        if (Flags_GetSwitch(play, (this->dyna.actor.params >> 8) & 0x3F) &&
+            !(OotmmSession_IsActive() && (play->sceneNum == SCENE_SPIRIT_TEMPLE) &&
+              ResourceMgr_IsSceneMasterQuest(SCENE_SPIRIT_TEMPLE) && LINK_IS_CHILD &&
+              (((this->dyna.actor.params >> 8) & 0x3F) == 0x09))) {
             switch (this->dyna.actor.params & 0xF) {
                 case PUSHBLOCK_SMALL_START_ON:
                 case PUSHBLOCK_MEDIUM_START_ON:
@@ -562,7 +566,7 @@ void ObjOshihiki_Push(ObjOshihiki* this, PlayState* play) {
 
     this->pushSpeed = this->pushSpeed + (CVarGetInteger(CVAR_ENHANCEMENT("FasterBlockPush"), 0) * 0.25) + 0.5f;
     this->stateFlags |= PUSHBLOCK_PUSH;
-    this->pushSpeed = CLAMP_MAX(this->pushSpeed, 2.0f + (CVarGetInteger(CVAR_ENHANCEMENT("FasterBlockPush"), 0) * 0.5));
+    this->pushSpeed = CLAMP_MAX(this->pushSpeed, OotmmSession_IsActive() ? 4.0f : 2.0f + (CVarGetInteger(CVAR_ENHANCEMENT("FasterBlockPush"), 0) * 0.5));
     stopFlag = Math_StepToF(&this->pushDist, 20.0f, this->pushSpeed);
     pushDistSigned = ((this->direction >= 0.0f) ? 1.0f : -1.0f) * this->pushDist;
     thisx->world.pos.x = thisx->home.pos.x + (pushDistSigned * this->yawSin);
@@ -588,7 +592,7 @@ void ObjOshihiki_Push(ObjOshihiki* this, PlayState* play) {
         this->dyna.unk_150 = 0.0f;
         this->pushDist = 0.0f;
         this->pushSpeed = 0.0f;
-        this->timer = 10 - ((CVarGetInteger(CVAR_ENHANCEMENT("FasterBlockPush"), 0) * 3) / 2);
+        this->timer = OotmmSession_IsActive() ? 1 : 10 - ((CVarGetInteger(CVAR_ENHANCEMENT("FasterBlockPush"), 0) * 3) / 2);
         if (this->floorBgIds[this->highestFloor] == BGCHECK_SCENE) {
             ObjOshihiki_SetupOnScene(this, play);
         } else {

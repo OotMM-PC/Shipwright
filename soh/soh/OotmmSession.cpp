@@ -1,5 +1,7 @@
 #include "OotmmSession.h"
 #include "OotmmDeathLink.h"
+#include "OotmmItemPage.h"
+#include "OotmmSilverRupees.h"
 #include "OotmmDungeonRespawn.h"
 #include "OotmmCheckLedger.h"
 #include "OotmmFaroresWind.h"
@@ -139,6 +141,13 @@ struct OotGrottoLoad {
 };
 
 constexpr uint32_t kOotGrottoExitBase = 0x1100;
+constexpr uint32_t kGrottoFairySfm = 0x1009;
+constexpr int16_t kGrottoParentScenes[] = {
+    SCENE_SACRED_FOREST_MEADOW, SCENE_HYRULE_FIELD,   SCENE_ZORAS_RIVER,   SCENE_ZORAS_DOMAIN,
+    SCENE_GERUDOS_FORTRESS,     SCENE_SACRED_FOREST_MEADOW, SCENE_ZORAS_RIVER, SCENE_GERUDO_VALLEY,
+    SCENE_DESERT_COLOSSUS,      SCENE_LON_LON_RANCH,  SCENE_GORON_CITY,    SCENE_DEATH_MOUNTAIN_CRATER,
+    SCENE_LAKE_HYLIA,
+};
 constexpr size_t kOotGrottoCount = 33;
 
 #include "OotmmEntranceTables.inc"
@@ -273,6 +282,9 @@ std::optional<uint16_t> ResolveOotEntrance(uint32_t entrance) {
         respawn->tempSwchFlags = 0;
         respawn->tempCollectFlags = 0;
         sGrottoExitSource = load.ExitId;
+        if (entrance >= kGrottoFairySfm && entrance < kGrottoFairySfm + std::size(kGrottoParentScenes)) {
+            OotmmXflags_SetLastScene(kGrottoParentScenes[entrance - kGrottoFairySfm]);
+        }
         return load.SohEntrance;
     }
     return entrance < ENTR_MAX ? std::optional<uint16_t>(static_cast<uint16_t>(entrance)) : std::nullopt;
@@ -550,6 +562,13 @@ void ApplyEnhancements() {
     CVarSetInteger(CVAR_ENHANCEMENT("TimeSavers.SkipOwlInteractions"), 1);
     CVarSetInteger(CVAR_ENHANCEMENT("TimeSavers.SkipMiscInteractions"), 1);
     CVarSetInteger(CVAR_ENHANCEMENT("TimeSavers.SkipTowerEscape"), 1);
+    CVarSetInteger(CVAR_ENHANCEMENT("PauseAnyCursor"), PAUSE_ANY_CURSOR_ALWAYS_ON);
+    CVarSetInteger(CVAR_ENHANCEMENT("CustomizeFishing"), 1);
+    CVarSetInteger(CVAR_ENHANCEMENT("GuaranteeFishingBite"), 1);
+    CVarSetInteger(CVAR_ENHANCEMENT("FishNeverEscape"), 1);
+    CVarSetInteger(CVAR_ENHANCEMENT("FasterHeavyBlockLift"), 0);
+    CVarSetInteger(CVAR_ENHANCEMENT("FasterBlockPush"), 0);
+    CVarSetInteger(CVAR_ENHANCEMENT("MMBunnyHood"), sGameState.GetBoolSetting("fastBunnyHood", false) ? 1 : 0);
 
     CVarSetInteger(CVAR_ENHANCEMENT("TimeTravel"), TIME_TRAVEL_DISABLED);
     CVarSetInteger(CVAR_CHEAT("HookshotEverything"),
@@ -972,7 +991,7 @@ void UpdateEntranceTransition() {
         if (const auto target = ResolveOotEntrance(*mapping->ToNativeId); target.has_value()) {
             gPlayState->nextEntranceIndex = static_cast<int16_t>(*target);
             sLastResolvedEntrance = *target;
-            if (gSaveContext.respawnFlag == -2 &&
+            if ((gSaveContext.respawnFlag == -2 || gSaveContext.respawnFlag == -4) &&
                 gSaveContext.respawn[RESPAWN_MODE_DOWN].entranceIndex == static_cast<int16_t>(nextEntrance)) {
                 gSaveContext.respawn[RESPAWN_MODE_DOWN].entranceIndex = static_cast<int16_t>(*target);
             }
@@ -1176,6 +1195,8 @@ void OotmmSession_Init() {
                 ApplyBootEntrance();
             });
         GameInteractor::Instance->RegisterGameHook<GameInteractor::OnDeleteFile>(DeleteForeignSave);
+        GameInteractor::Instance->RegisterGameHook<GameInteractor::OnGameFrameUpdate>(OotmmItemPage_FillDpadDefaults);
+        GameInteractor::Instance->RegisterGameHook<GameInteractor::OnGameFrameUpdate>(OotmmSilverRupeesUpdateTempFlags);
         GameInteractor::Instance->RegisterGameHook<GameInteractor::OnGameFrameUpdate>(UpdateEntranceTransition);
         REGISTER_VB_SHOULD(VB_OPEN_KOKIRI_FOREST, {
             if (OotmmSession_IsActive()) {
@@ -1238,6 +1259,110 @@ void OotmmSession_Init() {
         SPDLOG_INFO("[OoTMM] Loaded seed startup state {}", sGameState.GetSeedId());
     } else if (!sGameState.GetLastError().empty()) {
         SPDLOG_ERROR("[OoTMM] {}", sGameState.GetLastError());
+    }
+}
+
+extern "C" void OotmmSession_HorseSpawnFixup(PlayState* play) {
+    switch (gSaveContext.entranceIndex) {
+        case 0x18D:
+        case 0x117:
+        case 0x1F9:
+        case 0x157:
+        case 0x189:
+        case 0x102:
+        case 0x22D:
+        case 0x129:
+            return;
+        default:
+            break;
+    }
+    if (AREG(6) == 0) {
+        return;
+    }
+    AREG(6) = 0;
+    static constexpr uint8_t kSwords[] = { ITEM_NONE, ITEM_SWORD_KOKIRI, ITEM_SWORD_MASTER, ITEM_SWORD_BGS };
+    uint8_t sword = kSwords[CUR_EQUIP_VALUE(EQUIP_TYPE_SWORD) & 3];
+    if (sword == ITEM_NONE) {
+        Flags_SetInfTable(INFTABLE_SWORDLESS);
+    } else {
+        Flags_UnsetInfTable(INFTABLE_SWORDLESS);
+    }
+    if (sword == ITEM_SWORD_BGS && !gSaveContext.bgsFlag && gSaveContext.swordHealth <= 0) {
+        sword = ITEM_SWORD_BROKEN;
+    }
+    gSaveContext.equips.buttonItems[0] = sword;
+    Interface_LoadItemIcon1(play, 0);
+}
+
+extern "C" void OotmmSession_PatchWeather(PlayState* play) {
+    if (!OotmmSession_IsActive()) {
+        return;
+    }
+    gWeatherMode = 0;
+    if (!LINK_IS_ADULT || gSaveContext.sceneSetupIndex >= 4) {
+        return;
+    }
+    const uint16_t entrance = static_cast<uint16_t>(gSaveContext.entranceIndex);
+    const int16_t scene = play->sceneNum;
+    if (entrance == 0x1FD) {
+        gWeatherMode = 1;
+        return;
+    }
+    if (!Flags_GetEventChkInf(EVENTCHKINF_EPONA_OBTAINED) && (entrance == 0x157 || entrance == 0x1F9)) {
+        gWeatherMode = 2;
+        return;
+    }
+    if (!Flags_GetEventChkInf(EVENTCHKINF_USED_WATER_TEMPLE_BLUE_WARP) &&
+        (entrance == 0x1DD || entrance == 0x4DA || entrance == 0x19D || scene == SCENE_ZORAS_DOMAIN ||
+         scene == SCENE_ZORAS_FOUNTAIN)) {
+        gWeatherMode = 3;
+        return;
+    }
+    const bool kakariko = scene == SCENE_KAKARIKO_VILLAGE || scene == SCENE_GRAVEYARD;
+    if (CHECK_QUEST_ITEM(QUEST_MEDALLION_FOREST) && CHECK_QUEST_ITEM(QUEST_MEDALLION_FIRE) &&
+        CHECK_QUEST_ITEM(QUEST_MEDALLION_WATER) && !OotmmNpcChecks_IsCollected("OOT_BLUE_WARP_BONGO_BONGO") &&
+        kakariko && entrance != 0xDB && entrance != 0x191 && entrance != 0x205) {
+        gWeatherMode = 5;
+        return;
+    }
+    if (!Flags_GetEventChkInf(EVENTCHKINF_USED_FIRE_TEMPLE_BLUE_WARP)) {
+        if (entrance == 0x4D6) {
+            gWeatherMode = 2;
+            return;
+        }
+        if ((kakariko || scene == SCENE_DEATH_MOUNTAIN_TRAIL || scene == SCENE_DEATH_MOUNTAIN_CRATER) &&
+            entrance != 0xDB && entrance != 0x195) {
+            gWeatherMode = 2;
+        }
+    }
+}
+
+extern "C" void OotmmSession_EventFixes(void) {
+    if (!OotmmSession_IsActive()) {
+        return;
+    }
+    if (CHECK_QUEST_ITEM(QUEST_SONG_EPONA)) {
+        Flags_SetEventChkInf(EVENTCHKINF_EPONA_OBTAINED);
+    }
+    if (gSaveContext.entranceIndex == ENTR_FOREST_TEMPLE_ENTRANCE) {
+        uint32_t switches = gSaveContext.sceneFlags[SCENE_FOREST_TEMPLE].swch;
+        if ((switches & 0xF0000000) != 0xF0000000) {
+            switches |= 0x08000000;
+        }
+        gSaveContext.sceneFlags[SCENE_FOREST_TEMPLE].swch = switches;
+    }
+    if (gSaveContext.entranceIndex == ENTR_JABU_JABU_ENTRANCE) {
+        uint16_t ruto = gSaveContext.infTable[20];
+        if ((ruto & 0xFF) == 0) {
+            ruto |= 0x1E;
+        }
+        if (!OotmmSession_IsSceneMasterQuest(SCENE_JABU_JABU)) {
+            ruto |= 1 << 7;
+        }
+        if (ruto & ((1 << 6) | (1 << 5))) {
+            ruto &= ~((1 << 6) | (1 << 5));
+        }
+        gSaveContext.infTable[20] = ruto;
     }
 }
 
@@ -1325,6 +1450,11 @@ extern "C" void OotmmSession_PrepareGrottoReturn(void) {
         sPendingExtendedSource = source;
         sGrottoExitSource = 0;
     }
+}
+
+extern "C" int32_t OotmmSession_ShuffledWallmaster(int16_t actorId) {
+    return OotmmSession_IsActive() && actorId == ACTOR_EN_WALLMAS &&
+           sGameState.GetStringSetting("erWallmasters", "none") != "none";
 }
 
 extern "C" int32_t OotmmSession_WallmasterTakePlayer(PlayState* play, Actor* wallmaster) {
@@ -1470,4 +1600,14 @@ std::string OotmmSession_GetSaveSubdirectory() {
         result += "/" + coordinatorSubdir;
     }
     return result + "/ootmm-" + sGameState.GetNativeSaveTag();
+}
+
+extern "C" int32_t OotmmSession_GerudoCaughtEntrance(int32_t sceneNum) {
+    if (sceneNum == SCENE_GERUDO_VALLEY) {
+        return ENTR_GERUDO_VALLEY_1;
+    }
+    if (LINK_IS_CHILD || INV_CONTENT(ITEM_HOOKSHOT) == ITEM_NONE) {
+        return ENTR_GERUDOS_FORTRESS_EAST_EXIT;
+    }
+    return ENTR_GERUDOS_FORTRESS_18;
 }

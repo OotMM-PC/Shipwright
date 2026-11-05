@@ -5,6 +5,7 @@
  */
 
 #include "z_bg_haka_water.h"
+#include "soh/OotmmSession.h"
 #include "objects/object_hakach_objects/object_hakach_objects.h"
 
 #define FLAGS (ACTOR_FLAG_UPDATE_CULLING_DISABLED | ACTOR_FLAG_DRAW_CULLING_DISABLED)
@@ -91,7 +92,7 @@ void BgHakaWater_ChangeWaterLevel(BgHakaWater* this, PlayState* play) {
         func_8002F948(&this->actor, NA_SE_EV_WATER_LEVEL_DOWN - SFX_FLAG);
     }
 
-    if (Math_StepToF(&this->actor.world.pos.y, this->actor.home.pos.y, 0.5f) != 0) {
+    if (Math_StepToF(&this->actor.world.pos.y, this->actor.home.pos.y, OotmmSession_IsActive() ? 2.5f : 0.5f) != 0) {
         this->actionFunc = BgHakaWater_Wait;
         if (this->isLowered) {
             this->actor.draw = NULL;

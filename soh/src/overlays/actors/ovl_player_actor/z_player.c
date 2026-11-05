@@ -27,6 +27,8 @@
 #include "soh/OotmmCustomItems.h"
 #include "soh/OotmmBottles.h"
 #include "soh/OotmmCustomItemsPlayer.h"
+#include "soh/OotmmBomMm.h"
+#include "soh/OotmmMasterSword.h"
 #include "soh/OotmmFaroresWind.h"
 #include "soh/OotmmDungeonRespawn.h"
 #include "soh/OotmmSongs.h"
@@ -2338,9 +2340,7 @@ void Player_InitExplosiveIA(PlayState* play, Player* this) {
     explosiveType = Player_GetExplosiveHeld(this);
     explosiveInfo = &sExplosiveInfos[explosiveType];
 
-    spawnedActor =
-        Actor_SpawnAsChild(&play->actorCtx, &this->actor, play, explosiveInfo->actorId, this->actor.world.pos.x,
-                           this->actor.world.pos.y, this->actor.world.pos.z, 0, this->actor.shape.rot.y, 0, 0);
+    spawnedActor = OotmmCustomItems_SpawnExplosive(play, this, explosiveType, explosiveInfo->actorId);
     if (spawnedActor != NULL) {
         if ((explosiveType != 0) && (play->bombchuBowlingStatus != 0)) {
             if (!CVarGetInteger(CVAR_CHEAT("InfiniteAmmo"), 0)) {
@@ -2354,8 +2354,6 @@ void Player_InitExplosiveIA(PlayState* play, Player* this) {
         } else {
             Inventory_ChangeAmmo(explosiveInfo->itemId, -1);
         }
-
-        OotmmCustomItems_MarkExplosive(spawnedActor, explosiveType);
 
         this->interactRangeActor = spawnedActor;
         this->heldActor = spawnedActor;
@@ -2536,7 +2534,7 @@ s32 Player_GetItemOnButton(PlayState* play, s32 index) {
     } else if (play->bombchuBowlingStatus != 0) {
         return (play->bombchuBowlingStatus > 0) ? ITEM_BOMBCHU : ITEM_NONE;
     } else if (index == 0) {
-        return B_BTN_ITEM;
+        return (gSaveContext.equips.buttonItems[0] == ITEM_FISHING_POLE ? ITEM_FISHING_POLE : B_BTN_ITEM);
     } else if (index == 1) {
         return C_BTN_ITEM(0);
     } else if (index == 2) {
@@ -2568,7 +2566,8 @@ void Player_ProcessItemButtons(Player* this, PlayState* play) {
     s32 item;
     s32 i;
 
-    if (this->currentMask != PLAYER_MASK_NONE && !CVarGetInteger(CVAR_ENHANCEMENT("PersistentMasks"), 0)) {
+    if (this->currentMask != PLAYER_MASK_NONE && !OotmmSession_IsActive() &&
+        !CVarGetInteger(CVAR_ENHANCEMENT("PersistentMasks"), 0)) {
         maskItemAction = this->currentMask - 1 + PLAYER_IA_MASK_KEATON;
 
         bool hasOnDpad = false;
@@ -2592,7 +2591,7 @@ void Player_ProcessItemButtons(Player* this, PlayState* play) {
                     hasOnDpad |= Player_ItemIsInUse(this, DPAD_ITEM(buttonIndex));
                 }
             }
-            if (!Player_ItemIsInUse(this, B_BTN_ITEM) && !Player_ItemIsInUse(this, C_BTN_ITEM(0)) &&
+            if (!Player_ItemIsInUse(this, (gSaveContext.equips.buttonItems[0] == ITEM_FISHING_POLE ? ITEM_FISHING_POLE : B_BTN_ITEM)) && !Player_ItemIsInUse(this, C_BTN_ITEM(0)) &&
                 !Player_ItemIsInUse(this, C_BTN_ITEM(1)) && !Player_ItemIsInUse(this, C_BTN_ITEM(2)) && !hasOnDpad) {
                 Player_UseItem(play, this, ITEM_NONE);
                 return;
@@ -4882,7 +4881,9 @@ s32 func_808382DC(Player* this, PlayState* play) {
             // Additionally, `Collider.atHit` can never be set while already colliding as AC, so it's also bugged.
             // This behavior was later fixed in MM, most likely by removing both the `atHit` and `atFlags` checks.
             if (sp64 || ((this->invincibilityTimer < 0) && (this->cylinder.base.acFlags & AC_HIT) &&
-                         (this->cylinder.info.atHit != NULL) && (this->cylinder.info.atHit->atFlags & 0x20000000))) {
+                         (((this->cylinder.info.atHit != NULL) && (this->cylinder.info.atHit->atFlags & 0x20000000)) ||
+                          (OotmmBomMm_IsCustomBomb(this->cylinder.base.ac) && (this->cylinder.info.acHitInfo != NULL) &&
+                           (this->cylinder.info.acHitInfo->toucher.dmgFlags != DMG_UNBLOCKABLE))))) {
 
                 Player_RequestRumble(this, 180, 20, 100, 0);
 
@@ -5647,6 +5648,9 @@ void func_8083A0F4(PlayState* play, Player* this) {
                 Player_SetupAction(play, this, Player_Action_80846120, 0);
                 this->stateFlags1 |= PLAYER_STATE1_IN_CUTSCENE;
                 anim = &gPlayerAnim_link_normal_heavy_carry;
+                if (OotmmSession_IsActive()) {
+                    this->actor.shape.rot.y = interactRangeActor->shape.rot.y + 0x8000;
+                }
             } else if ((interactActorId == ACTOR_EN_ISHI) && ((interactRangeActor->params & 0xF) == 1)) {
                 Player_SetupAction(play, this, Player_Action_80846260, 0);
                 anim = &gPlayerAnim_link_silver_carry;
@@ -5666,7 +5670,12 @@ void func_8083A0F4(PlayState* play, Player* this) {
             }
 
             if (GameInteractor_Should(VB_PLAY_THROW_ANIMATION, true, anim)) {
-                LinkAnimation_PlayOnce(play, &this->skelAnime, anim);
+                if (OotmmSession_IsActive() && (anim == &gPlayerAnim_link_silver_carry)) {
+                    LinkAnimation_Change(play, &this->skelAnime, anim, 3.0f, 0.0f, Animation_GetLastFrame(anim),
+                                         ANIMMODE_ONCE, 0.0f);
+                } else {
+                    LinkAnimation_PlayOnce(play, &this->skelAnime, anim);
+                }
             }
         }
     } else {
@@ -5714,7 +5723,7 @@ void func_8083A434(PlayState* play, Player* this) {
 
     this->stateFlags1 |= PLAYER_STATE1_GETTING_ITEM | PLAYER_STATE1_IN_CUTSCENE;
 
-    if (this->getItemId == GI_HEART_CONTAINER_2) {
+    if (!OotmmSession_IsActive() && (this->getItemId == GI_HEART_CONTAINER_2)) {
         this->av2.actionVar2 = 20;
     } else if (this->getItemId >= 0 ||
                (this->getItemEntry.objectId != OBJECT_INVALID && this->getItemEntry.getItemId >= 0)) {
@@ -7454,7 +7463,8 @@ s32 Player_ActionHandler_2(Player* this, PlayState* play) {
             }
         } else if (CHECK_BTN_ALL(sControlInput->press.button, BTN_A) &&
                    !(this->stateFlags1 & PLAYER_STATE1_CARRYING_ACTOR) &&
-                   !(this->stateFlags2 & PLAYER_STATE2_UNDERWATER)) {
+                   (!(this->stateFlags2 & PLAYER_STATE2_UNDERWATER) ||
+                    (OotmmSession_IsActive() && (this->currentBoots == PLAYER_BOOTS_IRON)))) {
             if (this->getItemId != GI_NONE) {
                 if (GameInteractor_Should(VB_OPEN_CHEST, true)) {
                     GetItemEntry giEntry;
@@ -10516,6 +10526,14 @@ static AnimSfxEntry D_8085461C[] = {
 };
 
 void Player_Action_80846120(Player* this, PlayState* play) {
+    if (OotmmSession_IsActive() && (this->skelAnime.animation == &gPlayerAnim_link_normal_heavy_carry)) {
+        if (this->skelAnime.curFrame == 103.5f) {
+            this->skelAnime.curFrame = 228.0f;
+        } else if (this->skelAnime.curFrame == 249.0f) {
+            this->actionFunc = Player_Action_CsAction;
+        }
+    }
+
     if (LinkAnimation_Update(play, &this->skelAnime) && (this->av2.actionVar2++ > 20)) {
         if (!Player_ActionHandler_13(this, play)) {
             func_8083A098(this, &gPlayerAnim_link_normal_heavy_carry_end, play);
@@ -10538,7 +10556,7 @@ void Player_Action_80846120(Player* this, PlayState* play) {
 
         if (GameInteractor_Should(VB_MOVE_THROWN_ACTOR, true, heldActor)) {
             heldActor->speedXZ = Math_SinS(heldActor->shape.rot.x) * 40.0f;
-            heldActor->velocity.y = Math_CosS(heldActor->shape.rot.x) * 40.0f;
+            heldActor->velocity.y = Math_CosS(heldActor->shape.rot.x) * (OotmmSession_IsActive() ? 38.0f : 40.0f);
             heldActor->gravity = -2.0f;
             heldActor->minVelocityY = -30.0f;
         }
@@ -10923,6 +10941,10 @@ void Player_Init(Actor* thisx, PlayState* play2) {
                 this->unk_A86 = -2;
             }
 
+            if (respawnFlag == -4) {
+                respawnFlag = 1;
+            }
+
             if (respawnFlag < 0) {
                 respawnMode = 0;
             } else {
@@ -10999,6 +11021,7 @@ void Player_Init(Actor* thisx, PlayState* play2) {
     }
 
     Map_SavePlayerInitialInfo(play);
+    OotmmSongs_UpdateLastSafePos(play, this);
     MREG(64) = 0;
 }
 
@@ -11089,7 +11112,8 @@ void Player_UpdateInterface(PlayState* play, Player* this) {
                 } else if ((!(this->stateFlags1 & PLAYER_STATE1_CARRYING_ACTOR) || (heldActor == NULL)) &&
                            (interactRangeActor != NULL) &&
                            ((!sp1C && (this->getItemId == GI_NONE)) ||
-                            (this->getItemId < 0 && !(this->stateFlags1 & PLAYER_STATE1_IN_WATER)))) {
+                            (this->getItemId < 0 &&
+                             (OotmmSession_IsActive() || !(this->stateFlags1 & PLAYER_STATE1_IN_WATER))))) {
                     if (this->getItemId < 0) {
                         doAction = DO_ACTION_OPEN;
                     } else if ((interactRangeActor->id == ACTOR_BG_TOKI_SWD) && LINK_IS_ADULT) {
@@ -11554,6 +11578,9 @@ void Player_ProcessSceneCollision(PlayState* play, Player* this) {
 
             if (this->actor.floorBgId != BGCHECK_SCENE) {
                 DynaPoly_SetPlayerOnTop(&play->colCtx, this->actor.floorBgId);
+            } else if (!(this->actor.bgCheckFlags & 2) && this->actor.yDistToWater <= 24.0f &&
+                       COLPOLY_GET_NORMAL(floorPoly->normal.y) > 0.5f && sFloorType != 1 && sConveyorSpeed == 0) {
+                OotmmSongs_UpdateLastSafePos(play, this);
             }
 
             floorPolyNormalX = COLPOLY_GET_NORMAL(floorPoly->normal.x);
@@ -12680,7 +12707,15 @@ void Player_Draw(Actor* thisx, PlayState* play2) {
                        Gfx_TwoTexScrollEx(play->state.gfxCtx, 0, 0, (0 - play->gameplayFrames) % 128, 32, 32, 1, 0,
                                           (play->gameplayFrames * -2) % 128, 32, 32, 0, -1, 0, -2));
 
-            Matrix_Scale(scale, scale, scale, MTXMODE_APPLY);
+            if (OotmmSession_IsActive()) {
+                Matrix_Translate(this->actor.world.pos.x, this->actor.world.pos.y, this->actor.world.pos.z,
+                                 MTXMODE_NEW);
+                Matrix_RotateY(this->actor.world.rot.y * (M_PI / 0x8000), MTXMODE_APPLY);
+                Matrix_Scale(scale * this->actor.scale.x, scale * this->actor.scale.y, scale * this->actor.scale.z,
+                             MTXMODE_APPLY);
+            } else {
+                Matrix_Scale(scale, scale, scale, MTXMODE_APPLY);
+            }
             gSPMatrix(POLY_XLU_DISP++, MATRIX_NEWMTX(play->state.gfxCtx), G_MTX_NOPUSH | G_MTX_LOAD | G_MTX_MODELVIEW);
             gDPSetEnvColor(POLY_XLU_DISP++, 0, 50, 100, 255);
             gSPDisplayList(POLY_XLU_DISP++, gEffIceFragment3DL);
@@ -13752,6 +13787,9 @@ void Player_Action_8084CC98(Player* this, PlayState* play) {
         return;
     }
 
+    if (rideActor->actor.bgCheckFlags & 1) {
+        OotmmSongs_UpdateLastSafePos(play, this);
+    }
     func_8002DE74(play, this);
     this->skelAnime.prevTransl = D_8085499C;
 
@@ -16544,7 +16582,9 @@ void func_8085283C(PlayState* play, Player* this, CsCmdActorCue* cue) {
         func_80852944(play, this, cue);
         // This is when link picks up the sword in the Ganon fight
     } else if (this->av2.actionVar2 == 0) {
-        Item_Give(play, ITEM_SWORD_MASTER);
+        if (!OotmmSession_IsActive() || OotmmMasterSword_Found()) {
+            Item_Give(play, ITEM_SWORD_MASTER);
+        }
         func_80846720(play, this, 0);
     } else {
         func_8084E988(this);

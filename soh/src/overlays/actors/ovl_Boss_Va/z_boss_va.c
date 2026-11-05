@@ -15,6 +15,7 @@
 #include "overlays/actors/ovl_Door_Warp1/z_door_warp1.h"
 
 #include "soh/OTRGlobals.h"
+#include "soh/OotmmSession.h"
 #include "soh/frame_interpolation.h"
 #include "soh/Enhancements/game-interactor/GameInteractor.h"
 #include "soh/Enhancements/game-interactor/GameInteractor_Hooks.h"
@@ -639,7 +640,7 @@ void BossVa_Init(Actor* thisx, PlayState* play2) {
                                BOSSVA_DOOR);
             if (Flags_GetClear(play, play->roomCtx.curRoom.num)) {
                 warpId = ACTOR_EN_RU1;
-                if (Flags_GetEventChkInf(EVENTCHKINF_USED_JABU_JABUS_BELLY_BLUE_WARP)) {
+                if (OotmmSession_IsActive() || Flags_GetEventChkInf(EVENTCHKINF_USED_JABU_JABUS_BELLY_BLUE_WARP)) {
                     warpId = ACTOR_DOOR_WARP1;
                 }
                 if (GameInteractor_Should(VB_SPAWN_BLUE_WARP, true, this)) {
@@ -1667,7 +1668,7 @@ void BossVa_BodyDeath(BossVa* this, PlayState* play) {
                 }
 
                 if (GameInteractor_Should(VB_SPAWN_BLUE_WARP, true, this)) {
-                    Actor_Spawn(&play->actorCtx, play, ACTOR_EN_RU1, sWarpPos[sp7C].x, sWarpPos[sp7C].y,
+                    Actor_Spawn(&play->actorCtx, play, OotmmSession_IsActive() ? ACTOR_DOOR_WARP1 : ACTOR_EN_RU1, sWarpPos[sp7C].x, sWarpPos[sp7C].y,
                                 sWarpPos[sp7C].z, 0, 0, 0, 0);
                 }
             }

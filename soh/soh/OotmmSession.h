@@ -12,6 +12,9 @@ extern "C" {
 
 int32_t OotmmSession_IsActive(void);
 int32_t OotmmSession_ApplyFreestandingCosmetics(void);
+void OotmmSession_HorseSpawnFixup(struct PlayState* play);
+void OotmmSession_PatchWeather(struct PlayState* play);
+void OotmmSession_EventFixes(void);
 int32_t OotmmSession_RequestFileSelection(int32_t slot);
 int32_t OotmmSession_FileSelectionPending(void);
 int32_t OotmmSession_RequestFileCopy(int32_t source, int32_t target);
@@ -21,6 +24,7 @@ void OotmmSession_FixLoadSpawn(void);
 int32_t OotmmSession_TryStartLoadSpawnHandoff(void);
 void OotmmSession_NotePlayerExitTransition(void);
 void OotmmSession_PrepareGrottoReturn(void);
+int32_t OotmmSession_ShuffledWallmaster(int16_t actorId);
 int32_t OotmmSession_WallmasterTakePlayer(struct PlayState* play, struct Actor* wallmaster);
 void OotmmSession_ApplyDeathRespawn(void);
 int32_t OotmmSession_ReturnToSpawn(void);
@@ -28,6 +32,7 @@ int32_t OotmmSession_ApplyResolvedOotEntrance(uint32_t entrance);
 int32_t OotmmSession_RedirectBossWarp(uint32_t bossId);
 int32_t OotmmSession_PrepareSongWarp(uint32_t songId);
 int32_t OotmmSession_IsSceneMasterQuest(int32_t sceneNum);
+int32_t OotmmSession_GerudoCaughtEntrance(int32_t sceneNum);
 int32_t OotmmSession_BoolSetting(const char* key);
 
 #ifdef __cplusplus

@@ -20,11 +20,9 @@ void OotmmCustomItems_CaptureMaskMatrix(PlayState* play, Player* player);
 void OotmmCustomItems_DrawWornMask(PlayState* play, Player* player);
 int OotmmCustomItems_ExplosiveAmmo(int explosiveType);
 
-void OotmmCustomItems_MarkExplosive(Actor* spawned, int explosiveType);
-float OotmmCustomItems_ExplosiveScale(Actor* actor);
-void OotmmCustomItems_TrackKegFuse(Actor* actor, int held);
-int OotmmCustomItems_KegFusePaused(PlayState* play, Actor* actor);
-int OotmmCustomItems_DrawPowderKeg(PlayState* play, Actor* actor);
+int OotmmCustomItems_KegFuse(void);
+void OotmmCustomItems_SetKegFuse(int fuse);
+Actor* OotmmCustomItems_SpawnExplosive(PlayState* play, Player* player, int explosiveType, s16 actorId);
 
 #ifdef __cplusplus
 }

@@ -56,6 +56,10 @@ void FixMasterSword() {
 
 } // namespace
 
+extern "C" int32_t OotmmMasterSword_Found(void) {
+    return FoundMasterSword() ? 1 : 0;
+}
+
 extern "C" int32_t OotmmMasterSword_CanTimeTravel(void) {
     return !OotmmSession_BoolSetting("timeTravelSword") ||
            CHECK_OWNED_EQUIP(EQUIP_TYPE_SWORD, EQUIP_INV_SWORD_MASTER) || FoundMasterSword();

@@ -5,6 +5,7 @@
  */
 
 #include "z_bg_spot12_gate.h"
+#include "soh/OotmmSession.h"
 #include "objects/object_spot12_obj/object_spot12_obj.h"
 
 #define FLAGS 0
@@ -84,7 +85,11 @@ void func_808B30C0(BgSpot12Gate* this) {
 void func_808B30D8(BgSpot12Gate* this, PlayState* play) {
     if (Flags_GetSwitch(play, this->dyna.actor.params & 0x3F)) {
         func_808B3134(this);
-        OnePointCutscene_Init(play, 4160, -99, &this->dyna.actor, MAIN_CAM);
+        if (OotmmSession_IsActive()) {
+            this->unk_168 = 0;
+        } else {
+            OnePointCutscene_Init(play, 4160, -99, &this->dyna.actor, MAIN_CAM);
+        }
     }
 }
 
@@ -107,7 +112,11 @@ void func_808B318C(BgSpot12Gate* this, PlayState* play) {
     s32 pad;
     s32 var;
 
-    Math_StepToF(&this->dyna.actor.velocity.y, 1.6f, 0.03f);
+    if (OotmmSession_IsActive()) {
+        Math_StepToF(&this->dyna.actor.velocity.y, 20.0f, 20.0f);
+    } else {
+        Math_StepToF(&this->dyna.actor.velocity.y, 1.6f, 0.03f);
+    }
     if (Math_StepToF(&this->dyna.actor.world.pos.y, this->dyna.actor.home.pos.y + 200.0f,
                      this->dyna.actor.velocity.y)) {
         func_808B3274(this);

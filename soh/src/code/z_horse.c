@@ -1,5 +1,6 @@
 #include "global.h"
 #include "vt.h"
+#include "soh/OotmmSession.h"
 #include <assert.h>
 #include "soh/Enhancements/game-interactor/GameInteractor.h"
 #include "soh/Enhancements/game-interactor/GameInteractor_Hooks.h"
@@ -19,6 +20,9 @@ s32 func_8006CFC0(s32 scene) {
 }
 
 void func_8006D074(PlayState* play) {
+    if (OotmmSession_IsActive()) {
+        return;
+    }
     gSaveContext.horseData.scene = SCENE_HYRULE_FIELD;
     gSaveContext.horseData.pos.x = -1840;
     gSaveContext.horseData.pos.y = 72;
@@ -243,6 +247,9 @@ void func_8006D684(PlayState* play, Player* player) {
 }
 
 void func_8006DC68(PlayState* play, Player* player) {
+    if (OotmmSession_IsActive()) {
+        OotmmSession_HorseSpawnFixup(play);
+    }
     if (LINK_IS_ADULT) {
         if (!func_8006CFC0(gSaveContext.horseData.scene)) {
             osSyncPrintf(VT_COL(RED, WHITE));

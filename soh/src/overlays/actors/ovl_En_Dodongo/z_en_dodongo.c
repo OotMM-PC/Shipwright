@@ -1,6 +1,7 @@
 #include "z_en_dodongo.h"
 #include "overlays/actors/ovl_En_Bom/z_en_bom.h"
 #include "overlays/actors/ovl_En_Bombf/z_en_bombf.h"
+#include "overlays/actors/ovl_En_Bom_Chu/z_en_bom_chu.h"
 #include "objects/object_dodongo/object_dodongo.h"
 #include "soh/Enhancements/game-interactor/GameInteractor_Hooks.h"
 #include "soh/ResourceManagerHelpers.h"
@@ -466,10 +467,14 @@ void EnDodongo_SwallowBomb(EnDodongo* this, PlayState* play) {
         ((EnBom*)this->actor.child)->timer++;
     } else if (this->actor.parent != NULL) {
         this->actor.parent->world.pos = this->mouthPos;
-        ((EnBombf*)this->actor.parent)->timer++;
-        //! @bug An explosive can also be a bombchu, not always a bomb, which leads to a serious bug. ->timer (0x1F8) is
-        //! outside the bounds of the bombchu actor, and the memory it writes to happens to be one of the pointers in
-        //! the next arena node. When this value is written to, massive memory corruption occurs.
+        switch (this->actor.parent->id) {
+            case ACTOR_EN_BOM_CHU:
+                ((EnBomChu*)this->actor.parent)->timer++;
+                break;
+            case ACTOR_EN_BOMBF:
+                ((EnBombf*)this->actor.parent)->timer++;
+                break;
+        }
     }
 
     if ((s32)this->skelAnime.curFrame == 28) {

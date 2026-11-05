@@ -10,6 +10,7 @@
 #include <string_view>
 
 extern "C" {
+extern PlayState* gPlayState;
 #include "functions.h"
 #include "variables.h"
 #include "z64.h"
@@ -153,6 +154,32 @@ extern "C" void OotmmSilverRupeesSyncFlags(PlayState* play) {
             Flags_SetSwitch(play, puzzle.flag);
         } else {
             gSaveContext.sceneFlags[puzzle.scene].swch |= 1u << puzzle.flag;
+        }
+    }
+}
+
+extern "C" void OotmmSilverRupeesUpdateTempFlags(void) {
+    if (gPlayState == nullptr || !ShuffleActive() || !OotmmSession_IsSceneMasterQuest(gPlayState->sceneNum)) {
+        return;
+    }
+    static constexpr struct {
+        int16_t Scene;
+        const char* Suffix;
+        int32_t Flag;
+    } kTempPuzzles[] = {
+        { SCENE_DODONGOS_CAVERN, "DC", 0x25 },
+        { SCENE_SPIRIT_TEMPLE, "SPIRIT_LOBBY", 0x37 },
+    };
+    for (const auto& puzzle : kTempPuzzles) {
+        if (gPlayState->sceneNum != puzzle.Scene) {
+            continue;
+        }
+        const std::string suffix(puzzle.Suffix);
+        const auto& inventory = OotmmIpc_GetInventory();
+        const uint32_t required = Ship::OotmmSilverRupees::Required(puzzle.Suffix, true);
+        if (OwnsMagicalRupee() || inventory.Has("OOT_POUCH_SILVER_" + suffix) ||
+            (required != 0 && inventory.Count("OOT_RUPEE_SILVER_" + suffix) >= required)) {
+            Flags_SetSwitch(gPlayState, puzzle.Flag);
         }
     }
 }

@@ -373,6 +373,15 @@ void Play_Init(GameState* thisx) {
         return;
     }
 
+    OotmmSession_EventFixes();
+
+    if (OotmmSession_IsActive()) {
+        if (gSaveContext.entranceIndex == ENTR_CASTLE_COURTYARD_GUARDS_DAY_0) {
+            gSaveContext.entranceIndex = ENTR_CASTLE_COURTYARD_ZELDA_0;
+        } else if (gSaveContext.entranceIndex == ENTR_CASTLE_COURTYARD_GUARDS_DAY_1) {
+            gSaveContext.entranceIndex = ENTR_CASTLE_GROUNDS_RAINBOW_BRIDGE_EXIT;
+        }
+    }
     if ((gSaveContext.entranceIndex == ENTR_GANON_BOSS_0) && OotmmSession_IsActive() &&
         (OotmmSouls_Withheld("NPC_ZELDA") || !OotmmItemApply_FoundMasterSword())) {
         gSaveContext.entranceIndex = ENTR_GANONS_TOWER_0;

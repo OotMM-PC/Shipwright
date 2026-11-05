@@ -35,6 +35,7 @@ extern "C" {
 #include "src/overlays/actors/ovl_Fishing/z_fishing.h"
 #include "src/overlays/actors/ovl_En_Ge1/z_en_ge1.h"
 #include "src/overlays/actors/ovl_En_Ta/z_en_ta.h"
+#include "src/overlays/actors/ovl_En_Tk/z_en_tk.h"
 #include "src/overlays/actors/ovl_En_Go2/z_en_go2.h"
 #include "src/overlays/actors/ovl_En_Kz/z_en_kz.h"
 #include "src/overlays/actors/ovl_En_Niw_Lady/z_en_niw_lady.h"
@@ -91,7 +92,7 @@ const char* FishingSite() {
 }
 
 bool IsFishingPrizeCatch(const VBFishingData* data) {
-    return data != nullptr && data->fishWeight >= (LINK_IS_ADULT ? 60.0f : 50.0f);
+    return data != nullptr && data->fishWeight >= (LINK_IS_ADULT ? 50.0f : 44.0f);
 }
 
 int32_t Collect(const char* nativeId) {
@@ -923,6 +924,20 @@ void OotmmNpcChecks_Init(void) {
         }
     });
 
+    REGISTER_VB_SHOULD(VB_SHIEK_PREPARE_TO_GIVE_SERENADE_OF_WATER, {
+        *should = !OotmmNpcChecks_IsCollected("OOT_SHEIK_WATER");
+    });
+
+    REGISTER_VB_SHOULD(VB_BE_ELIGIBLE_FOR_SERENADE_OF_WATER, {
+        Player* player = gPlayState != nullptr ? GET_PLAYER(gPlayState) : nullptr;
+        *should = player != nullptr && !OotmmNpcChecks_IsCollected("OOT_SHEIK_WATER") &&
+                  Flags_GetTreasure(gPlayState, 0x02) && !(player->stateFlags1 & PLAYER_STATE1_GETTING_ITEM);
+    });
+
+    REGISTER_VB_SHOULD(VB_BE_ELIGIBLE_FOR_PRELUDE_OF_LIGHT, {
+        *should = CHECK_QUEST_ITEM(QUEST_MEDALLION_FOREST) && !OotmmNpcChecks_IsCollected("OOT_SHEIK_LIGHT");
+    });
+
     REGISTER_VB_SHOULD(VB_BE_ELIGIBLE_FOR_SARIAS_SONG, {
         if (OotmmNpcChecks_IsShuffled("OOT_SARIA_SONG")) {
             *should = !OotmmNpcChecks_IsCollected("OOT_SARIA_SONG");
@@ -955,21 +970,43 @@ void OotmmNpcChecks_Init(void) {
     GameInteractor::Instance->RegisterGameHook<GameInteractor::OnOpenText>(BuildSkulltulaHouseText);
 
     GameInteractor::Instance->RegisterGameHook<GameInteractor::OnOpenText>(BuildScrubText);
+    GameInteractor::Instance->RegisterGameHookForID<GameInteractor::OnOpenText>(0x4050, BuildRutoSapphireText);
     GameInteractor::Instance->RegisterGameHookForID<GameInteractor::OnOpenText>(0x304F, BuildMedigoronOfferText);
     GameInteractor::Instance->RegisterGameHookForID<GameInteractor::OnOpenText>(0x6077, BuildCarpetMerchantText);
     GameInteractor::Instance->RegisterGameHookForID<GameInteractor::OnOpenText>(0x500C, BuildGrannyOfferText);
     GameInteractor::Instance->RegisterGameHookForID<GameInteractor::OnOpenText>(0x208B, BuildTalonMilkText);
+    GameInteractor::Instance->RegisterGameHookForID<GameInteractor::OnOpenText>(0x6073, BuildCarpetCantBuyText);
+    GameInteractor::Instance->RegisterGameHookForID<GameInteractor::OnOpenText>(0x208A, BuildTalonCantBuyText);
+    GameInteractor::Instance->RegisterGameHookForID<GameInteractor::OnOpenText>(0x96, BuildGrannyCantBuyText);
     REGISTER_VB_SHOULD(VB_GIVE_ITEM_FROM_BUSINESS_SCRUB, {
         EnDns* scrub = va_arg(args, EnDns*);
         if (!IsShuffledScrub(scrub)) {
+            return;
+        }
+        if (scrub->ootmmItemEntry.getItemId != GI_NONE) {
             return;
         }
         const auto* placement = FindScrub(&scrub->actor, gPlayState);
         if (placement != nullptr && !IsCollected(*placement)) {
             OotmmIpc_SendCheckCollected(placement->CheckId, true);
             OotmmCheckLedger_Record(placement->CheckId);
+        } else {
+            ConsumeLedgerRepeat();
         }
         *should = false;
+    });
+    REGISTER_VB_SHOULD(VB_BUSINESS_SCRUB_DESPAWN, {
+        Actor* scrub = va_arg(args, Actor*);
+        const auto* placement = scrub != nullptr ? FindScrub(scrub, gPlayState) : nullptr;
+        if (placement != nullptr) {
+            *should = IsCollected(*placement) && OotmmNpcChecks_FindRepeat(*placement) == nullptr;
+        }
+    });
+    REGISTER_VB_SHOULD(VB_NEED_BOTTLE_FOR_GRANNYS_ITEM, {
+        const int result = OotmmNpcChecks_MerchantCanBuy("OOT_WITCH_BLUE_POTION", 0);
+        if (result >= 0) {
+            *should = result == 1;
+        }
     });
 
     REGISTER_VB_SHOULD(VB_SET_CUCCO_COUNT, {
@@ -1054,6 +1091,7 @@ void OotmmNpcChecks_Init(void) {
         }
     });
 
+    REGISTER_VB_SHOULD(VB_USE_EYEDROP_DIALOGUE, { *should = false; });
     REGISTER_VB_SHOULD(VB_TRADE_TIMER_ODD_MUSHROOM, { *should = false; });
     REGISTER_VB_SHOULD(VB_TRADE_TIMER_EYEDROPS, { *should = false; });
     REGISTER_VB_SHOULD(VB_TRADE_TIMER_FROG, { *should = false; });
@@ -1175,6 +1213,18 @@ void OotmmNpcChecks_Init(void) {
         }
     });
 
+    REGISTER_VB_SHOULD(VB_DAMPE_IN_GRAVEYARD_DESPAWN, {
+        if (gPlayState != nullptr && !Flags_GetCollectible(gPlayState, 0x1F)) {
+            Flags_UnsetItemGetInf(ITEMGETINF_1C);
+        }
+    });
+    REGISTER_VB_SHOULD(VB_BE_VALID_GRAVEDIGGING_SPOT, {
+        EnTk* dampe = va_arg(args, EnTk*);
+        if (dampe != nullptr) {
+            dampe->validDigHere = 1;
+            *should = true;
+        }
+    });
     REGISTER_VB_SHOULD(VB_BE_DAMPE_GRAVEDIGGING_GRAND_PRIZE, {
         if (!Flags_GetItemGetInf(ITEMGETINF_1C)) {
             *should = true;
@@ -1215,6 +1265,11 @@ void OotmmNpcChecks_Init(void) {
         }
     });
 
+    REGISTER_VB_SHOULD(VB_REVERT_SPOILING_ITEMS, {
+        if (OotmmSession_IsActive()) {
+            *should = false;
+        }
+    });
     REGISTER_VB_SHOULD(VB_GIVE_FISHING_PRIZE, {
         const VBFishingData* data = va_arg(args, const VBFishingData*);
         const char* site = FishingSite();
@@ -1246,6 +1301,11 @@ void OotmmNpcChecks_Init(void) {
             *should = false;
         }
     });
+    REGISTER_VB_SHOULD(VB_GERUDOS_BE_FRIENDLY, {
+        if (OotmmSession_IsActive()) {
+            *should = CHECK_QUEST_ITEM(QUEST_GERUDO_CARD);
+        }
+    });
     REGISTER_VB_SHOULD(VB_GIVE_ITEM_FROM_HORSEBACK_ARCHERY, {
         EnGe1* gerudo = va_arg(args, EnGe1*);
         constexpr uint16_t kGiveQuiver = 1 << 1;
@@ -1267,11 +1327,13 @@ void OotmmNpcChecks_Init(void) {
     });
 
     REGISTER_VB_SHOULD(VB_SPAWN_LW_FADO, {
-        *should = OwnsTradeItem(SLOT_TRADE_ADULT, ITEM_ODD_POTION);
+        *should = OwnsTradeItem(SLOT_TRADE_ADULT, ITEM_ODD_POTION) &&
+                  (gSaveContext.inventory.items[SLOT_TRADE_ADULT] != ITEM_COJIRO);
     });
     REGISTER_VB_SHOULD(VB_DESPAWN_GROG, {
-        *should = !(OwnsTradeItem(SLOT_TRADE_ADULT, ITEM_COJIRO) &&
-                    !OwnsTradeItem(SLOT_TRADE_ADULT, ITEM_ODD_POTION));
+        *should = !((OwnsTradeItem(SLOT_TRADE_ADULT, ITEM_COJIRO) &&
+                     !OwnsTradeItem(SLOT_TRADE_ADULT, ITEM_ODD_POTION)) ||
+                    (gSaveContext.inventory.items[SLOT_TRADE_ADULT] == ITEM_COJIRO));
     });
 
     REGISTER_VB_SHOULD(VB_BE_ELIGIBLE_FOR_DARUNIAS_JOY_REWARD, {

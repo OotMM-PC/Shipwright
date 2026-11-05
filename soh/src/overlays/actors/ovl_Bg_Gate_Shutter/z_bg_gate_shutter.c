@@ -5,6 +5,7 @@
  */
 
 #include "z_bg_gate_shutter.h"
+#include "soh/OotmmSession.h"
 #include "objects/object_spot01_matoyab/object_spot01_matoyab.h"
 #include "vt.h"
 #include "soh/OTRGlobals.h"
@@ -46,7 +47,7 @@ void BgGateShutter_Init(Actor* thisx, PlayState* play) {
     this->somePos.y = thisx->world.pos.y;
     this->somePos.z = thisx->world.pos.z;
     if (((Flags_GetInfTable(INFTABLE_SHOWED_ZELDAS_LETTER_TO_GATE_GUARD)) ||
-         (Flags_GetEventChkInf(EVENTCHKINF_PULLED_MASTER_SWORD_FROM_PEDESTAL))) &&
+         (!OotmmSession_IsActive() && Flags_GetEventChkInf(EVENTCHKINF_PULLED_MASTER_SWORD_FROM_PEDESTAL))) &&
         (play->sceneNum == SCENE_KAKARIKO_VILLAGE)) {
         thisx->world.pos.x = -89.0f;
         thisx->world.pos.z = -1375.0f;

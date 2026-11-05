@@ -819,7 +819,7 @@ void func_80083108(PlayState* play) {
 
         if ((player->stateFlags1 & PLAYER_STATE1_ON_HORSE) || (play->shootingGalleryStatus > 1) ||
             ((play->sceneNum == SCENE_BOMBCHU_BOWLING_ALLEY) && Flags_GetSwitch(play, 0x38))) {
-            if (gSaveContext.equips.buttonItems[0] != ITEM_NONE) {
+            if ((gSaveContext.equips.buttonItems[0] != ITEM_NONE) || OotmmSession_BoolSetting("swordlessAdult")) {
                 gSaveContext.forceRisingButtonAlphas = 1;
 
                 if (gSaveContext.buttonStatus[0] == BTN_DISABLED) {
@@ -832,7 +832,7 @@ void func_80083108(PlayState* play) {
                 if ((gSaveContext.equips.buttonItems[0] != ITEM_SLINGSHOT) &&
                     (gSaveContext.equips.buttonItems[0] != ITEM_BOW) &&
                     (gSaveContext.equips.buttonItems[0] != ITEM_BOMBCHU) &&
-                    (gSaveContext.equips.buttonItems[0] != ITEM_NONE)) {
+                    ((gSaveContext.equips.buttonItems[0] != ITEM_NONE) || OotmmSession_BoolSetting("swordlessAdult"))) {
                     gSaveContext.buttonStatus[0] = gSaveContext.equips.buttonItems[0];
 
                     if ((play->sceneNum == SCENE_BOMBCHU_BOWLING_ALLEY) && Flags_GetSwitch(play, 0x38)) {
@@ -986,7 +986,8 @@ void func_80083108(PlayState* play) {
                 }
             } else if ((gSaveContext.eventInf[0] & 0xF) == 1) {
                 if (player->stateFlags1 & PLAYER_STATE1_ON_HORSE) {
-                    if ((gSaveContext.equips.buttonItems[0] != ITEM_NONE) &&
+                    if (((gSaveContext.equips.buttonItems[0] != ITEM_NONE) ||
+                         OotmmSession_BoolSetting("swordlessAdult")) &&
                         (gSaveContext.equips.buttonItems[0] != ITEM_BOW)) {
                         if (gSaveContext.inventory.items[SLOT_BOW] == ITEM_NONE) {
                             gSaveContext.equips.buttonItems[0] = ITEM_NONE;
@@ -1352,6 +1353,15 @@ void Interface_SetSceneRestrictions(PlayState* play) {
             interfaceCtx->restrictions.farores = (sRestrictionFlags[i].flags3 & 0x30) >> 4;
             interfaceCtx->restrictions.dinsNayrus = (sRestrictionFlags[i].flags3 & 0x0C) >> 2;
             interfaceCtx->restrictions.all = (sRestrictionFlags[i].flags3 & 0x03) >> 0;
+
+            if (OotmmSession_IsActive()) {
+                if ((currentScene == SCENE_GERUDO_TRAINING_GROUND) || (currentScene == SCENE_INSIDE_GANONS_CASTLE)) {
+                    interfaceCtx->restrictions.warpSongs = 0;
+                    interfaceCtx->restrictions.farores = 0;
+                } else if ((currentScene == SCENE_SHOOTING_GALLERY) || (currentScene == SCENE_POTION_SHOP_GRANNY)) {
+                    interfaceCtx->restrictions.ocarina = 0;
+                }
+            }
 
             osSyncPrintf(VT_FGCOL(YELLOW));
             osSyncPrintf("parameter->button_status = %x,%x,%x\n", sRestrictionFlags[i].flags1,

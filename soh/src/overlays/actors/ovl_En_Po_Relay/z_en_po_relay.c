@@ -5,6 +5,7 @@
  */
 
 #include "z_en_po_relay.h"
+#include "soh/OotmmSession.h"
 #include "overlays/actors/ovl_En_Honotrap/z_en_honotrap.h"
 #include "objects/object_tk/object_tk.h"
 #include "soh/ResourceManagerHelpers.h"
@@ -337,7 +338,10 @@ void EnPoRelay_DisappearAndReward(EnPoRelay* this, PlayState* play) {
         }
     }
     if (Math_StepToF(&this->actor.scale.x, 0.0f, 0.001f) != 0) {
-        if (this->hookshotSlotFull != 0) {
+        if (OotmmSession_IsActive() || (this->hookshotSlotFull != 0)) {
+            if (OotmmSession_IsActive()) {
+                Flags_SetTempClear(play, 4);
+            }
             sp60.x = this->actor.world.pos.x;
             sp60.y = this->actor.floorHeight;
             sp60.z = this->actor.world.pos.z;

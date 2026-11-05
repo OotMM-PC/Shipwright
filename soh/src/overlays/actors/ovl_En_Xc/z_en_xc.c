@@ -14,6 +14,7 @@
 #include "scenes/dungeons/ice_doukutu/ice_doukutu_scene.h"
 #include "vt.h"
 #include "soh/ResourceManagerHelpers.h"
+#include "soh/OotmmSession.h"
 #include "soh/Enhancements/game-interactor/GameInteractor_Hooks.h"
 
 #define FLAGS ACTOR_FLAG_UPDATE_CULLING_DISABLED
@@ -2196,7 +2197,7 @@ void EnXc_InitTempleOfTime(EnXc* this, PlayState* play) {
                 gSaveContext.cutsceneTrigger = 1;
             }
             this->action = SHEIK_ACTION_30; // Not sure what this does exactly
-        } else if (!Flags_GetEventChkInf(EVENTCHKINF_LEARNED_PRELUDE_OF_LIGHT)) {
+        } else if (!OotmmSession_IsActive() && !Flags_GetEventChkInf(EVENTCHKINF_LEARNED_PRELUDE_OF_LIGHT)) {
             func_80B3C9EC(this);
         } else {
             Actor_Kill(&this->actor);

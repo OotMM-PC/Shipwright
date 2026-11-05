@@ -5,6 +5,7 @@
  */
 
 #include "z_bg_po_event.h"
+#include "soh/OotmmSession.h"
 #include "objects/object_po_sisters/object_po_sisters.h"
 #include "soh/Enhancements/game-interactor/GameInteractor.h"
 #include "soh/Enhancements/game-interactor/GameInteractor_Hooks.h"
@@ -388,10 +389,14 @@ void BgPoEvent_BlockPush(BgPoEvent* this, PlayState* play) {
     s32 blockStop;
     Player* player = GET_PLAYER(play);
 
-    this->dyna.actor.speedXZ =
-        this->dyna.actor.speedXZ + (CVarGetInteger(CVAR_ENHANCEMENT("FasterBlockPush"), 0) * 0.3) + 0.5f;
-    this->dyna.actor.speedXZ =
-        CLAMP_MAX(this->dyna.actor.speedXZ, 2.0f + (CVarGetInteger(CVAR_ENHANCEMENT("FasterBlockPush"), 0) * 0.5));
+    if (OotmmSession_IsActive()) {
+        this->dyna.actor.speedXZ = CLAMP_MAX(this->dyna.actor.speedXZ + 4.0f, 2.0f);
+    } else {
+        this->dyna.actor.speedXZ =
+            this->dyna.actor.speedXZ + (CVarGetInteger(CVAR_ENHANCEMENT("FasterBlockPush"), 0) * 0.3) + 0.5f;
+        this->dyna.actor.speedXZ =
+            CLAMP_MAX(this->dyna.actor.speedXZ, 2.0f + (CVarGetInteger(CVAR_ENHANCEMENT("FasterBlockPush"), 0) * 0.5));
+    }
     blockStop = Math_StepToF(&sBgPoEventblockPushDist, 20.0f, this->dyna.actor.speedXZ);
     displacement = this->direction * sBgPoEventblockPushDist;
     this->dyna.actor.world.pos.x = (Math_SinS(this->dyna.unk_158) * displacement) + this->dyna.actor.home.pos.x;
@@ -406,7 +411,7 @@ void BgPoEvent_BlockPush(BgPoEvent* this, PlayState* play) {
         this->dyna.actor.home.pos.z = this->dyna.actor.world.pos.z;
         sBgPoEventblockPushDist = 0.0f;
         this->dyna.actor.speedXZ = 0.0f;
-        this->direction = 5 - ((CVarGetInteger(CVAR_ENHANCEMENT("FasterBlockPush"), 0) * 3) / 5);
+        this->direction = OotmmSession_IsActive() ? 1 : 5 - ((CVarGetInteger(CVAR_ENHANCEMENT("FasterBlockPush"), 0) * 3) / 5);
         sBgPoEventBlocksAtRest++;
         this->actionFunc = BgPoEvent_BlockIdle;
         if (this->type == 1) {
@@ -544,7 +549,9 @@ void BgPoEvent_PaintingPresent(BgPoEvent* this, PlayState* play) {
 
         } else {
             Audio_PlayActorSound2(thisx, NA_SE_EN_PO_LAUGH2);
-            OnePointCutscene_Init(play, 3160, 35, thisx, MAIN_CAM);
+            if (!OotmmSession_IsActive()) {
+                OnePointCutscene_Init(play, 3160, 35, thisx, MAIN_CAM);
+            }
         }
         if (thisx->parent != NULL) {
             thisx->parent->child = NULL;

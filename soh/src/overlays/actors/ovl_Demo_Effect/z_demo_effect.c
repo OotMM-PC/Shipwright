@@ -12,6 +12,8 @@
 #include <assert.h>
 #include "soh/OTRGlobals.h"
 #include "soh/ResourceManagerHelpers.h"
+#include "soh/OotmmNpcChecks.h"
+#include "soh/OotmmSession.h"
 
 #define FLAGS (ACTOR_FLAG_UPDATE_CULLING_DISABLED | ACTOR_FLAG_DRAW_CULLING_DISABLED)
 
@@ -143,7 +145,7 @@ f32 DemoEffect_InterpolateCsFrames(PlayState* play, s32 csActionId) {
  */
 void DemoEffect_InitJewel(PlayState* play, DemoEffect* this) {
     this->initDrawFunc = DemoEffect_DrawJewel;
-    if (!LINK_IS_ADULT) {
+    if (!LINK_IS_ADULT || OotmmSession_IsActive()) {
         this->initUpdateFunc = DemoEffect_UpdateJewelChild;
     } else {
         this->initUpdateFunc = DemoEffect_UpdateJewelAdult;
@@ -494,7 +496,9 @@ void DemoEffect_Init(Actor* thisx, PlayState* play2) {
             this->jewel.isPositionInit = 0;
             DemoEffect_InitJewel(play, this);
             Actor_ChangeCategory(play, &play->actorCtx, &this->actor, ACTORCAT_BOSS);
-            if ((play->sceneNum == SCENE_JABU_JABU) && (Flags_GetInfTable(INFTABLE_145))) {
+            if ((play->sceneNum == SCENE_JABU_JABU) &&
+                (Flags_GetInfTable(INFTABLE_145) ||
+                 (OotmmSession_IsActive() && (gSaveContext.sceneFlags[SCENE_JABU_JABU].clear & (1 << 6))))) {
                 Actor_Kill(&this->actor);
                 return;
             }
@@ -1665,6 +1669,10 @@ void DemoEffect_DrawJewel(Actor* thisx, PlayState* play2) {
     DemoEffect* this = (DemoEffect*)thisx;
     PlayState* play = play2;
     u32 frames = this->jewel.timer;
+
+    if ((play->sceneNum == SCENE_JABU_JABU) && OotmmNpcChecks_DrawRutoSapphire(thisx, play)) {
+        return;
+    }
 
     OPEN_DISPS(play->state.gfxCtx);
 

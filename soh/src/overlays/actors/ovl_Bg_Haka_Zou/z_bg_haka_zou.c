@@ -5,6 +5,7 @@
  */
 
 #include "z_bg_haka_zou.h"
+#include "soh/OotmmSession.h"
 #include "objects/object_hakach_objects/object_hakach_objects.h"
 #include "objects/object_haka_objects/object_haka_objects.h"
 
@@ -86,7 +87,7 @@ void BgHakaZou_Init(Actor* thisx, PlayState* play) {
 
         thisx->speedXZ = Rand_ZeroOne();
         thisx->world.rot.y = thisx->shape.rot.y * ((Rand_ZeroOne() < 0.5f) ? -1 : 1) + Rand_CenteredFloat(0x1000);
-        this->timer = 20;
+        this->timer = OotmmSession_IsActive() ? 1 : 20;
         thisx->world.rot.x = Rand_S16Offset(0x100, 0x300) * ((Rand_ZeroOne() < 0.5f) ? -1 : 1);
         thisx->world.rot.z = Rand_S16Offset(0x400, 0x800) * ((Rand_ZeroOne() < 0.5f) ? -1 : 1);
     } else {
@@ -272,9 +273,13 @@ void func_80883000(BgHakaZou* this, PlayState* play) {
         Flags_SetSwitch(play, this->switchFlag);
 
         if (this->dyna.actor.params == STA_GIANT_BIRD_STATUE) {
-            this->timer = 20;
+            this->timer = OotmmSession_IsActive() ? 1 : 20;
             this->actionFunc = func_80883144;
-            OnePointCutscene_Init(play, 3400, 999, &this->dyna.actor, MAIN_CAM);
+            if (!OotmmSession_IsActive()) {
+                OnePointCutscene_Init(play, 3400, 999, &this->dyna.actor, MAIN_CAM);
+            } else {
+                Sfx_PlaySfxCentered(NA_SE_SY_CORRECT_CHIME);
+            }
         } else if (this->dyna.actor.params == 2) {
             func_80882E54(this, play);
             this->dyna.actor.draw = NULL;
@@ -319,7 +324,7 @@ void func_80883144(BgHakaZou* this, PlayState* play) {
     }
 
     if (this->timer == 0) {
-        this->timer = 20;
+        this->timer = OotmmSession_IsActive() ? 1 : 20;
         this->actionFunc = func_80883254;
     }
 }

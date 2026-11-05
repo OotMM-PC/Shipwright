@@ -1,4 +1,5 @@
 #include "global.h"
+#include "soh/OotmmSession.h"
 #include "vt.h"
 #include "soh/ActorDB.h"
 #include <assert.h>
@@ -114,13 +115,48 @@ void Object_UpdateBank(ObjectContext* objectCtx) {
     }
 }
 
-s32 Object_GetIndex(ObjectContext* objectCtx, s16 objectId) {
+s32 Object_GetIndexNative(ObjectContext* objectCtx, s16 objectId) {
     s32 i;
 
     // return 0;
 
     for (i = 0; i < objectCtx->num; i++) {
         if (ABS(objectCtx->status[i].id) == objectId) {
+            return i;
+        }
+    }
+
+    return -1;
+}
+
+#define OOTMM_EXTENDED_OBJECT_START 64
+
+s32 Object_GetIndex(ObjectContext* objectCtx, s16 objectId) {
+    s32 i = Object_GetIndexNative(objectCtx, objectId);
+
+    if ((i >= 0) || !OotmmSession_IsActive()) {
+        return i;
+    }
+
+    switch (objectId) {
+        case 0x00:
+        case 0x01:
+        case 0x02:
+        case 0x03:
+        case 0x14:
+        case 0x15:
+            return -1;
+        default:
+            break;
+    }
+
+    for (i = OOTMM_EXTENDED_OBJECT_START; i < OBJECT_EXCHANGE_BANK_MAX; i++) {
+        if (objectCtx->status[i].id == objectId) {
+            return i;
+        }
+        if (objectCtx->status[i].id == OBJECT_INVALID) {
+            objectCtx->status[i].id = objectId;
+            objectCtx->status[i].segment = objectCtx->spaceStart;
             return i;
         }
     }

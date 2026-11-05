@@ -509,6 +509,19 @@ u16 EnGo2_GetTextIdGoronCityLink(PlayState* play, EnGo2* this) {
         return overrideTextId;
     }
 
+    if (OotmmSession_IsActive()) {
+        if (!GameInteractor_Should(VB_GORONS_CONSIDER_TUNIC_COLLECTED,
+                                   CHECK_OWNED_EQUIP(EQUIP_TYPE_TUNIC, EQUIP_INV_TUNIC_GORON))) {
+            if (Flags_GetInfTable(INFTABLE_STOPPED_GORON_LINKS_ROLLING)) {
+                this->unk_20C = 0;
+                this->dialogState = TEXT_STATE_NONE;
+                return 0x3033;
+            }
+            return 0x3030;
+        }
+        return CHECK_QUEST_ITEM(QUEST_MEDALLION_FIRE) ? 0x3042 : 0x3038;
+    }
+
     if (GameInteractor_Should(VB_GORONS_CONSIDER_FIRE_TEMPLE_FINISHED, CHECK_QUEST_ITEM(QUEST_MEDALLION_FIRE))) {
         return Flags_GetInfTable(INFTABLE_10F) ? 0x3042 : 0x3041;
     } else if (GameInteractor_Should(VB_GORONS_CONSIDER_TUNIC_COLLECTED,
@@ -540,12 +553,15 @@ s16 EnGo2_UpdateTalkStateGoronCityLink(PlayState* play, EnGo2* this) {
             if (Message_ShouldAdvance(play)) {
                 if (this->actor.textId == 0x3034) {
                     if (play->msgCtx.choiceIndex == 0) {
-                        this->actor.textId = Flags_GetInfTable(INFTABLE_10B) ? 0x3033 : 0x3035;
-                        if (this->actor.textId == 0x3035) {
+                        this->actor.textId = OotmmSession_IsActive()          ? 0x3036
+                                             : Flags_GetInfTable(INFTABLE_10B) ? 0x3033
+                                                                               : 0x3035;
+                        if (this->actor.textId != 0x3033) {
                             Audio_StopSfxById(NA_SE_EN_GOLON_CRY);
                         }
                     } else {
-                        this->actor.textId = Flags_GetInfTable(INFTABLE_10B) ? 0x3036 : 0x3033;
+                        this->actor.textId =
+                            (OotmmSession_IsActive() || Flags_GetInfTable(INFTABLE_10B)) ? 0x3036 : 0x3033;
                         if (this->actor.textId == 0x3036) {
                             Audio_StopSfxById(NA_SE_EN_GOLON_CRY);
                         }
@@ -900,6 +916,7 @@ void EnGo2_SwapInitialFrameAnimFrameCount(EnGo2* this) {
 s32 func_80A44AB0(EnGo2* this, PlayState* play) {
     Player* player = GET_PLAYER(play);
     f32 arg2;
+
 
     if ((this->actor.params & 0x1F) == GORON_DMT_BIGGORON) {
         return false;

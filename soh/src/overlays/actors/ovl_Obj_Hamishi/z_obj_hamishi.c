@@ -6,6 +6,8 @@
 
 #include "z_obj_hamishi.h"
 #include "soh/OotmmXflags.h"
+#include "soh/OotmmSession.h"
+#include "soh/OotmmBomMm.h"
 #include "objects/gameplay_field_keep/gameplay_field_keep.h"
 
 #define FLAGS 0
@@ -174,6 +176,9 @@ void ObjHamishi_Update(Actor* thisx, PlayState* play) {
 
     if ((this->collider.base.acFlags & AC_HIT) && (this->collider.info.acHitInfo->toucher.dmgFlags & 0x40000040)) {
         this->collider.base.acFlags &= ~AC_HIT;
+        if (OotmmSession_IsActive() && OotmmBomMm_IsPowderKeg(this->collider.base.ac)) {
+            this->hitCount = 1;
+        }
         this->hitCount++;
         if (this->hitCount < 2) {
             this->shakeFrames = 15;

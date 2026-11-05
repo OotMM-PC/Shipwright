@@ -1,5 +1,6 @@
 #include "global.h"
 #include "soh/Enhancements/enhancementTypes.h"
+#include "soh/OotmmSession.h"
 
 u16 sReactionTextIds[][PLAYER_MASK_MAX] = {
     { 0x0000, 0x7124, 0x7127, 0x7126, 0x7125, 0x7127, 0x7124, 0x7125, 0x7127 },
@@ -66,6 +67,13 @@ u16 sReactionTextIds[][PLAYER_MASK_MAX] = {
 
 u16 Text_GetFaceReaction(PlayState* play, u32 reactionSet) {
     u8 currentMask = Player_GetMask(play);
+
+    if (OotmmSession_IsActive()) {
+        if ((currentMask == PLAYER_MASK_KEATON) && (reactionSet == 0x05)) {
+            return 0x712D;
+        }
+        return reactionSet == 0x15 ? 0x10BC : 0;
+    }
 
     if (CVarGetInteger(CVAR_ENHANCEMENT("MMBunnyHood"), BUNNY_HOOD_VANILLA) != BUNNY_HOOD_VANILLA &&
         currentMask == PLAYER_MASK_BUNNY) {

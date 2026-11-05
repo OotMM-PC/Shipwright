@@ -10,6 +10,8 @@
 #include "vt.h"
 #include "align_asset_macro.h"
 #include "soh/OotmmSongEvents.h"
+#include "soh/OotmmSession.h"
+#include "soh/OotmmNpcChecks.h"
 #include "soh/Enhancements/game-interactor/GameInteractor_Hooks.h"
 
 #define FLAGS (ACTOR_FLAG_UPDATE_CULLING_DISABLED | ACTOR_FLAG_UPDATE_DURING_OCARINA)
@@ -480,9 +482,35 @@ void func_80ABF4C8(EnOkarinaTag* this, PlayState* play) {
     }
 }
 
+static void EnOkarinaTag_OotmmSunSong(EnOkarinaTag* this, PlayState* play) {
+    if (OotmmNpcChecks_IsCollected("OOT_ROYAL_TOMB_SONG")) {
+        Actor_Kill(&this->actor);
+        return;
+    }
+    this->actor.textId = 0x5021;
+    if (Actor_ProcessTalkRequest(&this->actor, play)) {
+        Message_CloseTextbox(play);
+        if (!OotmmNpcChecks_Collect("OOT_ROYAL_TOMB_SONG")) {
+            Item_Give(play, ITEM_SONG_SUN);
+        }
+        gSaveContext.dayTime =
+            (gSaveContext.dayTime < CLOCK_TIME(6, 30) || gSaveContext.dayTime > CLOCK_TIME(18, 0)) ? CLOCK_TIME(6, 30)
+                                                                                                   : CLOCK_TIME(18, 0) + 1;
+        gSaveContext.skyboxTime = gSaveContext.dayTime;
+        Actor_Kill(&this->actor);
+    } else {
+        func_8002F2CC(&this->actor, play, 70.0f);
+    }
+}
+
 void func_80ABF708(EnOkarinaTag* this, PlayState* play) {
     s16 yawDiff;
     s16 yawDiffNew;
+
+    if (OotmmSession_IsActive()) {
+        EnOkarinaTag_OotmmSunSong(this, play);
+        return;
+    }
 
     if (Actor_ProcessTalkRequest(&this->actor, play)) {
         this->actionFunc = func_80ABF7CC;

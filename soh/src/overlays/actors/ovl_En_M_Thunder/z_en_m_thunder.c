@@ -2,6 +2,7 @@
 #include "objects/gameplay_keep/gameplay_keep.h"
 #include "soh/OotmmSpinUpgrade.h"
 #include "soh/OotmmExtraSwords.h"
+#include "soh/OotmmSession.h"
 
 #define FLAGS 0
 
@@ -285,6 +286,10 @@ void func_80A9F938(EnMThunder* this, PlayState* play) {
 
 void func_80A9F9B4(EnMThunder* this, PlayState* play) {
     Player* player = GET_PLAYER(play);
+
+    if (OotmmSession_IsActive() && (player->stateFlags1 & PLAYER_STATE1_GETTING_ITEM)) {
+        return;
+    }
 
     if (Math_StepToF(&this->unk_1AC, 0.0f, 1 / 16.0f)) {
         Actor_Kill(&this->actor);

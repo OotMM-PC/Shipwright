@@ -646,6 +646,9 @@ static ActorDBInit OotmmCustomWarpInit = {
 
 #include "soh/OotmmIceFloe.h"
 #include "soh/OotmmAqua.h"
+#include "soh/OotmmElegyShell.h"
+#include "soh/OotmmClearTag.h"
+#include "soh/OotmmBomMm.h"
 
 static ActorDBInit OotmmIceFloeInit = {
     "Ootmm_Ice_Floe",
@@ -675,12 +678,58 @@ static ActorDBInit OotmmAquaInit = {
     nullptr,
 };
 
+static ActorDBInit OotmmElegyShellInit = {
+    "Ootmm_Elegy_Shell",
+    "OoTMM Elegy of Emptiness Shell",
+    ACTORCAT_ITEMACTION,
+    ACTOR_FLAG_UPDATE_CULLING_DISABLED,
+    OBJECT_GAMEPLAY_KEEP,
+    sizeof(OotmmElegyShell),
+    (ActorFunc)OotmmElegyShell_Init,
+    (ActorFunc)OotmmElegyShell_Destroy,
+    (ActorFunc)OotmmElegyShell_Update,
+    (ActorFunc)OotmmElegyShell_Draw,
+    nullptr,
+};
+
+static ActorDBInit OotmmClearTagInit = {
+    "Ootmm_En_Clear_Tag",
+    "OoTMM Explosion Effects",
+    ACTORCAT_ITEMACTION,
+    ACTOR_FLAG_ATTENTION_ENABLED | ACTOR_FLAG_HOSTILE | ACTOR_FLAG_UPDATE_CULLING_DISABLED |
+        ACTOR_FLAG_DRAW_CULLING_DISABLED,
+    OBJECT_GAMEPLAY_KEEP,
+    sizeof(OotmmClearTag),
+    (ActorFunc)OotmmClearTag_Init,
+    (ActorFunc)OotmmClearTag_Destroy,
+    (ActorFunc)OotmmClearTag_Update,
+    (ActorFunc)OotmmClearTag_Draw,
+    nullptr,
+};
+
+static ActorDBInit OotmmBomMmInit = {
+    "Ootmm_En_Bom_Mm",
+    "OoTMM Powder Keg and Blast Bomb",
+    ACTORCAT_EXPLOSIVE,
+    ACTOR_FLAG_UPDATE_CULLING_DISABLED | ACTOR_FLAG_DRAW_CULLING_DISABLED,
+    OBJECT_GAMEPLAY_KEEP,
+    sizeof(OotmmBomMm),
+    (ActorFunc)OotmmBomMm_Init,
+    (ActorFunc)OotmmBomMm_Destroy,
+    (ActorFunc)OotmmBomMm_Update,
+    (ActorFunc)OotmmBomMm_Draw,
+    nullptr,
+};
+
 void ActorDB::AddBuiltInCustomActors() {
     gEnPartnerId = ActorDB::Instance->AddEntry(EnPartnerInit).entry.id;
     gOotmmPuppetId = ActorDB::Instance->AddEntry(OotmmPuppetInit).entry.id;
     gOotmmCustomWarpId = ActorDB::Instance->AddEntry(OotmmCustomWarpInit).entry.id;
     gOotmmIceFloeId = ActorDB::Instance->AddEntry(OotmmIceFloeInit).entry.id;
     gOotmmAquaId = ActorDB::Instance->AddEntry(OotmmAquaInit).entry.id;
+    gOotmmElegyShellId = ActorDB::Instance->AddEntry(OotmmElegyShellInit).entry.id;
+    gOotmmClearTagId = ActorDB::Instance->AddEntry(OotmmClearTagInit).entry.id;
+    gOotmmBomMmId = ActorDB::Instance->AddEntry(OotmmBomMmInit).entry.id;
 }
 
 extern "C" ActorDBEntry* ActorDB_Retrieve(const int id) {

@@ -72,6 +72,8 @@ static InitChainEntry sInitChain[] = {
 void EnGm_Init(Actor* thisx, PlayState* play) {
     EnGm* this = (EnGm*)thisx;
 
+    OotmmCustomItems_ResetMedigoronIntro();
+
     Actor_ProcessInitChain(&this->actor, sInitChain);
 
     // "Medi Goron"
@@ -151,7 +153,7 @@ void EnGm_UpdateEye(EnGm* this) {
 }
 
 void EnGm_SetTextID(EnGm* this) {
-    if (OotmmCustomItems_MedigoronSellsKeg()) {
+    if (OotmmCustomItems_MedigoronKegConversation()) {
         this->actor.textId = 0x304F;
         return;
     }
@@ -217,8 +219,8 @@ void func_80A3DC44(EnGm* this, PlayState* play) {
     dz = this->talkPos.z - player->actor.world.pos.z;
 
     if (Actor_ProcessTalkRequest(&this->actor, play)) {
-        if (OotmmCustomItems_MedigoronSellsKeg()) {
-            this->actionFunc = EnGm_ProcessChoiceIndex;
+        if (OotmmCustomItems_MedigoronKegConversation()) {
+            this->actionFunc = OotmmCustomItems_MedigoronSellsKeg() ? EnGm_ProcessChoiceIndex : func_80A3DD7C;
             return;
         }
 

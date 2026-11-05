@@ -10,6 +10,8 @@
 #include "soh/ResourceManagerHelpers.h"
 #include "soh/Enhancements/game-interactor/GameInteractor_Hooks.h"
 #include "soh/OotmmNpcChecks.h"
+#include "soh/OotmmItemPresentation.h"
+#include "soh/OotmmSession.h"
 
 #define FLAGS (ACTOR_FLAG_ATTENTION_ENABLED | ACTOR_FLAG_FRIENDLY | ACTOR_FLAG_UPDATE_CULLING_DISABLED)
 
@@ -59,6 +61,7 @@ void EnZl4_Draw(Actor* thisx, PlayState* play);
 
 void EnZl4_Cutscene(EnZl4* this, PlayState* play);
 void EnZl4_Idle(EnZl4* this, PlayState* play);
+void EnZl4_OotmmMeet(EnZl4* this, PlayState* play);
 void EnZl4_TheEnd(EnZl4* this, PlayState* play);
 
 const ActorInit En_Zl4_InitVars = {
@@ -383,6 +386,10 @@ void EnZl4_Init(Actor* thisx, PlayState* play) {
     if (gSaveContext.sceneSetupIndex >= 4) {
         Animation_ChangeByInfo(&this->skelAnime, sAnimationInfo, ZL4_ANIM_0);
         this->actionFunc = EnZl4_TheEnd;
+    } else if (OotmmSession_IsActive()) {
+        Animation_ChangeByInfo(&this->skelAnime, sAnimationInfo, ZL4_ANIM_0);
+        this->talkState = 0;
+        this->actionFunc = EnZl4_OotmmMeet;
     } else if (Flags_GetEventChkInf(EVENTCHKINF_OBTAINED_ZELDAS_LETTER)) {
         Animation_ChangeByInfo(&this->skelAnime, sAnimationInfo, ZL4_ANIM_0);
         this->actionFunc = EnZl4_Idle;
@@ -1211,6 +1218,43 @@ void EnZl4_Cutscene(EnZl4* this, PlayState* play) {
 void EnZl4_Idle(EnZl4* this, PlayState* play) {
     Npc_UpdateTalking(play, &this->actor, &this->interactInfo.talkState, this->collider.dim.radius + 60.0f,
                       EnZl4_GetText, func_80B5B9B0);
+    func_80B5BB78(this, play);
+}
+
+void EnZl4_OotmmMeet(EnZl4* this, PlayState* play) {
+    Player* player = GET_PLAYER(play);
+
+    switch (this->talkState) {
+        case 0:
+            this->actor.textId = 0x2005;
+            if (Actor_ProcessTalkRequest(&this->actor, play)) {
+                this->talkState = 1;
+            } else {
+                func_8002F2CC(&this->actor, play, 100.0f);
+            }
+            break;
+        case 1:
+            Message_CloseTextbox(play);
+            if (!OotmmNpcChecks_Collect("OOT_ZELDA_LETTER")) {
+                Item_Give(play, ITEM_LETTER_ZELDA);
+            }
+            if (!OotmmNpcChecks_Collect("OOT_ZELDA_SONG")) {
+                Item_Give(play, ITEM_SONG_LULLABY);
+            }
+            Flags_SetEventChkInf(EVENTCHKINF_OBTAINED_ZELDAS_LETTER);
+            Flags_SetEventChkInf(EVENTCHKINF_LEARNED_ZELDAS_LULLABY);
+            this->talkState = 2;
+            break;
+        case 2:
+            if (!OotmmItemPresentation_IsPending() && (Message_GetState(&play->msgCtx) == TEXT_STATE_NONE) &&
+                !(player->stateFlags1 & PLAYER_STATE1_GETTING_ITEM)) {
+                play->nextEntranceIndex = ENTR_HYRULE_CASTLE_4;
+                play->transitionTrigger = TRANS_TRIGGER_START;
+                play->transitionType = TRANS_TYPE_FADE_WHITE_FAST;
+                this->talkState = 3;
+            }
+            break;
+    }
     func_80B5BB78(this, play);
 }
 

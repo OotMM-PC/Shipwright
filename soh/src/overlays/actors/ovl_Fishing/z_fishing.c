@@ -13,6 +13,7 @@
 #include "soh/frame_interpolation.h"
 #include "soh/Enhancements/game-interactor/GameInteractor_Hooks.h"
 #include "soh/OotmmFishing.h"
+#include "soh/OotmmSession.h"
 #include "soh/OotmmItemPresentation.h"
 
 #define FLAGS ACTOR_FLAG_UPDATE_CULLING_DISABLED
@@ -2204,7 +2205,7 @@ void Fishing_UpdateLure(Fishing* this, PlayState* play) {
         sLureEquipped = FS_LURE_STOCK;
 
         // if prize item won as child or adult, set the sinking lure location.
-        if (((sLinkAge == LINK_AGE_CHILD) && (HIGH_SCORE(HS_FISHING) & HS_FISH_PRIZE_CHILD)) ||
+        if (OotmmSession_IsActive() || ((sLinkAge == LINK_AGE_CHILD) && (HIGH_SCORE(HS_FISHING) & HS_FISH_PRIZE_CHILD)) ||
             ((sLinkAge != LINK_AGE_CHILD) && (HIGH_SCORE(HS_FISHING) & HS_FISH_PRIZE_ADULT))) {
             sSinkingLureLocation = (u8)Rand_ZeroFloat(3.999f) + 1;
         }
@@ -4979,7 +4980,7 @@ void Fishing_HandleOwnerDialog(Fishing* this, PlayState* play) {
                                 if (GameInteractor_Should(VB_SHOULD_CHECK_FOR_FISHING_RECORD,
                                                           (s16)sFishingRecordLength < (s16)sFishOnHandLength,
                                                           &sFishOnHandLength)) {
-                                    if (sLureCaughtWith == FS_LURE_SINKING) {
+                                    if (!OotmmSession_IsActive() && sLureCaughtWith == FS_LURE_SINKING) {
                                         this->actor.textId = 0x40B0;
                                     } else {
                                         this->actor.textId = 0x4086;
@@ -5083,7 +5084,7 @@ void Fishing_HandleOwnerDialog(Fishing* this, PlayState* play) {
                                 }
                             }
 
-                            if (sLureCaughtWith == FS_LURE_SINKING) {
+                            if (!OotmmSession_IsActive() && sLureCaughtWith == FS_LURE_SINKING) {
                                 HIGH_SCORE(HS_FISHING) |= HS_FISH_CHEAT_CHILD;
                                 this->stateAndTimer = 0;
                                 break;
@@ -5092,7 +5093,7 @@ void Fishing_HandleOwnerDialog(Fishing* this, PlayState* play) {
                             HIGH_SCORE(HS_FISHING) &= 0xFFFFFF;
                             HIGH_SCORE(HS_FISHING) |= ((s32)sFishingRecordLength & HS_FISH_LENGTH_CHILD) << 0x18;
 
-                            if (sLureCaughtWith == FS_LURE_SINKING) {
+                            if (!OotmmSession_IsActive() && sLureCaughtWith == FS_LURE_SINKING) {
                                 HIGH_SCORE(HS_FISHING) |= HS_FISH_CHEAT_ADULT;
                                 this->stateAndTimer = 0;
                                 break;
@@ -5118,7 +5119,9 @@ void Fishing_HandleOwnerDialog(Fishing* this, PlayState* play) {
                                                   &fishData)) {
                             HIGH_SCORE(HS_FISHING) |= HS_FISH_PRIZE_CHILD;
                             getItemId = GI_HEART_PIECE;
-                            sSinkingLureLocation = (u8)Rand_ZeroFloat(3.999f) + 1;
+                            if (!OotmmSession_IsActive()) {
+                                sSinkingLureLocation = (u8)Rand_ZeroFloat(3.999f) + 1;
+                            }
                         }
                     } else { // 13 lbs
                         // if we should give the main prize AND it's not rando
@@ -5128,7 +5131,9 @@ void Fishing_HandleOwnerDialog(Fishing* this, PlayState* play) {
                                                   &fishData)) {
                             HIGH_SCORE(HS_FISHING) |= HS_FISH_PRIZE_ADULT;
                             getItemId = GI_SCALE_GOLDEN;
-                            sSinkingLureLocation = (u8)Rand_ZeroFloat(3.999f) + 1;
+                            if (!OotmmSession_IsActive()) {
+                                sSinkingLureLocation = (u8)Rand_ZeroFloat(3.999f) + 1;
+                            }
                         }
                     }
                 } else {

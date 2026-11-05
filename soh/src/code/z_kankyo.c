@@ -2357,7 +2357,7 @@ void Environment_DrawSandstorm(PlayState* play, u8 sandstormState) {
                 primA1 += 73;
             }
             if ((primA1 >= primA) && (primA1 != 255)) {
-                play->envCtx.sandstormState = SANDSTORM_ACTIVE;
+                play->envCtx.sandstormState = OotmmSession_IsActive() ? SANDSTORM_DISSIPATE : SANDSTORM_ACTIVE;
             }
             break;
         case SANDSTORM_DISSIPATE:

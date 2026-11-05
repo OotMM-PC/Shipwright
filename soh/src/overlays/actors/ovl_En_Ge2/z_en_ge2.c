@@ -4,6 +4,7 @@
  * Description: Purple-clothed Gerudo
  */
 
+#include "soh/OotmmSession.h"
 #include "z_en_ge2.h"
 #include "vt.h"
 #include "objects/object_gla/object_gla.h"
@@ -244,7 +245,9 @@ void EnGe2_CaptureClose(EnGe2* this, PlayState* play) {
     } else {
         func_8006D074(play);
 
-        if ((INV_CONTENT(ITEM_HOOKSHOT) == ITEM_NONE) || (INV_CONTENT(ITEM_LONGSHOT) == ITEM_NONE)) {
+        if (OotmmSession_IsActive()) {
+            play->nextEntranceIndex = OotmmSession_GerudoCaughtEntrance(play->sceneNum);
+        } else if ((INV_CONTENT(ITEM_HOOKSHOT) == ITEM_NONE) || (INV_CONTENT(ITEM_LONGSHOT) == ITEM_NONE)) {
             play->nextEntranceIndex = ENTR_GERUDO_VALLEY_1;
         } else if (Flags_GetEventChkInf(EVENTCHKINF_WATCHED_GANONS_CASTLE_COLLAPSE_CAUGHT_BY_GERUDO)) {
             play->nextEntranceIndex = ENTR_GERUDOS_FORTRESS_18;
@@ -270,7 +273,9 @@ void EnGe2_CaptureCharge(EnGe2* this, PlayState* play) {
     } else {
         func_8006D074(play);
 
-        if ((INV_CONTENT(ITEM_HOOKSHOT) == ITEM_NONE) || (INV_CONTENT(ITEM_LONGSHOT) == ITEM_NONE)) {
+        if (OotmmSession_IsActive()) {
+            play->nextEntranceIndex = OotmmSession_GerudoCaughtEntrance(play->sceneNum);
+        } else if ((INV_CONTENT(ITEM_HOOKSHOT) == ITEM_NONE) || (INV_CONTENT(ITEM_LONGSHOT) == ITEM_NONE)) {
             play->nextEntranceIndex = ENTR_GERUDO_VALLEY_1;
         } else if (Flags_GetEventChkInf(EVENTCHKINF_WATCHED_GANONS_CASTLE_COLLAPSE_CAUGHT_BY_GERUDO)) {
             play->nextEntranceIndex = ENTR_GERUDOS_FORTRESS_18;

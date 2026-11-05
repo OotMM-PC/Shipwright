@@ -5,6 +5,7 @@
  */
 
 #include "z_en_am.h"
+#include "soh/OotmmSession.h"
 #include "objects/object_am/object_am.h"
 #include "overlays/actors/ovl_En_Bom/z_en_bom.h"
 #include "soh/Enhancements/game-interactor/GameInteractor_Hooks.h"
@@ -673,13 +674,14 @@ void EnAm_Statue(EnAm* this, PlayState* play) {
     f32 temp158f = this->dyna.unk_158;
     s16 moveDir = 0;
     s32 blockSpeed = CVarGetInteger(CVAR_ENHANCEMENT("FasterBlockPush"), 0);
+    const f32 pushScale = OotmmSession_IsActive() ? 1.0097380876541138f : 0.5f;
 
     if (this->unk_258 == 0) {
         if (this->dyna.unk_150 != 0.0f) {
             this->unk_258 = 0x8000 - (blockSpeed * 0x1000);
         }
     } else {
-        this->unk_258 -= 0x800;
+        this->unk_258 -= OotmmSession_IsActive() ? 0x1000 : 0x800;
         Audio_PlayActorSound2(&this->dyna.actor, NA_SE_EV_ROCK_SLIDE - SFX_FLAG);
 
         if (this->dyna.unk_150 < 0.0f) {
@@ -691,7 +693,7 @@ void EnAm_Statue(EnAm* this, PlayState* play) {
         }
 
         if ((this->dyna.unk_150 == 0.0f) || (this->unk_258 == 0) || !(this->dyna.actor.bgCheckFlags & 1) ||
-            !func_800435D8(play, &this->dyna, 0x14, (Math_SinS(this->unk_258) * (this->dyna.unk_150 * 0.5f)) + 40.0f,
+            !func_800435D8(play, &this->dyna, 0x14, (Math_SinS(this->unk_258) * (this->dyna.unk_150 * pushScale)) + 40.0f,
                            0xA) ||
             ((this->hurtCollider.base.ocFlags1 & OC1_HIT) && (ABS(moveDir) <= 0x2000))) {
 
@@ -704,7 +706,7 @@ void EnAm_Statue(EnAm* this, PlayState* play) {
 
         this->dyna.actor.world.rot.y = this->dyna.unk_158;
         this->dyna.actor.speedXZ =
-            Math_SinS(this->unk_258 * 8 / (8 - blockSpeed)) * (this->dyna.unk_150 * 0.5f) +
+            Math_SinS(this->unk_258 * 8 / (8 - blockSpeed)) * (this->dyna.unk_150 * pushScale) +
             (blockSpeed == 5
                  ? blockSpeed * (this->dyna.unk_150 * 0.5f) * 0.25681
                  : (blockSpeed == 4

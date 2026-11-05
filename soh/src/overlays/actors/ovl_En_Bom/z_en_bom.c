@@ -5,7 +5,6 @@
  */
 
 #include "z_en_bom.h"
-#include "soh/OotmmCustomItemsPlayer.h"
 #include "overlays/effects/ovl_Effect_Ss_Dead_Sound/z_eff_ss_dead_sound.h"
 #include "objects/gameplay_keep/gameplay_keep.h"
 #include "soh/Enhancements/game-interactor/GameInteractor.h"
@@ -187,11 +186,8 @@ void EnBom_Move(EnBom* this, PlayState* play) {
 void EnBom_WaitForRelease(EnBom* this, PlayState* play) {
     // if parent is NULL bomb has been released
     if (Actor_HasNoParent(&this->actor, play)) {
-        OotmmCustomItems_TrackKegFuse(&this->actor, false);
         EnBom_SetupAction(this, EnBom_Move);
         EnBom_Move(this, play);
-    } else {
-        OotmmCustomItems_TrackKegFuse(&this->actor, true);
     }
 }
 
@@ -265,7 +261,7 @@ void EnBom_Update(Actor* thisx, PlayState* play2) {
 
     thisx->gravity = -1.2f;
 
-    if (this->timer != 0 && (this->actionFunc == EnBom_Explode || !OotmmCustomItems_KegFusePaused(play, thisx))) {
+    if (this->timer != 0) {
         this->timer--;
     }
 
@@ -273,7 +269,7 @@ void EnBom_Update(Actor* thisx, PlayState* play2) {
     if (this->timer == 67 && !GameInteractor_GetRandomBombFuseTimerActive() &&
         CVarGetFloat(CVAR_CHEAT("BombTimerMultiplier"), 1.0f) == 1.0f) {
         Audio_PlayActorSound2(thisx, NA_SE_PL_TAKE_OUT_SHIELD);
-        Actor_SetScale(thisx, OotmmCustomItems_ExplosiveScale(thisx));
+        Actor_SetScale(thisx, 0.01f);
     }
 
     if ((thisx->xzDistToPlayer >= 20.0f) || (ABS(thisx->yDistToPlayer) >= 80.0f)) {
@@ -393,11 +389,6 @@ void EnBom_Update(Actor* thisx, PlayState* play2) {
 void EnBom_Draw(Actor* thisx, PlayState* play) {
     s32 pad;
     EnBom* this = (EnBom*)thisx;
-
-    if (OotmmCustomItems_DrawPowderKeg(play, thisx)) {
-        Collider_UpdateSpheres(0, &this->explosionCollider);
-        return;
-    }
 
     OPEN_DISPS(play->state.gfxCtx);
 

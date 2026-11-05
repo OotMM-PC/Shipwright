@@ -1,4 +1,5 @@
 #include "z_en_ssh.h"
+#include "soh/OotmmSession.h"
 #include "objects/object_ssh/object_ssh.h"
 #include "soh/OTRGlobals.h"
 #include "soh/ResourceManagerHelpers.h"
@@ -369,7 +370,7 @@ s32 EnSsh_IsCloseToLink(EnSsh* this, PlayState* play) {
         return true;
     }
 
-    if (this->actor.xzDistToPlayer > 160.0f) {
+    if (this->actor.xzDistToPlayer > (OotmmSession_IsActive() ? 1600.0f : 160.0f)) {
         return false;
     }
 

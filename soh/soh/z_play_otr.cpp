@@ -1,4 +1,5 @@
 #include "ResourceManagerHelpers.h"
+#include "OotmmSession.h"
 #include <libultraship/libultraship.h>
 #include "soh/resource/type/Scene.h"
 #include <ship/utils/StringHelper.h>
@@ -80,6 +81,7 @@ void OTRPlay_InitScene(PlayState* play, s32 spawn) {
     OTRScene_ExecuteCommands(play, (SOH::Scene*)play->sceneSegment);
 
     GameInteractor_ExecuteAfterSceneCommands(play->sceneNum);
+    OotmmSession_PatchWeather(play);
     Play_InitEnvironment(play, play->skyboxId);
     /* auto data = static_cast<LUS::Vertex*>(Ship::Context::GetInstance()
                                                ->GetResourceManager()

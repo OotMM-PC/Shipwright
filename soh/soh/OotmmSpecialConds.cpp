@@ -78,6 +78,37 @@ void GiveLightArrowsInTemple() {
     }
 }
 
+void RunStoryTriggers() {
+    if (gPlayState == nullptr || !SafeFrame(gPlayState)) {
+        return;
+    }
+    if (!OotmmSouls_Withheld("NPC_SHEIK") && gSaveContext.entranceIndex == ENTR_DESERT_COLOSSUS_OUTSIDE_TEMPLE &&
+        !Flags_GetEventChkInf(EVENTCHKINF_LEARNED_REQUIEM_OF_SPIRIT)) {
+        Flags_SetEventChkInf(EVENTCHKINF_LEARNED_REQUIEM_OF_SPIRIT);
+        if (GameInteractor_Should(VB_GIVE_ITEM_SONG, true, ITEM_SONG_REQUIEM)) {
+            Item_Give(gPlayState, ITEM_SONG_REQUIEM);
+        }
+        return;
+    }
+    if (!OotmmSouls_Withheld("NPC_SHEIK") && gPlayState->sceneNum == SCENE_KAKARIKO_VILLAGE && LINK_IS_ADULT &&
+        CHECK_QUEST_ITEM(QUEST_MEDALLION_FOREST) && CHECK_QUEST_ITEM(QUEST_MEDALLION_FIRE) &&
+        CHECK_QUEST_ITEM(QUEST_MEDALLION_WATER) && !Flags_GetEventChkInf(EVENTCHKINF_LEARNED_NOCTURNE_OF_SHADOW)) {
+        Flags_SetEventChkInf(EVENTCHKINF_LEARNED_NOCTURNE_OF_SHADOW);
+        Flags_SetEventChkInf(EVENTCHKINF_BONGO_BONGO_ESCAPED_FROM_WELL);
+        if (GameInteractor_Should(VB_GIVE_ITEM_SONG, true, ITEM_SONG_NOCTURNE)) {
+            Item_Give(gPlayState, ITEM_SONG_NOCTURNE);
+        }
+        return;
+    }
+    if (!OotmmSouls_Withheld("NPC_SARIA") && gSaveContext.entranceIndex == ENTR_LOST_WOODS_BRIDGE_EAST_EXIT &&
+        !Flags_GetEventChkInf(EVENTCHKINF_SPOKE_TO_SARIA_ON_BRIDGE)) {
+        Flags_SetEventChkInf(EVENTCHKINF_SPOKE_TO_SARIA_ON_BRIDGE);
+        if (GameInteractor_Should(VB_GIVE_ITEM_FAIRY_OCARINA, true)) {
+            Item_Give(gPlayState, ITEM_OCARINA_FAIRY);
+        }
+    }
+}
+
 void GrantGanonBossKey() {
     if (gPlayState == nullptr || Setting("ganonBossKey", "removed") != "custom" ||
         CHECK_DUNGEON_ITEM(DUNGEON_KEY_BOSS, SCENE_GANONS_TOWER) || !SpecialCondMet("GANON_BK")) {
@@ -99,6 +130,12 @@ void OotmmSpecialConds_Init() {
         if (OotmmSession_IsActive()) {
             GrantGanonBossKey();
             GiveLightArrowsInTemple();
+            RunStoryTriggers();
+        }
+    });
+    REGISTER_VB_SHOULD(VB_BE_ELIGIBLE_FOR_NOCTURNE_OF_SHADOW, {
+        if (OotmmSession_IsActive()) {
+            *should = false;
         }
     });
     REGISTER_VB_SHOULD(VB_BE_ELIGIBLE_FOR_RAINBOW_BRIDGE, {

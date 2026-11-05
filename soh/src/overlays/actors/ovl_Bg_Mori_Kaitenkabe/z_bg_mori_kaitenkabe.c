@@ -5,6 +5,7 @@
  */
 
 #include "z_bg_mori_kaitenkabe.h"
+#include "soh/OotmmSession.h"
 #include "objects/object_mori_objects/object_mori_objects.h"
 #include "soh/Enhancements/game-interactor/GameInteractor_Hooks.h"
 
@@ -95,7 +96,7 @@ void BgMoriKaitenkabe_Wait(BgMoriKaitenkabe* this, PlayState* play) {
 
     if (this->dyna.unk_150 > 0.001f) {
         this->timer++;
-        if ((this->timer > (28 - CVarGetInteger(CVAR_ENHANCEMENT("FasterBlockPush"), 0) * 4)) &&
+        if ((this->timer > (OotmmSession_IsActive() ? 0 : 28 - CVarGetInteger(CVAR_ENHANCEMENT("FasterBlockPush"), 0) * 4)) &&
             !Player_InCsMode(play)) {
             BgMoriKaitenkabe_SetupRotate(this);
             if (GameInteractor_Should(VB_FREEZE_LINK_FOR_FOREST_PILLARS, true)) {
@@ -131,7 +132,11 @@ void BgMoriKaitenkabe_Rotate(BgMoriKaitenkabe* this, PlayState* play) {
     Actor* thisx = &this->dyna.actor;
     s16 rotY;
 
-    Math_StepToF(&this->rotSpeed, 0.6f, 0.02f);
+    if (OotmmSession_IsActive()) {
+        Math_StepToF(&this->rotSpeed, 3.0093750953674316f, 1.0065624713897705f);
+    } else {
+        Math_StepToF(&this->rotSpeed, 0.6f, 0.02f);
+    }
     if (Math_StepToF(&this->rotYdeg, this->rotDirection * 45.0f, this->rotSpeed)) {
         BgMoriKaitenkabe_SetupWait(this);
         if (GameInteractor_Should(VB_FREEZE_LINK_FOR_FOREST_PILLARS, true)) {

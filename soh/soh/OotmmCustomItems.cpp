@@ -20,9 +20,9 @@ extern "C" {
 #include "macros.h"
 #include "variables.h"
 #include "z64.h"
-#include "overlays/actors/ovl_En_Bom/z_en_bom.h"
 
 #include "OotmmCustomItemsPlayer.h"
+#include "OotmmBomMm.h"
 
 extern PlayState* gPlayState;
 }
@@ -231,28 +231,47 @@ extern "C" int OotmmCustomItems_Usable(uint8_t item) {
 
 namespace {
 
+bool sMedigoronIntroSeen = false;
+
 void BuildMedigoronKegText(uint16_t*, bool* loadFromMessageTable) {
-    if (!OotmmCustomItems_MedigoronSellsKeg()) {
+    if (!OotmmCustomItems_MedigoronKegConversation()) {
         return;
     }
 
-    CustomMessage message("If you don't have a %rPowder Keg%w,&I'll sell you one for %r50 Rupees%w!"
-                          "So, how about it?	&&%gBuy&Don't buy%w");
-    message.AutoFormat();
-    message.LoadIntoFont();
-    *loadFromMessageTable = false;
-}
+    const char* intro = "Hullo. Did ya come to buy a&%rPowder Keg%w?^";
+    const char* brag = "...This is just between us, but I&have a huge bomb that is out&of this world!^";
+    const char* sale = "How 'bout it?&&%gI'll buy one&No thanks%w";
+    const char* oneKeg = "%rPowder Kegs%w are dangerous&explosives, so you can carry only&one at a time!";
+    const char* tooHeavy = "Oh! But my product is so %rheavy%w, I&don't think you can carry it.^I'm sorry I even brought it up...";
+    const char* tooHeavyNoIntro = "Look, I'd like you to buy my bomb,&but it's just %rtoo heavy%w for you&to carry.&Sorry.";
+    const bool seen = sMedigoronIntroSeen;
+    const bool strong = OotmmCustomItems_CanCarryKeg() != 0;
+    std::string text;
 
-void BuildMedigoronRefusalText(uint16_t*, bool* loadFromMessageTable) {
-    if (!OotmmCustomItems_Owned(ITEM_OOTMM_POWDER_KEG) || OotmmCustomItems_KegAmmo() == 0) {
-        return;
+    if (OotmmCustomItems_Owned(ITEM_OOTMM_POWDER_KEG)) {
+        if (OotmmCustomItems_KegAmmo() == 0) {
+            if (seen) {
+                text = std::string("If you don't have a %rPowder Keg%w,&I'll sell you one for %r50 Rupees%w!^") + sale;
+            } else {
+                text = std::string(intro) + brag + "So, won't ya buy a %rPowder Keg%w&for %r50 Rupees%w?^" + sale;
+            }
+        } else if (strong) {
+            text = seen ? std::string(oneKeg) : std::string(intro) + brag + "Oh, but you already have one.^" + oneKeg;
+        } else {
+            text = seen ? std::string(tooHeavyNoIntro) : std::string(intro) + brag + tooHeavy;
+        }
+    } else if (strong) {
+        text = seen ? std::string("Look, I'd like you to buy my bomb,&but it'd be irresponsible of me&to sell you one if "
+                                  "you don't know&how to use it...")
+                    : std::string(brag) + "Huh? Do you mean you don't know&how to use it, yet?^Too bad! And I was "
+                                          "hoping I could &sell one to you...";
+    } else {
+        text = seen ? std::string(tooHeavyNoIntro) : std::string(brag) + tooHeavy;
     }
+    sMedigoronIntroSeen = true;
 
-    CustomMessage message(OotmmCustomItems_CanCarryKeg()
-                              ? "%rPowder Kegs%w are dangerous&explosives, so you can carry only&one at a time!"
-                              : "Oh! But my product is so %rheavy%w, I&don't think you can carry it."
-                                "I'm sorry I even brought it up...");
-    message.AutoFormat();
+    CustomMessage message(text);
+    message.Format();
     message.LoadIntoFont();
     *loadFromMessageTable = false;
 }
@@ -261,7 +280,6 @@ void BuildMedigoronRefusalText(uint16_t*, bool* loadFromMessageTable) {
 
 extern "C" void OotmmCustomItems_Init(void) {
     GameInteractor::Instance->RegisterGameHookForID<GameInteractor::OnOpenText>(0x304F, BuildMedigoronKegText);
-    GameInteractor::Instance->RegisterGameHookForID<GameInteractor::OnOpenText>(0x304D, BuildMedigoronRefusalText);
 
     REGISTER_VB_SHOULD(VB_DRAW_CUSTOM_ITEM_NAME, {
         const int16_t item = static_cast<int16_t>(va_arg(args, int));
@@ -354,21 +372,12 @@ extern "C" int OotmmCustomItems_TryBlastMask(PlayState* play, Player* player) {
         return 1;
     }
 
-    Actor* bomb = Actor_Spawn(&play->actorCtx, play, ACTOR_EN_BOM, player->actor.focus.pos.x,
-                              player->actor.focus.pos.y, player->actor.focus.pos.z, 0, 0, 0, 0);
+    Actor* bomb = Actor_Spawn(&play->actorCtx, play, gOotmmBomMmId, player->actor.focus.pos.x,
+                              player->actor.focus.pos.y, player->actor.focus.pos.z, OOTMM_BOM_MM_TYPE_BLAST, 0, 0, 0);
     if (bomb == nullptr) {
         return 1;
     }
-
-    EnBom* explosive = reinterpret_cast<EnBom*>(bomb);
-
-    explosive->timer = 0;
-    explosive->explosionCollider.elements[0].dim.worldSphere.center.x =
-        static_cast<s16>(bomb->world.pos.x);
-    explosive->explosionCollider.elements[0].dim.worldSphere.center.y =
-        static_cast<s16>(bomb->world.pos.y);
-    explosive->explosionCollider.elements[0].dim.worldSphere.center.z =
-        static_cast<s16>(bomb->world.pos.z);
+    reinterpret_cast<OotmmBomMm*>(bomb)->timer = 0;
 
     sBlastMaskTimer = static_cast<int16_t>(OotmmSession_GetState().GetBlastMaskCooldownFrames());
     return 1;
@@ -419,57 +428,30 @@ extern "C" void OotmmCustomItems_DrawWornMask(PlayState* play, Player* player) {
     OotmmCustomItems_DrawMaskWithMatrix(play, player->currentMask, matrix);
 }
 
-extern "C" void OotmmCustomItems_MarkExplosive(Actor* spawned, int explosiveType) {
-    spawned->shape.rot.z = explosiveType == 2 ? 12 : 0;
-    EnBom* bomb = reinterpret_cast<EnBom*>(spawned);
+extern "C" int OotmmCustomItems_KegFuse(void) {
+    return sKegFuse;
+}
 
-    bomb->isPowderKeg = explosiveType == 2 ? 1 : 0;
+extern "C" void OotmmCustomItems_SetKegFuse(int fuse) {
+    sKegFuse = static_cast<int16_t>(fuse);
+}
+
+extern "C" Actor* OotmmCustomItems_SpawnExplosive(PlayState* play, Player* player, int explosiveType, s16 actorId) {
+    s16 rotX = 0;
     if (explosiveType == 2) {
-        bomb->explosionColliderItems[0].info.toucher.dmgFlags |= DMG_HAMMER_JUMP;
+        actorId = gOotmmBomMmId;
         if (sKegFuse == 0) {
             sKegFuse = kKegFuseFrames;
         }
-        bomb->timer = sKegFuse;
+        rotX = OOTMM_BOM_MM_TYPE_POWDER_KEG;
     }
-    if (explosiveType == 2 && spawned->scale.x != 0.0f) {
-        Actor_SetScale(spawned, OotmmCustomItems_ExplosiveScale(spawned));
+    Actor* spawned = Actor_SpawnAsChild(&play->actorCtx, &player->actor, play, actorId, player->actor.world.pos.x,
+                                        player->actor.world.pos.y, player->actor.world.pos.z, rotX,
+                                        player->actor.shape.rot.y, 0, 0);
+    if (spawned == nullptr && explosiveType == 2) {
+        sKegFuse = 0;
     }
-}
-
-extern "C" void OotmmCustomItems_TrackKegFuse(Actor* actor, int held) {
-    EnBom* bomb = reinterpret_cast<EnBom*>(actor);
-    if (bomb->isPowderKeg) {
-        sKegFuse = held ? bomb->timer : 0;
-    }
-}
-
-extern "C" int OotmmCustomItems_KegFusePaused(PlayState* play, Actor* actor) {
-    return reinterpret_cast<EnBom*>(actor)->isPowderKeg && Play_InCsMode(play) ? 1 : 0;
-}
-
-extern "C" float OotmmCustomItems_ExplosiveScale(Actor* actor) {
-    return reinterpret_cast<EnBom*>(actor)->isPowderKeg ? 0.03f : 0.01f;
-}
-
-extern "C" int OotmmCustomItems_DrawPowderKeg(PlayState* play, Actor* actor) {
-    if (!reinterpret_cast<EnBom*>(actor)->isPowderKeg || actor->params != BOMB_BODY) {
-        return 0;
-    }
-
-    OPEN_DISPS(play->state.gfxCtx);
-
-    Gfx_SetupDL_25Opa(play->state.gfxCtx);
-    func_8002EBCC(actor, play, 0);
-    gSPMatrix(POLY_OPA_DISP++, MATRIX_NEWMTX(play->state.gfxCtx),
-              G_MTX_NOPUSH | G_MTX_LOAD | G_MTX_MODELVIEW);
-    gDPSetEnvColor(POLY_OPA_DISP++, 255, 255, 255, 255);
-    gSPDisplayList(POLY_OPA_DISP++,
-                   ResourceMgr_LoadGfxByName("__OTR__overlays/mm_ovl_En_Bom/gPowderKegBarrelDL"));
-    gSPDisplayList(POLY_OPA_DISP++,
-                   ResourceMgr_LoadGfxByName("__OTR__overlays/mm_ovl_En_Bom/gPowderKegGoronSkullDL"));
-
-    CLOSE_DISPS(play->state.gfxCtx);
-    return 1;
+    return spawned;
 }
 
 extern "C" const char* OotmmCustomItems_KamaroDanceAnim(void) {
@@ -536,12 +518,23 @@ extern "C" int OotmmCustomItems_MedigoronKegPrice(void) {
     return 50;
 }
 
-extern "C" int OotmmCustomItems_MedigoronSellsKeg(void) {
-    return OotmmNpcChecks_Done("OOT_MEDIGORON",
-                               CHECK_OWNED_EQUIP_ALT(EQUIP_TYPE_SWORD, EQUIP_INV_SWORD_BIGGORON)) &&
-                   OotmmCustomItems_Owned(ITEM_OOTMM_POWDER_KEG) && OotmmCustomItems_KegAmmo() == 0
+extern "C" int OotmmCustomItems_MedigoronKegConversation(void) {
+    return OotmmSession_IsActive() && LINK_IS_ADULT && OotmmSession_GetState().GetBoolSetting("powderKegOot", false) &&
+                   OotmmNpcChecks_Done("OOT_MEDIGORON",
+                                       CHECK_OWNED_EQUIP_ALT(EQUIP_TYPE_SWORD, EQUIP_INV_SWORD_BIGGORON))
                ? 1
                : 0;
+}
+
+extern "C" int OotmmCustomItems_MedigoronSellsKeg(void) {
+    return OotmmCustomItems_MedigoronKegConversation() && OotmmCustomItems_Owned(ITEM_OOTMM_POWDER_KEG) &&
+                   OotmmCustomItems_KegAmmo() == 0
+               ? 1
+               : 0;
+}
+
+extern "C" void OotmmCustomItems_ResetMedigoronIntro(void) {
+    sMedigoronIntroSeen = false;
 }
 
 extern "C" void OotmmCustomItems_BuyKegFromMedigoron(void) {

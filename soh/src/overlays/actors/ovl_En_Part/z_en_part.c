@@ -5,6 +5,7 @@
  */
 
 #include "z_en_part.h"
+#include "soh/OotmmSession.h"
 #include "objects/object_tite/object_tite.h"
 #include "objects/object_ik/object_ik.h"
 
@@ -100,6 +101,7 @@ void func_80ACDDE8(EnPart* this, PlayState* play) {
 }
 
 void func_80ACE13C(EnPart* this, PlayState* play) {
+    Player* player = GET_PLAYER(play);
     s32 i;
     Vec3f pos;
     Vec3f velocity = { 0.0f, 0.0f, 0.0f };
@@ -109,7 +111,8 @@ void func_80ACE13C(EnPart* this, PlayState* play) {
     if ((this->actor.params == 12) || (this->actor.params == 13)) {
         Actor_UpdateBgCheckInfo(play, &this->actor, 5.0f, 15.0f, 0.0f, 0x1D);
 
-        if ((this->actor.bgCheckFlags & 1) || (this->actor.world.pos.y <= this->actor.floorHeight)) {
+        if ((this->actor.bgCheckFlags & 1) || (this->actor.world.pos.y <= this->actor.floorHeight) ||
+            (OotmmSession_IsActive() && (this->actor.world.pos.y <= player->actor.floorHeight))) {
             this->action = 4;
             this->actor.speedXZ = 0.0f;
             this->actor.gravity = 0.0f;

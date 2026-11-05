@@ -47,6 +47,11 @@ bool Scene_CommandSpawnList(PlayState* play, SOH::ISceneCommand* cmd) {
     ActorEntry* entries = (ActorEntry*)cmdStartPos->GetRawPointer();
 
     play->linkActorEntry = &entries[play->setupEntranceList[play->curSpawn].spawn];
+    if (OotmmSession_IsActive() && (play->sceneNum == SCENE_OUTSIDE_GANONS_CASTLE) &&
+        (play->setupEntranceList[play->curSpawn].spawn == 1)) {
+        play->linkActorEntry->pos.z = 0x0291;
+        play->linkActorEntry->params = 0x0DFF;
+    }
     play->linkAgeOnLoad = ((void)0, gSaveContext.linkAge);
     s16 linkObjectId = gLinkObjectIds[((void)0, gSaveContext.linkAge)];
 
@@ -208,6 +213,14 @@ bool Scene_CommandTransitionActorList(PlayState* play, SOH::ISceneCommand* cmd) 
 
     play->transiActorCtx.numActors = cmdActor->numTransitionActors;
     play->transiActorCtx.list = (TransitionActorEntry*)cmdActor->GetRawPointer();
+
+    if (OotmmSession_IsActive() && play->transiActorCtx.numActors > 0) {
+        if (play->sceneNum == SCENE_DEKU_TREE_BOSS) {
+            play->transiActorCtx.list[0].params = 0x00FF;
+        } else if (play->sceneNum == SCENE_DODONGOS_CAVERN_BOSS) {
+            play->transiActorCtx.list[0].params = 0x0140;
+        }
+    }
 
     return false;
 }

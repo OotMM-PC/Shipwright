@@ -22,13 +22,21 @@ extern "C" {
 #include "OotmmSoaringMap.h"
 #include "overlays/actors/ovl_Obj_Timeblock/z_obj_timeblock.h"
 #include "overlays/actors/ovl_Obj_Warp2block/z_obj_warp2block.h"
+#include "OotmmElegyShell.h"
 #include "OotmmSongsPlayer.h"
 
 extern PlayState* gPlayState;
 extern f32 sFontWidths[144];
 }
 
+extern "C" void Play_SetRespawnData(PlayState* play, s32 respawnMode, s16 entranceIndex, s32 roomIndex,
+                                    s32 playerParams, Vec3f* pos, s16 yaw);
+
 namespace {
+
+Vec3f sLastSafePos{};
+s16 sLastSafeYaw = 0;
+s8 sLastSafeRoom = 0;
 
 struct SongDef {
     const char* Name;
@@ -405,6 +413,9 @@ void ApplyDoubleTime(PlayState* play) {
     if (play->envCtx.timeIncrement != 0) {
         gSaveContext.dayTime = target;
         gSaveContext.skyboxTime = target;
+        if (play->envCtx.unk_E0 == 4) {
+            play->envCtx.unk_E0++;
+        }
         return;
     }
 
@@ -427,7 +438,23 @@ void ApplyDoubleTime(PlayState* play) {
     }
 
     play->unk_11DE9 = 1;
-    gSaveContext.respawnFlag = -2;
+    switch (play->sceneNum) {
+        case SCENE_MARKET_ENTRANCE_DAY:
+        case SCENE_MARKET_ENTRANCE_NIGHT:
+        case SCENE_MARKET_ENTRANCE_RUINS:
+        case SCENE_BACK_ALLEY_DAY:
+        case SCENE_BACK_ALLEY_NIGHT:
+        case SCENE_TEMPLE_OF_TIME_EXTERIOR_DAY:
+        case SCENE_TEMPLE_OF_TIME_EXTERIOR_NIGHT:
+        case SCENE_TEMPLE_OF_TIME_EXTERIOR_RUINS:
+            gSaveContext.respawnFlag = -2;
+            break;
+        default:
+            Play_SetRespawnData(play, RESPAWN_MODE_DOWN, gSaveContext.entranceIndex, sLastSafeRoom, 0xDFF,
+                                &sLastSafePos, sLastSafeYaw);
+            gSaveContext.respawnFlag = -4;
+            break;
+    }
     play->nextEntranceIndex = gSaveContext.entranceIndex;
     play->transitionTrigger = TRANS_TRIGGER_START;
     func_800F6964(30);
@@ -555,6 +582,14 @@ void UpdateDoubleTime(PlayState* play) {
 
 } // namespace
 
+extern "C" void OotmmSongs_UpdateLastSafePos(PlayState* play, Player* player) {
+    if (play->roomCtx.curRoom.num >= 0 && play->roomCtx.prevRoom.num < 0) {
+        sLastSafePos = player->actor.world.pos;
+        sLastSafeYaw = player->actor.shape.rot.y;
+        sLastSafeRoom = play->roomCtx.curRoom.num;
+    }
+}
+
 extern "C" uint16_t OotmmSongs_AvailableMask(void) {
     if (!OotmmSession_IsActive() || gPlayState == nullptr) {
         return 0;
@@ -647,6 +682,11 @@ extern "C" void OotmmSongs_Begin(PlayState* play) {
             break;
         case OOTMM_SONG_DOUBLE_TIME:
             SetupDoubleTime(play);
+            break;
+        case OOTMM_SONG_ELEGY:
+            OotmmElegyShell_Place(play);
+            play->msgCtx.ocarinaMode = OCARINA_MODE_04;
+            Message_CloseTextbox(play);
             break;
         default:
             play->msgCtx.ocarinaMode = OCARINA_MODE_04;

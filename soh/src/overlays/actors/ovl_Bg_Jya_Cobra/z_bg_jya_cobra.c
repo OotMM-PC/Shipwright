@@ -1,4 +1,5 @@
 #include "z_bg_jya_cobra.h"
+#include "soh/OotmmSession.h"
 
 #include <string.h>
 
@@ -443,7 +444,7 @@ void func_80896950(BgJyaCobra* this, PlayState* play) {
 
     if (this->dyna.unk_150 > 0.001f) {
         this->unk_168++;
-        if (this->unk_168 >= (15 - CVarGetInteger(CVAR_ENHANCEMENT("FasterBlockPush"), 0) * 2)) {
+        if (this->unk_168 >= (OotmmSession_IsActive() ? 1 : 15 - CVarGetInteger(CVAR_ENHANCEMENT("FasterBlockPush"), 0) * 2)) {
             func_808969F8(this, play);
         }
     } else {

@@ -7,6 +7,9 @@
 #include "soh/Enhancements/game-interactor/GameInteractor_Hooks.h"
 #include "soh/OTRGlobals.h"
 #include "soh/ResourceManagerHelpers.h"
+#include "soh/OotmmSession.h"
+#include "soh/OotmmClearTag.h"
+#include "soh/OotmmBomMm.h"
 
 #include <stdlib.h> // malloc
 #include <string.h> // memcpy
@@ -61,6 +64,9 @@ const ActorInit Boss_Dodongo_InitVars = {
 };
 
 #include "z_boss_dodongo_data.c"
+
+static u8 sOotmmKegEaten = 0;
+static s16 sOotmmKegTimer = 0;
 
 static u8 sMaskTex16x16[16 * 16] = { { 0 } };
 static u8 sMaskTex8x16[8 * 16] = { { 0 } };
@@ -303,6 +309,8 @@ s32 BossDodongo_AteExplosive(BossDodongo* this, PlayState* play) {
         dz = currentExplosive->world.pos.z - this->mouthPos.z;
 
         if ((fabsf(dx) < 40.0f) && (fabsf(dy) < 40.0f) && (fabsf(dz) < 40.0f)) {
+            sOotmmKegEaten = OotmmSession_IsActive() && OotmmBomMm_IsPowderKeg(currentExplosive);
+            sOotmmKegTimer = sOotmmKegEaten ? ((OotmmBomMm*)currentExplosive)->timer : 0;
             Actor_Kill(currentExplosive);
             return true;
         }
@@ -642,7 +650,8 @@ void BossDodongo_SetupDamaged(BossDodongo* this) {
 
 void BossDodongo_SetupExplode(BossDodongo* this) {
     Animation_Change(&this->skelAnime, &object_kingdodongo_Anim_00E848, 1.0f, 0.0f,
-                     Animation_GetLastFrame(&object_kingdodongo_Anim_00E848), ANIMMODE_ONCE, -5.0f);
+                     Animation_GetLastFrame(&object_kingdodongo_Anim_00E848),
+                     (sOotmmKegEaten && (sOotmmKegTimer > 35)) ? ANIMMODE_LOOP : ANIMMODE_ONCE, -5.0f);
     this->actionFunc = BossDodongo_Explode;
     this->unk_1B0 = 10;
     this->unk_1C0 = 2;
@@ -732,6 +741,17 @@ void BossDodongo_Explode(BossDodongo* this, PlayState* play) {
         this->actionFunc = BossDodongo_LayDown;
         Audio_PlayActorSound2(&this->actor, NA_SE_IT_BOMB_EXPLOSION);
         Audio_PlayActorSound2(&this->actor, NA_SE_EN_DODO_K_DAMAGE);
+        if (sOotmmKegEaten) {
+            sOotmmKegEaten = false;
+            sOotmmKegTimer = 0;
+            func_80033E88(&this->actor, play, 5, 15);
+            this->health = 0;
+            OotmmClearTag_Spawn(play, this->actor.world.pos.x, this->actor.world.pos.y + 20.0f,
+                                this->actor.world.pos.z, 0, OOTMM_CLEAR_TAG_LARGE_EXPLOSION);
+            BossDodongo_SetupDeathCutscene(this);
+            Enemy_StartFinishingBlow(play, &this->actor);
+            return;
+        }
         func_80033E88(&this->actor, play, 4, 10);
         this->health -= 2;
 

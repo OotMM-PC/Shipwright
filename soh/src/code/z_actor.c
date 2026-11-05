@@ -85,6 +85,7 @@
 #include "textures/place_title_cards/g_pn_55.h"
 #include "textures/place_title_cards/g_pn_56.h"
 #include "textures/place_title_cards/g_pn_57.h"
+#include "soh/OotmmSession.h"
 #endif
 
 static CollisionPoly* sCurCeilingPoly;
@@ -3372,7 +3373,8 @@ Actor* Actor_Spawn(ActorContext* actorCtx, PlayState* play, s16 actorId, f32 pos
     }
 
     if ((objBankIndex < 0) ||
-        ((dbEntry->category == ACTORCAT_ENEMY) && Flags_GetClear(play, play->roomCtx.curRoom.num))) {
+        ((dbEntry->category == ACTORCAT_ENEMY) && Flags_GetClear(play, play->roomCtx.curRoom.num) &&
+         !OotmmSession_ShuffledWallmaster(actorId))) {
         // "No data bank!! <data bank＝%d> (profilep->bank=%d)"
         osSyncPrintf(VT_COL(RED, WHITE) "データバンク無し！！<データバンク＝%d>(profilep->bank=%d)\n" VT_RST,
                      objBankIndex, dbEntry->objectId);
@@ -3475,6 +3477,13 @@ void Actor_SpawnTransitionActors(PlayState* play, ActorContext* actorCtx) {
                 ((transitionActor->sides[1].room >= 0) &&
                  ((transitionActor->sides[1].room == play->roomCtx.curRoom.num) ||
                   (transitionActor->sides[1].room == play->roomCtx.prevRoom.num)))) {
+                if (OotmmSession_IsActive() && ((transitionActor->id & 0x1FFF) == ACTOR_DOOR_SHUTTER)) {
+                    if ((play->sceneNum == SCENE_DEKU_TREE_BOSS) && (transitionActor->params == 0x003F)) {
+                        transitionActor->params = 0x00FF;
+                    } else if ((play->sceneNum == SCENE_DODONGOS_CAVERN_BOSS) && (transitionActor->params == 0x00BF)) {
+                        transitionActor->params = 0x0140;
+                    }
+                }
                 Actor_Spawn(actorCtx, play, (s16)(transitionActor->id & 0x1FFF), transitionActor->pos.x,
                             transitionActor->pos.y, transitionActor->pos.z, 0, transitionActor->rotY, 0,
                             (i << 0xA) + transitionActor->params);

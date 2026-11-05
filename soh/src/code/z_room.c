@@ -574,6 +574,9 @@ u32 func_80096FE8(PlayState* play, RoomContext* roomCtx) {
 
     frontRoom = gSaveContext.respawnFlag > 0 ? ((void)0, gSaveContext.respawn[gSaveContext.respawnFlag - 1].roomIndex)
                                              : play->setupEntranceList[play->curSpawn].room;
+    if (gSaveContext.respawnFlag == -4) {
+        frontRoom = gSaveContext.respawn[RESPAWN_MODE_DOWN].roomIndex;
+    }
     func_8009728C(play, roomCtx, frontRoom);
 
     return maxRoomSize;

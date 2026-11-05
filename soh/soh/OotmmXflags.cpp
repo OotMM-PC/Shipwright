@@ -955,6 +955,10 @@ int OotmmXflags_LastScene() {
     return sLastScene;
 }
 
+void OotmmXflags_SetLastScene(int scene) {
+    sLastScene = scene;
+}
+
 void OotmmXflags_Init() {
     GameInteractor::Instance->RegisterGameHook<GameInteractor::OnSceneInit>([](int16_t sceneNum) {
         if (sceneNum != SCENE_GROTTOS && sceneNum != SCENE_FAIRYS_FOUNTAIN) {

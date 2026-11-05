@@ -5,6 +5,7 @@
  */
 
 #include "z_bg_heavy_block.h"
+#include "soh/OotmmSession.h"
 #include "objects/object_heavy_object/object_heavy_object.h"
 #include "vt.h"
 #include "soh/Enhancements/game-interactor/GameInteractor_Hooks.h"
@@ -322,16 +323,22 @@ void BgHeavyBlock_Wait(BgHeavyBlock* this, PlayState* play) {
     if (Actor_HasParent(&this->dyna.actor, play)) {
         this->timer = 0;
 
-        switch (this->dyna.actor.params & 0xFF) {
-            case HEAVYBLOCK_BREAKABLE:
-                OnePointCutscene_Init(play, 4020, 270, &this->dyna.actor, MAIN_CAM);
-                break;
-            case HEAVYBLOCK_UNBREAKABLE:
-                OnePointCutscene_Init(play, 4021, 220, &this->dyna.actor, MAIN_CAM);
-                break;
-            case HEAVYBLOCK_UNBREAKABLE_OUTSIDE_CASTLE:
-                OnePointCutscene_Init(play, 4022, 210, &this->dyna.actor, MAIN_CAM);
-                break;
+        if (OotmmSession_IsActive()) {
+            if ((this->dyna.actor.params & 0xFF) == HEAVYBLOCK_UNBREAKABLE_OUTSIDE_CASTLE) {
+                Flags_SetSwitch(play, (this->dyna.actor.params >> 8) & 0x3F);
+            }
+        } else {
+            switch (this->dyna.actor.params & 0xFF) {
+                case HEAVYBLOCK_BREAKABLE:
+                    OnePointCutscene_Init(play, 4020, 270, &this->dyna.actor, MAIN_CAM);
+                    break;
+                case HEAVYBLOCK_UNBREAKABLE:
+                    OnePointCutscene_Init(play, 4021, 220, &this->dyna.actor, MAIN_CAM);
+                    break;
+                case HEAVYBLOCK_UNBREAKABLE_OUTSIDE_CASTLE:
+                    OnePointCutscene_Init(play, 4022, 210, &this->dyna.actor, MAIN_CAM);
+                    break;
+            }
         }
 
         quakeIndex = Quake_Add(GET_ACTIVE_CAM(play), 3);
@@ -369,7 +376,7 @@ void BgHeavyBlock_LiftedUp(BgHeavyBlock* this, PlayState* play) {
 
     this->timer++;
 
-    if (GameInteractor_Should(VB_FREEZE_LINK_FOR_BLOCK_THROW, true, this)) {
+    if (OotmmSession_IsActive() || GameInteractor_Should(VB_FREEZE_LINK_FOR_BLOCK_THROW, true, this)) {
         Player_SetCsActionWithHaltedActors(play, &player->actor, 8);
     }
 
@@ -386,6 +393,9 @@ void BgHeavyBlock_Fly(BgHeavyBlock* this, PlayState* play) {
     Vec3f pos;
     f32 raycastResult;
 
+    if (OotmmSession_IsActive() && (GET_PLAYER(play)->csAction == 8)) {
+        GET_PLAYER(play)->csAction = 7;
+    }
     Actor_MoveXZGravity(&this->dyna.actor);
     pos.x = this->dyna.actor.home.pos.x;
     pos.y = this->dyna.actor.home.pos.y + 1000.0f;
@@ -411,7 +421,7 @@ void BgHeavyBlock_Fly(BgHeavyBlock* this, PlayState* play) {
                 quakeIndex = Quake_Add(GET_ACTIVE_CAM(play), 2);
                 Quake_SetSpeed(quakeIndex, 12000);
                 Quake_SetQuakeValues(quakeIndex, 5, 0, 0, 0);
-                Quake_SetCountdown(quakeIndex, 999);
+                Quake_SetCountdown(quakeIndex, OotmmSession_IsActive() ? 30 : 999);
 
                 SoundSource_PlaySfxAtFixedWorldPos(play, &this->dyna.actor.world.pos, 30, NA_SE_EV_ELECTRIC_EXPLOSION);
                 return;

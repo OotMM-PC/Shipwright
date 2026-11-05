@@ -1,5 +1,6 @@
 #include "soh/Enhancements/game-interactor/GameInteractor.h"
 #include "soh/ShipInit.hpp"
+#include "soh/OotmmSession.h"
 
 extern "C" {
 #include "z64save.h"
@@ -47,7 +48,11 @@ void RegisterFasterHeavyBlockLift() {
     });
 
     COND_ID_HOOK(OnActorKill, ACTOR_BG_HEAVY_BLOCK, CVAR_BLOCKLIFT_VALUE || CVAR_SKIP_CUTSCENE_VALUE,
-                 [](void* actor) { Quake_Init(); });
+                 [](void* actor) {
+                     if (!OotmmSession_IsActive()) {
+                         Quake_Init();
+                     }
+                 });
 
     COND_VB_SHOULD(VB_MOVE_THROWN_ACTOR, CVAR_BLOCKLIFT_VALUE, {
         Actor* heldActor = va_arg(args, Actor*);

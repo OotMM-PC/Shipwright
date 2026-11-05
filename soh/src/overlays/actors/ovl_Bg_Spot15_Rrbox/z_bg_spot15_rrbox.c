@@ -5,6 +5,7 @@
  */
 
 #include "z_bg_spot15_rrbox.h"
+#include "soh/OotmmSession.h"
 #include "objects/object_spot15_obj/object_spot15_obj.h"
 
 #define FLAGS 0
@@ -262,7 +263,7 @@ void func_808B4194(BgSpot15Rrbox* this, PlayState* play) {
 
     this->unk_174 = this->unk_174 + ((CVarGetInteger(CVAR_ENHANCEMENT("FasterBlockPush"), 0) / 2) * 0.5) + 0.5f;
 
-    this->unk_174 = CLAMP_MAX(this->unk_174, 2.0f + (CVarGetInteger(CVAR_ENHANCEMENT("FasterBlockPush"), 0) * 0.5));
+    this->unk_174 = CLAMP_MAX(this->unk_174, OotmmSession_IsActive() ? 4.0f : 2.0f + (CVarGetInteger(CVAR_ENHANCEMENT("FasterBlockPush"), 0) * 0.5));
 
     approxFResult = Math_StepToF(&this->unk_178, 20.0f, this->unk_174);
 
@@ -294,7 +295,7 @@ void func_808B4194(BgSpot15Rrbox* this, PlayState* play) {
         this->dyna.unk_150 = 0.0f;
         this->unk_178 = 0.0f;
         this->unk_174 = 0.0f;
-        this->unk_168 = 10 - ((CVarGetInteger(CVAR_ENHANCEMENT("FasterBlockPush"), 0) * 3) / 2);
+        this->unk_168 = OotmmSession_IsActive() ? 1 : 10 - ((CVarGetInteger(CVAR_ENHANCEMENT("FasterBlockPush"), 0) * 3) / 2);
         func_808B4084(this, play);
     }
     Audio_PlayActorSound2(actor, NA_SE_EV_ROCK_SLIDE - SFX_FLAG);

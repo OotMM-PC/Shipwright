@@ -10,6 +10,7 @@
 #include "vt.h"
 #include "soh/Enhancements/game-interactor/GameInteractor_Hooks.h"
 #include "soh/ResourceManagerHelpers.h"
+#include "soh/OotmmSession.h"
 
 #define FLAGS ACTOR_FLAG_UPDATE_CULLING_DISABLED
 
@@ -1398,7 +1399,7 @@ void EnIk_Draw(Actor* thisx, PlayState* play) {
 
 void func_80A780D0(EnIk* this, PlayState* play) {
     if (this->actor.params == 0) {
-        if (!Flags_GetEventChkInf(EVENTCHKINF_BEGAN_NABOORU_BATTLE)) {
+        if (!OotmmSession_IsActive() && !Flags_GetEventChkInf(EVENTCHKINF_BEGAN_NABOORU_BATTLE)) {
             this->actor.update = EnIk_Update;
             this->actor.draw = EnIk_Draw;
             Actor_SetScale(&this->actor, 0.01f);
@@ -1421,6 +1422,13 @@ void func_80A78160(EnIk* this, PlayState* play) {
 
 void func_80A781CC(Actor* thisx, PlayState* play) {
     EnIk* this = (EnIk*)thisx;
+
+    if (OotmmSession_IsActive()) {
+        func_80A7598C(this);
+        Enemy_StartFinishingBlow(play, &this->actor);
+        this->actor.colChkInfo.health = 0x20;
+        return;
+    }
 
     if (!Play_InCsMode(play)) {
         this->actor.update = EnIk_Update;

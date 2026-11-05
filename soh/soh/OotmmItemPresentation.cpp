@@ -360,6 +360,11 @@ bool OotmmItemPresentation_ContinueChest(PlayState* play, Player* player, const 
     player->getItemEntry = entry;
     player->getItemId = entry.getItemId;
     player->interactRangeActor = &player->actor;
+    if (player->skelAnime.mode == ANIMMODE_LOOP || player->skelAnime.mode == ANIMMODE_LOOP_INTERP) {
+        const f32 lastFrame = Animation_GetLastFrame(player->skelAnime.animation);
+        LinkAnimation_Change(play, &player->skelAnime, static_cast<LinkAnimationHeader*>(player->skelAnime.animation),
+                             1.0f, lastFrame, lastFrame, ANIMMODE_ONCE, 0.0f);
+    }
     Player_SetupActionPreserveAnimMovement(play, player, Player_Action_8084E6D4, 0);
     player->stateFlags1 |= PLAYER_STATE1_GETTING_ITEM | PLAYER_STATE1_CARRYING_ACTOR | PLAYER_STATE1_IN_CUTSCENE;
     sDeliveredCheck = std::make_pair(checkKey, play->gameplayFrames);

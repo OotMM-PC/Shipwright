@@ -5,6 +5,7 @@
 #include "textures/map_i_static/map_i_static.h"
 #include "textures/map_grand_static/map_grand_static.h"
 #include <assert.h>
+#include "soh/OotmmSession.h"
 #include "soh/OTRGlobals.h"
 #include "soh/Enhancements/cosmetics/cosmeticsTypes.h"
 
@@ -389,11 +390,13 @@ void Map_InitData(PlayState* play, s16 room) {
         case SCENE_OUTSIDE_GANONS_CASTLE:
             extendedMapIndex = mapIndex;
             if (play->sceneNum == SCENE_GRAVEYARD) {
-                if (CHECK_QUEST_ITEM(QUEST_SONG_NOCTURNE)) {
+                if (OotmmSession_IsActive() || CHECK_QUEST_ITEM(QUEST_SONG_NOCTURNE)) {
                     extendedMapIndex = 0x14;
                 }
             } else if (play->sceneNum == SCENE_LAKE_HYLIA) {
-                if ((LINK_AGE_IN_YEARS == YEARS_ADULT) && !CHECK_QUEST_ITEM(QUEST_MEDALLION_WATER)) {
+                if ((LINK_AGE_IN_YEARS == YEARS_ADULT) &&
+                    !(OotmmSession_IsActive() ? Flags_GetEventChkInf(EVENTCHKINF_RAISED_LAKE_HYLIA_WATER)
+                                              : CHECK_QUEST_ITEM(QUEST_MEDALLION_WATER))) {
                     extendedMapIndex = 0x15;
                 }
             } else if (play->sceneNum == SCENE_GERUDO_VALLEY) {
@@ -401,7 +404,7 @@ void Map_InitData(PlayState* play, s16 room) {
                     extendedMapIndex = 0x16;
                 }
             } else if (play->sceneNum == SCENE_GERUDOS_FORTRESS) {
-                if (GET_EVENTCHKINF_CARPENTERS_FREE_ALL()) {
+                if (OotmmSession_IsActive() || GET_EVENTCHKINF_CARPENTERS_FREE_ALL()) {
                     extendedMapIndex = 0x17;
                 }
             }

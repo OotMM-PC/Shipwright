@@ -58,7 +58,9 @@ extern void EnJj_SetupAction(EnJj* enJj, EnJjActionFunc actionFunc);
 
 void EnMa1_EndTeachSong(EnMa1* enMa1, PlayState* play) {
     if (Message_GetState(&gPlayState->msgCtx) == TEXT_STATE_CLOSING) {
-        Item_Give(play, ITEM_SONG_EPONA);
+        if (GameInteractor_Should(VB_GIVE_ITEM_SONG, true, ITEM_SONG_EPONA)) {
+            Item_Give(play, ITEM_SONG_EPONA);
+        }
         Sfx_PlaySfxCentered(NA_SE_SY_CORRECT_CHIME);
         enMa1->actor.flags &= ~ACTOR_FLAG_TALK_OFFER_AUTO_ACCEPTED;
         play->msgCtx.ocarinaMode = OCARINA_MODE_04;
@@ -71,7 +73,9 @@ void EnMa1_EndTeachSong(EnMa1* enMa1, PlayState* play) {
 
 void EnFu_EndTeachSong(EnFu* enFu, PlayState* play) {
     if (Message_GetState(&gPlayState->msgCtx) == TEXT_STATE_CLOSING) {
-        Item_Give(play, ITEM_SONG_STORMS);
+        if (GameInteractor_Should(VB_GIVE_ITEM_SONG, true, ITEM_SONG_STORMS)) {
+            Item_Give(play, ITEM_SONG_STORMS);
+        }
         Sfx_PlaySfxCentered(NA_SE_SY_CORRECT_CHIME);
         enFu->actionFunc = EnFu_WaitAdult;
         enFu->actor.flags &= ~ACTOR_FLAG_TALK_OFFER_AUTO_ACCEPTED;
@@ -147,7 +151,7 @@ void TimeSaverOnVanillaBehaviorHandler(GIVanillaBehavior id, bool* should, va_li
                 }
 
                 // Requiem of Spirit
-                if ((gSaveContext.entranceIndex == ENTR_DESERT_COLOSSUS_OUTSIDE_TEMPLE) &&
+                if (!OotmmSession_IsActive() && (gSaveContext.entranceIndex == ENTR_DESERT_COLOSSUS_OUTSIDE_TEMPLE) &&
                     !Flags_GetEventChkInf(EVENTCHKINF_LEARNED_REQUIEM_OF_SPIRIT)) {
                     Flags_SetEventChkInf(EVENTCHKINF_LEARNED_REQUIEM_OF_SPIRIT);
                     // Normally happens in the cutscene

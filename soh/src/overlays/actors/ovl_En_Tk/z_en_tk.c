@@ -10,6 +10,7 @@
 #include "soh/frame_interpolation.h"
 #include "soh/ResourceManagerHelpers.h"
 #include "soh/Enhancements/game-interactor/GameInteractor_Hooks.h"
+#include "soh/OotmmSession.h"
 
 #define FLAGS (ACTOR_FLAG_ATTENTION_ENABLED | ACTOR_FLAG_FRIENDLY)
 
@@ -342,7 +343,7 @@ u16 func_80B1C54C(PlayState* play, Actor* thisx) {
         return ret;
     }
 
-    if (Flags_GetInfTable(INFTABLE_D9)) {
+    if (OotmmSession_IsActive() || Flags_GetInfTable(INFTABLE_D9)) {
         /* "Do you want me to dig here? ..." */
         return 0x5019;
     } else {
@@ -593,7 +594,7 @@ void EnTk_Dig(EnTk* this, PlayState* play) {
         // #region SOH [General] Typically this heart piece would have no collectible flag set when it's picked up, but
         // for both randomizer and gGravediggingTourFix we want to set one, and rely on it instead of the ItemGetInf
         // flag that is set when the heart is spawned
-        ((COLLECTFLAG_GRAVEDIGGING_HEART_PIECE & 0x3F) << 8) | ITEM00_HEART_PIECE,
+        (((OotmmSession_IsActive() ? 0x1F : COLLECTFLAG_GRAVEDIGGING_HEART_PIECE) & 0x3F) << 8) | ITEM00_HEART_PIECE,
         // #endregion
     };
 

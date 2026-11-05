@@ -253,6 +253,11 @@ extern "C" int OotmmFishing_FishSpecies(Actor* fish) {
 
 extern "C" void OotmmFishing_InitFishLength(Actor* fish, float* length) {
     const PondFish* pond = LivePondFish(fish);
+    if (OotmmSession_IsActive() && pond == nullptr && fish != nullptr && length != nullptr && !ShuffleActive()) {
+        const bool odd = (fish->params & 1) != 0;
+        *length = gSaveContext.linkAge != LINK_AGE_CHILD ? (odd ? 44.0f : 52.0f) : (odd ? 36.0f : 46.0f);
+        return;
+    }
     if (pond == nullptr || length == nullptr) {
         return;
     }

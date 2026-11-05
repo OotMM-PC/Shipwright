@@ -373,7 +373,7 @@ void func_80AA0F44(EnMa1* this, PlayState* play) {
         }
     }
 
-    if (Flags_GetEventChkInf(EVENTCHKINF_INVITED_TO_SING_WITH_CHILD_MALON)) {
+    if (OotmmSession_IsActive() || Flags_GetEventChkInf(EVENTCHKINF_INVITED_TO_SING_WITH_CHILD_MALON)) {
         if (player->stateFlags2 & PLAYER_STATE2_ATTEMPT_PLAY_FOR_ACTOR) {
             player->stateFlags2 |= PLAYER_STATE2_PLAY_FOR_ACTOR;
             player->unk_6A8 = &this->actor;

@@ -114,7 +114,7 @@ void EnWonderItem_DropCollectible(EnWonderItem* this, PlayState* play, s32 autoC
 void EnWonderItem_Init(Actor* thisx, PlayState* play) {
     static u32 collisionTypes[] = {
         0x00000702 /* sword slash */, 0x0001F820 /* arrow */,     0x00000040 /* hammer */,   0x00000008 /* bomb */,
-        0x00000004 /* slingshot */,   0x00000010 /* boomerang */, 0x00000080 /* hookshot */,
+        0x00000004 /* slingshot */,   0x00000010 /* boomerang */, 0x00000080 /* hookshot */,  0x00FF00FF,
     };
     s32 pad;
     s16 colTypeIndex;

@@ -7,6 +7,7 @@
 #include "z_bg_haka.h"
 #include "objects/object_haka/object_haka.h"
 #include "soh/Enhancements/game-interactor/GameInteractor_Hooks.h"
+#include "soh/OotmmSouls.h"
 
 #define FLAGS 0
 
@@ -71,7 +72,7 @@ void func_8087B7E8(BgHaka* this, PlayState* play) {
 
     if (this->dyna.unk_150 != 0.0f) {
         if (play->sceneNum == SCENE_GRAVEYARD && !LINK_IS_ADULT && IS_DAY &&
-            !CVarGetInteger(CVAR_ENHANCEMENT("DayGravePull"), 0)) {
+            !CVarGetInteger(CVAR_ENHANCEMENT("DayGravePull"), 0) && !OotmmSouls_Withheld("NPC_BOMBERS")) {
             this->dyna.unk_150 = 0.0f;
             player->stateFlags2 &= ~PLAYER_STATE2_MOVING_DYNAPOLY;
             if (!Play_InCsMode(play)) {

@@ -13,6 +13,8 @@
 #include "soh/Enhancements/game-interactor/GameInteractor_Hooks.h"
 #include "soh/ResourceManagerHelpers.h"
 
+s32 Object_GetIndexNative(ObjectContext* objectCtx, s16 objectId);
+
 #define FLAGS ACTOR_FLAG_UPDATE_CULLING_DISABLED
 
 typedef enum {
@@ -109,7 +111,7 @@ void DoorKiller_Init(Actor* thisx, PlayState* play2) {
     // Look in the object bank for one of the four objects containing door textures
     bankIndex = -1;
     for (i = 0; bankIndex < 0; i++) {
-        bankIndex = Object_GetIndex(&play->objectCtx, sDoorTextures[i].objectId);
+        bankIndex = Object_GetIndexNative(&play->objectCtx, sDoorTextures[i].objectId);
         this->textureEntryIndex = i;
     }
     */
@@ -129,7 +131,7 @@ void DoorKiller_Init(Actor* thisx, PlayState* play2) {
         default:
             this->textureEntryIndex = 3;
     }
-    bankIndex = Object_GetIndex(&play->objectCtx, sDoorTextures[this->textureEntryIndex].objectId);
+    bankIndex = Object_GetIndexNative(&play->objectCtx, sDoorTextures[this->textureEntryIndex].objectId);
 
     osSyncPrintf("bank_ID = %d\n", bankIndex);
     osSyncPrintf("status = %d\n", this->textureEntryIndex);

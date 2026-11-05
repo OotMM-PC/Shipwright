@@ -4,6 +4,7 @@
  * Description: Gerudo fighter
  */
 
+#include "soh/OotmmSession.h"
 #include "z_en_geldb.h"
 #include "objects/object_geldb/object_geldb.h"
 #include "soh/Enhancements/game-interactor/GameInteractor_Hooks.h"
@@ -1582,7 +1583,9 @@ void EnGeldB_Draw(Actor* thisx, PlayState* play) {
             this->timer--;
             if (this->timer == 0) {
                 if (GameInteractor_Should(VB_GERUDO_FIGHTER_THROW_LINK_TO_JAIL, true, this)) {
-                    if ((INV_CONTENT(ITEM_HOOKSHOT) == ITEM_NONE) || (INV_CONTENT(ITEM_LONGSHOT) == ITEM_NONE)) {
+                    if (OotmmSession_IsActive()) {
+                        play->nextEntranceIndex = OotmmSession_GerudoCaughtEntrance(play->sceneNum);
+                    } else if ((INV_CONTENT(ITEM_HOOKSHOT) == ITEM_NONE) || (INV_CONTENT(ITEM_LONGSHOT) == ITEM_NONE)) {
                         play->nextEntranceIndex = ENTR_GERUDO_VALLEY_1;
                     } else if (Flags_GetEventChkInf(EVENTCHKINF_WATCHED_GANONS_CASTLE_COLLAPSE_CAUGHT_BY_GERUDO)) {
                         play->nextEntranceIndex = ENTR_GERUDOS_FORTRESS_18;

@@ -80,6 +80,7 @@
 #include "objects/object_st/object_st.h"
 
 #include "soh_assets.h"
+#include "soh/OotmmSession.h"
 
 // "Get Item" Model Draw Functions
 void GetItem_DrawMaskOrBombchu(PlayState* play, s16 drawId);
@@ -98,6 +99,7 @@ void GetItem_DrawRecoveryHeart(PlayState* play, s16 drawId);
 void GetItem_DrawFish(PlayState* play, s16 drawId);
 void GetItem_DrawOpa0(PlayState* play, s16 drawId);
 void GetItem_DrawOpa0Xlu1(PlayState* play, s16 drawId);
+void GetItem_DrawRutoLetter(PlayState* play, s16 drawId);
 void GetItem_DrawXlu01(PlayState* play, s16 drawId);
 void GetItem_DrawOpa10Xlu2(PlayState* play, s16 drawId);
 void GetItem_DrawMagicArrow(PlayState* play, s16 drawId);
@@ -269,7 +271,7 @@ DrawItemTableEntry sDrawItemTable[] = {
     // chicken, OBJECT_GI_NIWATORI
     { GetItem_DrawOpa10Xlu2, { gGiChickenDL, gGiChickenColorDL, gGiChickenEyesDL } },
     // ruto's letter, OBJECT_GI_BOTTLE_LETTER
-    { GetItem_DrawOpa0Xlu1, { gGiLetterBottleContentsDL, gGiLetterBottleDL } },
+    { GetItem_DrawRutoLetter, { gGiLetterBottleContentsDL, gGiLetterBottleDL } },
     // fairy ocarina, OBJECT_GI_OCARINA_0
     { GetItem_DrawOpa0Xlu1, { gGiOcarinaFairyDL, gGiOcarinaFairyHolesDL } },
     // iron boots, OBJECT_GI_BOOTS_2
@@ -795,6 +797,13 @@ void GetItem_DrawOpa0Xlu1(PlayState* play, s16 drawId) {
     gSPDisplayList(POLY_XLU_DISP++, sDrawItemTable[drawId].dlists[1]);
 
     CLOSE_DISPS(play->state.gfxCtx);
+}
+
+void GetItem_DrawRutoLetter(PlayState* play, s16 drawId) {
+    if (OotmmSession_IsActive()) {
+        Matrix_RotateZ(M_PI / 2.0f, MTXMODE_APPLY);
+    }
+    GetItem_DrawOpa0Xlu1(play, drawId);
 }
 
 void GetItem_DrawGenericMusicNote(PlayState* play, s16 drawId) {
