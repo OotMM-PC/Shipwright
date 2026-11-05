@@ -5,6 +5,7 @@
 #include "soh/Enhancements/enhancementTypes.h"
 #include "soh/Enhancements/game-interactor/GameInteractor_Hooks.h"
 #include "soh/OotmmScales.h"
+#include "soh/OotmmSession.h"
 
 static s32 KaleidoScope_UpgradeSlotFilled(s32 upgrade) {
     return CUR_UPG_VALUE(upgrade) != 0 || (upgrade == UPG_SCALE && OotmmScales_SlotFilled());
@@ -527,6 +528,27 @@ void KaleidoScope_DrawEquipment(PlayState* play) {
         }
 
         KaleidoScope_SetCursorVtx(pauseCtx, cursorSlot * 4, pauseCtx->equipVtx);
+
+        if (OotmmSession_IsActive() && (pauseCtx->cursorSpecialPos == 0) && (pauseCtx->state == 6) &&
+            (pauseCtx->unk_1E4 == 0) && CHECK_BTN_ANY(input->press.button, BTN_L | BTN_CUP)) {
+            u16 equipItem = pauseCtx->cursorItem[PAUSE_EQUIP];
+
+            if ((equipItem >= ITEM_SHIELD_DEKU) && (equipItem <= ITEM_SHIELD_MIRROR) &&
+                (CUR_EQUIP_VALUE(EQUIP_TYPE_SHIELD) == (equipItem - ITEM_SHIELD_DEKU + 1))) {
+                Inventory_ChangeEquipment(EQUIP_TYPE_SHIELD, 0);
+                Player_SetEquipmentData(play, GET_PLAYER(play));
+                Sfx_PlaySfxCentered(NA_SE_SY_DECIDE);
+            } else if (LINK_IS_CHILD && (equipItem == ITEM_SWORD_KOKIRI) &&
+                       (CUR_EQUIP_VALUE(EQUIP_TYPE_SWORD) == EQUIP_VALUE_SWORD_KOKIRI) &&
+                       !(GET_PLAYER(play)->stateFlags2 & PLAYER_STATE2_DIVING)) {
+                Inventory_ChangeEquipment(EQUIP_TYPE_SWORD, 0);
+                gSaveContext.equips.buttonItems[0] = ITEM_NONE;
+                Flags_SetInfTable(INFTABLE_SWORDLESS);
+                Player_SetEquipmentData(play, GET_PLAYER(play));
+                Interface_LoadItemIcon1(play, 0);
+                Sfx_PlaySfxCentered(NA_SE_SY_DECIDE);
+            }
+        }
 
         // Allow Toggling of Strength when Pressing A on Strength Upgrade Slot
         if ((pauseCtx->cursorSpecialPos == 0) && (pauseCtx->state == 6) && (pauseCtx->unk_1E4 == 0) &&

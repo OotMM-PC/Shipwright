@@ -12,6 +12,7 @@
 #include "soh/SohGui/SohMenu.h"
 #include "soh/SohGui/SohGui.hpp"
 #include "soh/OTRGlobals.h"
+#include "soh/OotmmSession.h"
 #include "soh/ResourceManagerHelpers.h"
 #include "soh/Enhancements/enhancementTypes.h"
 
@@ -1498,6 +1499,23 @@ void ApplyOrResetCustomGfxPatches(bool manualChange) {
             player->actor.scale.z = scale;
         }
     }
+    if (!OotmmSession_ApplyFreestandingCosmetics()) {
+        for (const char* name : { "Link_GoronTunic1", "Link_GoronTunic3" }) {
+            ResourceMgr_UnpatchGfxByName(gGiGoronTunicColorDL, name);
+        }
+        for (const char* name : { "Link_GoronTunic2", "Link_GoronTunic4" }) {
+            ResourceMgr_UnpatchGfxByName(gGiGoronCollarColorDL, name);
+        }
+        for (const char* name : { "Link_ZoraTunic1", "Link_ZoraTunic3" }) {
+            ResourceMgr_UnpatchGfxByName(gGiZoraTunicColorDL, name);
+        }
+        for (const char* name : { "Link_ZoraTunic2", "Link_ZoraTunic4" }) {
+            ResourceMgr_UnpatchGfxByName(gGiZoraCollarColorDL, name);
+        }
+        for (const char* name : { "MirrorShield_Body1", "MirrorShield_Body2" }) {
+            ResourceMgr_UnpatchGfxByName(gGiMirrorShieldDL, name);
+        }
+    }
 }
 
 extern "C" Color_RGBA8 CosmeticsEditor_GetDefaultValue(const char* id) {
@@ -2611,6 +2629,20 @@ void CosmeticsEditorWindow::InitElement() {
     Ship::Context::GetInstance()->GetWindow()->GetGui()->SaveConsoleVariablesNextFrame();
     ApplyOrResetCustomGfxPatches();
     ApplyAuthenticGfxPatches();
+}
+
+void CosmeticsEditor_SetColor(const char* id, Color_RGBA8 color) {
+    const auto found = cosmeticOptions.find(id);
+    if (found == cosmeticOptions.end()) {
+        return;
+    }
+    CosmeticOption& cosmeticOption = found->second;
+    cosmeticOption.currentColor =
+        ImVec4(color.r / 255.0f, color.g / 255.0f, color.b / 255.0f, color.a / 255.0f);
+    CVarSetColor(cosmeticOption.valuesCvar, color);
+    CVarSetInteger(cosmeticOption.rainbowCvar, 0);
+    CVarSetInteger(cosmeticOption.changedCvar, 1);
+    ApplySideEffects(cosmeticOption);
 }
 
 void CosmeticsEditor_RandomizeAll() {

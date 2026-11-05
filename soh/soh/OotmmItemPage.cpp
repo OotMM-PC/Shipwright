@@ -1,5 +1,6 @@
 #include "OotmmItemPage.h"
 
+#include "OotmmBottles.h"
 #include "OotmmCustomItems.h"
 #include "OotmmSession.h"
 #include "ResourceManagerHelpers.h"
@@ -212,6 +213,39 @@ extern "C" void OotmmItemPage_UpdateCursor(PlayState* play) {
         KaleidoScope_SetupItemEquip(play, sHovered, OotmmCustomItems_SlotOf(sHovered),
                                     pauseCtx->itemVtx[index].v.ob[0] * 10,
                                     pauseCtx->itemVtx[index].v.ob[1] * 10);
+    }
+}
+
+extern "C" void OotmmItemPage_FillDpadDefaults(void) {
+    if (!OotmmSession_IsActive() || gPlayState == nullptr || gPlayState->pauseCtx.state != 0 ||
+        gSaveContext.gameMode != GAMEMODE_NORMAL) {
+        return;
+    }
+    const bool adult = LINK_IS_ADULT;
+    const bool boots = adult || OotmmSession_BoolSetting("agelessBoots");
+    const int tradeSlot = adult && !OotmmSession_BoolSetting("agelessChildTrade") ? SLOT_TRADE_ADULT : SLOT_TRADE_CHILD;
+    const struct {
+        int Button;
+        int Slot;
+        uint8_t Item;
+    } defaults[] = {
+        { 4, tradeSlot, OotmmBottles_IsTradeBottleSlot(tradeSlot) ? static_cast<uint8_t>(ITEM_NONE) : gSaveContext.inventory.items[tradeSlot] },
+        { 5, SLOT_OCARINA, gSaveContext.inventory.items[SLOT_OCARINA] },
+        { 6, SLOT_BOOTS_IRON, static_cast<uint8_t>(boots && CHECK_OWNED_EQUIP(EQUIP_TYPE_BOOTS, EQUIP_INV_BOOTS_IRON) ? ITEM_BOOTS_IRON : ITEM_NONE) },
+        { 7, SLOT_BOOTS_HOVER, static_cast<uint8_t>(boots && CHECK_OWNED_EQUIP(EQUIP_TYPE_BOOTS, EQUIP_INV_BOOTS_HOVER) ? ITEM_BOOTS_HOVER : ITEM_NONE) },
+    };
+    for (const auto& entry : defaults) {
+        if (entry.Item == ITEM_NONE || gSaveContext.equips.buttonItems[entry.Button] != ITEM_NONE) {
+            continue;
+        }
+        bool assigned = false;
+        for (int button = 1; button < 8; button++) {
+            assigned |= gSaveContext.equips.buttonItems[button] == entry.Item;
+        }
+        if (!assigned) {
+            gSaveContext.equips.buttonItems[entry.Button] = entry.Item;
+            gSaveContext.equips.cButtonSlots[entry.Button - 1] = static_cast<u8>(entry.Slot);
+        }
     }
 }
 

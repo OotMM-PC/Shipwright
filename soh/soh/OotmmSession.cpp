@@ -26,6 +26,7 @@
 #include "OotmmSunlightArrows.h"
 #include "OotmmPresence.h"
 #include "OotmmXflags.h"
+#include "Enhancements/cosmetics/CosmeticsEditor.h"
 
 #include "Enhancements/enhancementTypes.h"
 #include "Enhancements/game-interactor/GameInteractor.h"
@@ -51,6 +52,7 @@ s32 Object_Spawn(ObjectContext* objectCtx, s16 objectId);
 #include <filesystem>
 #include <fstream>
 #include <string>
+#include <utility>
 
 namespace {
 
@@ -507,6 +509,28 @@ void DefaultCVar(const char* name, int32_t value) {
     }
 }
 
+void ApplySeedColors() {
+    static constexpr std::pair<const char*, const char*> kColors[] = {
+        { "ootTunicKokiri", "Link.KokiriTunic" }, { "ootTunicGoron", "Link.GoronTunic" },
+        { "ootTunicZora", "Link.ZoraTunic" },     { "ootShieldMirror", "MirrorShield.Body" },
+        { "dpad", "HUD.Dpad" },                   { "fileSelect", "Title.FileChoose" },
+    };
+    bool applied = false;
+    for (const auto& [key, option] : kColors) {
+        const std::string hex = sGameState.GetStringSetting(std::string("cosmetic.color.") + key, "");
+        if (hex.size() != 7 || hex[0] != '#') {
+            continue;
+        }
+        const uint32_t value = std::stoul(hex.substr(1), nullptr, 16);
+        CosmeticsEditor_SetColor(option, { static_cast<uint8_t>(value >> 16), static_cast<uint8_t>(value >> 8),
+                                           static_cast<uint8_t>(value), 255 });
+        applied = true;
+    }
+    if (applied || !OotmmSession_ApplyFreestandingCosmetics()) {
+        ApplyOrResetCustomGfxPatches(true);
+    }
+}
+
 void ApplyEnhancements() {
     DefaultCVar(CVAR_ENHANCEMENT("SkipText"), 1);
     DefaultCVar(CVAR_ENHANCEMENT("TextSpeed"), 5);
@@ -537,6 +561,11 @@ void ApplyEnhancements() {
     CVarSetInteger(CVAR_CHEAT("EasyFrameAdvance"), 1);
     CVarSetInteger(CVAR_ENHANCEMENT("PauseBufferWindow"), 1);
     CVarSetInteger(CVAR_ENHANCEMENT("DpadEquips"), 1);
+    CVarSetInteger(CVAR_ENHANCEMENT("BowArrowCycle"), 1);
+    ApplySeedColors();
+    if (sGameState.GetBoolSetting("cosmetic.noLowHealthBeep", false)) {
+        CVarSetInteger(CVAR_AUDIO("LowHpAlarm"), 1);
+    }
 
     const std::string csmc = sGameState.GetStringSetting("csmc", "always");
     CVarSetInteger(CVAR_ENHANCEMENT("ChestSizeAndTextureMatchContents"), csmc != "never" ? 1 : 0);
@@ -1095,6 +1124,10 @@ uint32_t WallmasterSource(int16_t sceneNum, int8_t room) {
 
 bool OotmmSession_HasEntranceShuffle() {
     return SeedHasEntranceShuffle();
+}
+
+extern "C" int32_t OotmmSession_ApplyFreestandingCosmetics(void) {
+    return !OotmmSession_IsActive() || sGameState.GetBoolSetting("cosmetic.applyFreestandings", true);
 }
 
 bool OotmmSession_BeginCrossGameTransition(const Ship::OotmmEntranceMapping& mapping) {

@@ -1,5 +1,6 @@
 #include "soh/Enhancements/game-interactor/GameInteractor_Hooks.h"
 #include "ResourceManagerHelpers.h"
+#include "OotmmSession.h"
 #include <libultraship/libultraship.h>
 #include "soh/resource/type/Scene.h"
 #include <ship/utils/StringHelper.h>
@@ -312,6 +313,20 @@ bool Scene_CommandSoundSettings(PlayState* play, SOH::ISceneCommand* cmd) {
 
     play->sequenceCtx.seqId = cmdSnd->settings.seqId;
     play->sequenceCtx.natureAmbienceId = cmdSnd->settings.natureAmbienceId;
+    if (OotmmSession_IsActive() && OotmmSession_BoolSetting("cosmetic.nightBgm")) {
+        switch (play->sceneNum) {
+            case SCENE_TEMPLE_OF_TIME_EXTERIOR_NIGHT:
+            case SCENE_TEMPLE_OF_TIME_EXTERIOR_RUINS:
+            case SCENE_OUTSIDE_GANONS_CASTLE:
+            case SCENE_MARKET_NIGHT:
+            case SCENE_MARKET_RUINS:
+            case SCENE_GRAVEYARD:
+                break;
+            default:
+                play->sequenceCtx.natureAmbienceId = 0x13;
+                break;
+        }
+    }
 
     if (gSaveContext.seqId == 0xFF) {
         Audio_QueueSeqCmd(cmdSnd->settings.reverb | 0xF0000000);

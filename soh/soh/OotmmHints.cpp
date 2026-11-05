@@ -2,6 +2,7 @@
 
 #include "Enhancements/game-interactor/GameInteractor.h"
 #include "OotmmSession.h"
+#include "OotmmXflags.h"
 #include "soh/util.h"
 
 #include <cctype>
@@ -27,6 +28,7 @@ constexpr uint16_t kAltarAdultText = 0x7088;
 constexpr uint16_t kGanondorfText = 0x70CC;
 constexpr uint16_t kNaviText = 0x0141;
 constexpr uint16_t kSignStyleText = 0x0300;
+constexpr int16_t kLocationSign = 0x1000;
 constexpr int16_t kSpecialCondSign = 0x1100;
 constexpr uint16_t kBridgeSignText = kSpecialCondSign | kSignStyleText;
 constexpr char kFast = '\x08';
@@ -177,9 +179,107 @@ void BuildNaviText(uint16_t* textId, bool* loadFromMessageTable) {
     ShowSentence(*textId, junk[static_cast<uint16_t>(Rand_S16Offset(0, 0x7FFF)) % junk.size()], loadFromMessageTable);
 }
 
+const char* GenericGrottoName(int grotto) {
+    switch (grotto) {
+        case 0x00: return "Hyrule Field Market Generic Grotto";
+        case 0x02: return "Hyrule Field Southeast Generic Grotto";
+        case 0x03: return "Hyrule Field Open Generic Grotto";
+        case 0x08: return "Kakariko Generic Grotto";
+        case 0x09: return "Zora River Generic Grotto";
+        case 0x0C: return "Kokiri Forest Generic Grotto";
+        case 0x14: return "Lost Woods Generic Grotto";
+        case 0x17: return "Death Mountain Trail Generic Grotto";
+        case 0x1A: return "Death Mountain Crater Generic Grotto";
+        default: return nullptr;
+    }
+}
+
+const char* ScrubGrottoName(int room, int lastScene) {
+    if (room == 0x09) {
+        switch (lastScene) {
+            case SCENE_SACRED_FOREST_MEADOW: return "Sacred Forest Meadow Scrub Grotto";
+            case SCENE_ZORAS_RIVER: return "Zora River Scrub Grotto";
+            case SCENE_GERUDO_VALLEY: return "Gerudo Valley Scrub Grotto";
+            case SCENE_DESERT_COLOSSUS: return "Desert Colossus Scrub Grotto";
+            default: return nullptr;
+        }
+    }
+    switch (lastScene) {
+        case SCENE_LON_LON_RANCH: return "Lon Lon Ranch Scrub Grotto";
+        case SCENE_GORON_CITY: return "Goron City Scrub Grotto";
+        case SCENE_DEATH_MOUNTAIN_CRATER: return "Death Mountain Crater Scrub Grotto";
+        case SCENE_LAKE_HYLIA: return "Lake Hylia Scrub Grotto";
+        default: return nullptr;
+    }
+}
+
+const char* FairyFountainName(int lastScene) {
+    switch (lastScene) {
+        case SCENE_SACRED_FOREST_MEADOW: return "Sacred Forest Meadow Fairy Fountain";
+        case SCENE_HYRULE_FIELD: return "Hyrule Field Fairy Fountain";
+        case SCENE_ZORAS_RIVER: return "Zora River Fairy Fountain";
+        case SCENE_ZORAS_DOMAIN: return "Zora Domain Fairy Fountain";
+        case SCENE_GERUDOS_FORTRESS: return "Gerudo Fortress Fairy Fountain";
+        default: return nullptr;
+    }
+}
+
+const char* GreatFairyName(int scene, int spawn) {
+    if (scene == SCENE_GREAT_FAIRYS_FOUNTAIN_MAGIC) {
+        switch (spawn) {
+            case 0: return "Death Mountain Trail Great Fairy Fountain";
+            case 1: return "Death Mountain Crater Great Fairy Fountain";
+            case 2: return "Outside Ganon Castle Great Fairy Fountain";
+            default: return nullptr;
+        }
+    }
+    switch (spawn) {
+        case 0: return "Zora Fountain Great Fairy Fountain";
+        case 1: return "Hyrule Castle Great Fairy Fountain";
+        case 2: return "Desert Colossus Great Fairy Fountain";
+        default: return nullptr;
+    }
+}
+
+std::string LocationName() {
+    const char* name = nullptr;
+    const int lastScene = OotmmXflags_LastScene();
+    switch (gPlayState->sceneNum) {
+        case SCENE_GROTTOS:
+            switch (gPlayState->roomCtx.curRoom.num) {
+                case 0x00:
+                    name = GenericGrottoName(gSaveContext.respawn[RESPAWN_MODE_RETURN].data & 0x1F);
+                    break;
+                case 0x06:
+                    name = "Lost Woods Scrub Grotto";
+                    break;
+                case 0x09:
+                case 0x0C:
+                    name = ScrubGrottoName(gPlayState->roomCtx.curRoom.num, lastScene);
+                    break;
+            }
+            break;
+        case SCENE_FAIRYS_FOUNTAIN:
+            name = FairyFountainName(lastScene);
+            break;
+        case SCENE_GREAT_FAIRYS_FOUNTAIN_MAGIC:
+        case SCENE_GREAT_FAIRYS_FOUNTAIN_SPELLS:
+            name = GreatFairyName(gPlayState->sceneNum, gPlayState->curSpawn);
+            break;
+    }
+    return name != nullptr ? name : "Unknown Location";
+}
+
 void BuildSignText(uint16_t*, bool* loadFromMessageTable) {
     const Actor* sign = TalkActor(ACTOR_EN_KANBAN);
-    if (sign == nullptr || sign->params != kSpecialCondSign) {
+    if (sign == nullptr) {
+        return;
+    }
+    if (sign->params == kLocationSign) {
+        ShowSentence(kSignStyleText, LocationName(), loadFromMessageTable);
+        return;
+    }
+    if (sign->params != kSpecialCondSign) {
         return;
     }
     const auto& conds = OotmmSession_GetState().GetHints().SpecialConds;
@@ -188,21 +288,54 @@ void BuildSignText(uint16_t*, bool* loadFromMessageTable) {
     }
 }
 
-void SpawnSpecialCondSign(float x, float y, float z, int16_t yaw) {
-    Actor_Spawn(&gPlayState->actorCtx, gPlayState, ACTOR_EN_KANBAN, x, y, z, 0, yaw, 0, kSpecialCondSign);
-}
-
-void SpawnExtraSigns() {
-    const auto& state = OotmmSession_GetState();
-    if (gPlayState == nullptr || gPlayState->sceneNum != SCENE_OUTSIDE_GANONS_CASTLE ||
-        state.GetStringSetting("rainbowBridge") != "custom" || !state.GetHints().SpecialConds.contains("BRIDGE")) {
-        return;
-    }
+void SpawnSign(float x, float y, float z, int16_t yaw, int16_t params) {
     if (Object_GetIndex(&gPlayState->objectCtx, OBJECT_KANBAN) < 0) {
         Object_Spawn(&gPlayState->objectCtx, OBJECT_KANBAN);
     }
-    SpawnSpecialCondSign(0.0f, 1358.0f, 1530.0f, 0x1000);
-    SpawnSpecialCondSign(-600.0f, 1645.0f, 700.0f, 0x4800);
+    Actor_Spawn(&gPlayState->actorCtx, gPlayState, ACTOR_EN_KANBAN, x, y, z, 0, yaw, 0, params);
+}
+
+void SpawnLocationSigns() {
+    const auto& state = OotmmSession_GetState();
+    const bool grottos = state.GetStringSetting("erGrottos", "none") != "none";
+    const bool indoors = state.GetStringSetting("erIndoors", "none") != "none";
+    switch (gPlayState->sceneNum) {
+        case SCENE_GROTTOS:
+            if (grottos) {
+                switch (gPlayState->roomCtx.curRoom.num) {
+                    case 0x00: SpawnSign(-50.0f, 0.0f, 70.0f, 0x2000, kLocationSign); break;
+                    case 0x06: SpawnSign(530.0f, 0.0f, 1260.0f, 0x2000, kLocationSign); break;
+                    case 0x09: SpawnSign(2350.0f, 0.0f, 1260.0f, 0x2000, kLocationSign); break;
+                    case 0x0C: SpawnSign(4700.0f, 0.0f, 1260.0f, 0x2000, kLocationSign); break;
+                }
+            }
+            break;
+        case SCENE_FAIRYS_FOUNTAIN:
+            if (grottos) {
+                SpawnSign(-90.0f, 38.0f, 250.0f, 0x2000, kLocationSign);
+            }
+            break;
+        case SCENE_GREAT_FAIRYS_FOUNTAIN_MAGIC:
+        case SCENE_GREAT_FAIRYS_FOUNTAIN_SPELLS:
+            if (indoors) {
+                SpawnSign(-90.0f, 20.0f, -150.0f, 0x2000, kLocationSign);
+            }
+            break;
+    }
+}
+
+void SpawnExtraSigns() {
+    if (gPlayState == nullptr || !OotmmSession_IsActive()) {
+        return;
+    }
+    SpawnLocationSigns();
+    const auto& state = OotmmSession_GetState();
+    if (gPlayState->sceneNum != SCENE_OUTSIDE_GANONS_CASTLE || state.GetStringSetting("rainbowBridge") != "custom" ||
+        !state.GetHints().SpecialConds.contains("BRIDGE")) {
+        return;
+    }
+    SpawnSign(0.0f, 1358.0f, 1530.0f, 0x1000, kSpecialCondSign);
+    SpawnSign(-600.0f, 1645.0f, 700.0f, 0x4800, kSpecialCondSign);
 }
 
 } // namespace

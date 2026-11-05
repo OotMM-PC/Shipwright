@@ -1,4 +1,5 @@
 #include "soh/OotmmCustomItems.h"
+#include "soh/OotmmSession.h"
 #include "soh/OotmmItemApply.h"
 #include "soh/OotmmItemPage.h"
 #include "z_kaleido_scope.h"
@@ -468,6 +469,25 @@ void KaleidoScope_DrawItemSelect(PlayState* play) {
 
         cursorItem = pauseCtx->cursorItem[PAUSE_ITEM];
         cursorSlot = pauseCtx->cursorSlot[PAUSE_ITEM];
+
+        if (OotmmSession_IsActive() && (pauseCtx->cursorSpecialPos == 0) && (cursorItem == ITEM_BIG_POE) &&
+            (cursorSlot >= SLOT_BOTTLE_1) && (cursorSlot <= SLOT_BOTTLE_4) &&
+            CHECK_BTN_ANY(input->press.button, BTN_L | BTN_CUP)) {
+            gSaveContext.inventory.items[cursorSlot] = ITEM_BOTTLE;
+            for (s32 cButton = 0; cButton < 3; cButton++) {
+                if (gSaveContext.equips.cButtonSlots[cButton] == cursorSlot) {
+                    gSaveContext.equips.buttonItems[cButton + 1] = ITEM_BOTTLE;
+                    Interface_LoadItemIcon1(play, cButton + 1);
+                }
+            }
+            if (play->sceneNum == SCENE_HYRULE_FIELD) {
+                Flags_UnsetSwitch(play, 0x18);
+            } else {
+                gSaveContext.sceneFlags[SCENE_HYRULE_FIELD].swch &= ~(1 << 0x18);
+            }
+            Sfx_PlaySfxCentered(NA_SE_SY_DECIDE);
+            cursorItem = ITEM_BOTTLE;
+        }
 
         if (pauseCtx->cursorSpecialPos == 0) {
             pauseCtx->cursorColorSet = 4;

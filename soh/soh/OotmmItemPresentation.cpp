@@ -70,6 +70,7 @@ std::string BuildMessage(const Ship::GameIpcItemPresentation& presentation) {
     if (crossGame) {
         message += " It was sent to %r" + GameName(presentation.DestinationGame) + "%w.";
     }
+    message += OotmmSession_GetState().DungeonItemText(presentation.ItemId);
     return message;
 }
 

@@ -60,6 +60,7 @@ void CosmeticsEditor_RandomizeGroup(CosmeticGroup group);
 void CosmeticsEditor_ResetAll();
 void CosmeticsEditor_ResetGroup(CosmeticGroup group);
 void ApplyOrResetCustomGfxPatches(bool manualChange = true);
+void CosmeticsEditor_SetColor(const char* id, Color_RGBA8 color);
 
 class CosmeticsEditorWindow final : public Ship::GuiWindow {
   public:
