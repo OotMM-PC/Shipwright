@@ -133,12 +133,17 @@ void func_80A8910C(EnJs* this, PlayState* play) {
 void func_80A89160(EnJs* this, PlayState* play) {
     if (Actor_HasParent(&this->actor, play)) {
         this->actor.parent = NULL;
-        En_Js_SetupAction(this, func_80A8910C);
+        if (OotmmNpcChecks_IsShuffled("OOT_CARPET_MERCHANT")) {
+            func_80A89008(this);
+        } else {
+            En_Js_SetupAction(this, func_80A8910C);
+        }
     } else {
-        GetItemEntry itemEntry = ItemTable_Retrieve(GI_BOMBCHUS_10);
+        s32 getItemId = OotmmNpcChecks_MerchantRepeatGi("OOT_CARPET_MERCHANT", GI_BOMBCHUS_10);
+        GetItemEntry itemEntry = ItemTable_Retrieve(getItemId);
         gSaveContext.ship.pendingSale = itemEntry.itemId;
         gSaveContext.ship.pendingSaleMod = itemEntry.modIndex;
-        Actor_OfferGetItem(&this->actor, play, GI_BOMBCHUS_10, 10000.0f, 50.0f);
+        Actor_OfferGetItem(&this->actor, play, getItemId, 10000.0f, 50.0f);
     }
 }
 
@@ -146,7 +151,10 @@ void func_80A891C4(EnJs* this, PlayState* play) {
     if (Message_GetState(&play->msgCtx) == TEXT_STATE_CHOICE && Message_ShouldAdvance(play)) {
         switch (play->msgCtx.choiceIndex) {
             case 0: // yes
-                if (GameInteractor_Should(
+                if (OotmmNpcChecks_MerchantCanBuy("OOT_CARPET_MERCHANT", 0) == 1) {
+                    Message_ContinueTextbox(play, 0x6073);
+                    func_80A89008(this);
+                } else if (GameInteractor_Should(
                         VB_CHECK_PRICE_OF_CARPET_SALESMAN,
                         gSaveContext.rupees < OotmmNpcChecks_MerchantPrice(OOTMM_MERCHANT_CARPET, 200), this)) {
                     Message_ContinueTextbox(play, 0x6075);

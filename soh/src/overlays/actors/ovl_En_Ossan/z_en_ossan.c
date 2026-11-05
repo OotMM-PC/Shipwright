@@ -1597,7 +1597,7 @@ void EnOssan_State_SelectBombs(EnOssan* this, PlayState* play, Player* player) {
         return;
     }
     osSyncPrintf("店主の依頼 ( %d )\n", Flags_GetInfTable(INFTABLE_FC));
-    if (this->actor.params != OSSAN_TYPE_GORON) {
+    if (OotmmSession_IsActive() || this->actor.params != OSSAN_TYPE_GORON) {
         EnOssan_State_ItemSelected(this, play, player);
         return;
     }

@@ -520,6 +520,10 @@ void EnTa_IdleAtRanch(EnTa* this, PlayState* play) {
 }
 
 s32 func_80B14DD8(void) {
+    s32 ootmmResult = OotmmNpcChecks_MerchantCanBuy("OOT_TALON_MILK", OotmmNpcChecks_MerchantPrice(OOTMM_MERCHANT_TALON, 30));
+    if (ootmmResult >= 0) {
+        return ootmmResult;
+    }
     if (gSaveContext.rupees < OotmmNpcChecks_MerchantPrice(OOTMM_MERCHANT_TALON, 30)) {
         return 0;
     } else if (!Inventory_HasEmptyBottle()) {
@@ -881,8 +885,14 @@ void EnTa_GiveItemInLonLonHouse(EnTa* this, PlayState* play) {
             Flags_SetItemGetInf(ITEMGETINF_TALON_BOTTLE);
         }
         this->unk_2E0 &= ~0x2;
+        if (this->ootmmRepeatGi != GI_NONE) {
+            this->ootmmRepeatGi = GI_NONE;
+            func_80B14F20(this, EnTa_IdleSittingInLonLonHouse);
+            func_80B13AAC(this, play);
+        }
     } else if (this->unk_2E0 & 2) {
-        Actor_OfferGetItem(&this->actor, play, GI_MILK, 10000.0f, 50.0f);
+        Actor_OfferGetItem(&this->actor, play, this->ootmmRepeatGi != GI_NONE ? this->ootmmRepeatGi : GI_MILK, 10000.0f,
+                           50.0f);
     } else {
         if (GameInteractor_Should(VB_GIVE_ITEM_FROM_TALONS_CHICKENS, true, &this->actor)) {
             Actor_OfferGetItem(&this->actor, play, GI_MILK_BOTTLE, 10000.0f, 50.0f);
@@ -919,11 +929,13 @@ void func_80B15FE8(EnTa* this, PlayState* play) {
                         this->unk_2E0 |= 2;
                         EnTa_SetupAction(this, EnTa_GiveItemInLonLonHouse, EnTa_AnimRunToEnd);
                         Rupees_ChangeBy(-OotmmNpcChecks_MerchantPrice(OOTMM_MERCHANT_TALON, 30));
+                        this->ootmmRepeatGi = OotmmNpcChecks_MerchantRepeatGi("OOT_TALON_MILK", GI_NONE);
                         if (GameInteractor_Should(VB_GIVE_ITEM_FROM_TALONS_CHICKENS, true, &this->actor)) {
-                            GetItemEntry itemEntry = ItemTable_Retrieve(GI_MILK);
+                            s32 getItemId = this->ootmmRepeatGi != GI_NONE ? this->ootmmRepeatGi : GI_MILK;
+                            GetItemEntry itemEntry = ItemTable_Retrieve(getItemId);
                             gSaveContext.ship.pendingSale = itemEntry.itemId;
                             gSaveContext.ship.pendingSaleMod = itemEntry.modIndex;
-                            Actor_OfferGetItem(&this->actor, play, GI_MILK, 10000.0f, 50.0f);
+                            Actor_OfferGetItem(&this->actor, play, getItemId, 10000.0f, 50.0f);
                         }
                         break;
                 }

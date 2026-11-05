@@ -7,6 +7,7 @@
 #include "OotmmDrops.h"
 #include "OotmmDungeons.h"
 #include "OotmmIpc.h"
+#include "OotmmNpcChecks.h"
 #include "OotmmItemModels.h"
 #include "OotmmItemPresentation.h"
 #include "OotmmSession.h"
@@ -108,6 +109,19 @@ int CowId(const Actor* cow, const PlayState* play) {
         default:
             return -1;
     }
+}
+
+Actor* NearestCow(PlayState* play) {
+    Actor* nearest = nullptr;
+    for (const auto& list : play->actorCtx.actorLists) {
+        for (Actor* actor = list.head; actor != nullptr; actor = actor->next) {
+            if (actor->id == ACTOR_EN_COW && actor->params != 1 &&
+                (nearest == nullptr || actor->xzDistToPlayer < nearest->xzDistToPlayer)) {
+                nearest = actor;
+            }
+        }
+    }
+    return nearest;
 }
 
 const Ship::OotmmPlacement* FindCow(const Actor* cow, const PlayState* play) {
@@ -416,14 +430,19 @@ void OotmmChecks_Init() {
     });
 
     REGISTER_VB_SHOULD(VB_GIVE_ITEM_FROM_COW, {
-        EnCow* cow = va_arg(args, EnCow*);
-        const auto* placement = FindCow(&cow->actor, gPlayState);
+        Actor* cow = NearestCow(gPlayState);
+        const auto* placement = cow != nullptr ? FindCow(cow, gPlayState) : nullptr;
         if (placement == nullptr) {
             return;
         }
         *should = false;
         if (IsCollected(*placement)) {
-            Item_Give(gPlayState, ITEM_HEART);
+            const auto* repeat = OotmmNpcChecks_FindRepeat(*placement);
+            if (repeat != nullptr) {
+                OotmmNpcChecks_GiveRepeat(*repeat, true);
+            } else {
+                Item_Give(gPlayState, ITEM_HEART);
+            }
         } else {
             Report(*placement, true);
         }

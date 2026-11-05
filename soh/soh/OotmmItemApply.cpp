@@ -8,6 +8,7 @@
 #include "OotmmFaroresWind.h"
 #include "OotmmIpc.h"
 #include "OotmmItemPresentation.h"
+#include "OotmmShops.h"
 #include "OotmmSession.h"
 #include "OotmmSilverRupees.h"
 #include "OotmmTriforce.h"
@@ -938,6 +939,20 @@ void ApplyOne(PlayState* play, const std::string& itemId, uint32_t count) {
                 }
                 break;
             }
+            case Ship::OotmmGrantKind::BigFairy: {
+                if (count > already) {
+                    if (gSaveContext.isMagicAcquired && gSaveContext.magicState != MAGIC_STATE_IDLE) {
+                        sRetryMagicApplication = true;
+                        break;
+                    }
+                    Health_ChangeBy(play, static_cast<s16>((count - already) * 8 * 0x10));
+                    if (gSaveContext.isMagicAcquired) {
+                        Magic_Fill(play);
+                    }
+                    sLedger.SetApplied(itemId, count);
+                }
+                break;
+            }
             case Ship::OotmmGrantKind::Health: {
                 if (count > already) {
                     const uint32_t delta = count - already;
@@ -1133,7 +1148,8 @@ bool ApplyTrap(size_t type, Player* player) {
 void UpdateTraps() {
     if (gPlayState == nullptr || !OotmmSession_IsActive() || !sLedgerValid ||
         gSaveContext.gameMode != GAMEMODE_NORMAL || gPlayState->pauseCtx.state != 0 ||
-        gPlayState->msgCtx.msgMode != MSGMODE_NONE || OotmmItemPresentation_IsPending()) {
+        gPlayState->msgCtx.msgMode != MSGMODE_NONE || OotmmItemPresentation_IsPending() ||
+        OotmmShops_InTransaction(gPlayState)) {
         return;
     }
     const auto& inventory = OotmmIpc_GetInventory();

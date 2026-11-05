@@ -13,6 +13,7 @@ int OotmmShops_IsShuffled(const struct EnGirlA* item);
 int OotmmShops_Draw(struct EnGirlA* item, struct PlayState* play);
 int OotmmShops_Report(struct EnGirlA* item);
 int OotmmShops_ContinuePresentation(struct EnGirlA* item, struct PlayState* play, struct Player* player);
+int OotmmShops_InTransaction(struct PlayState* play);
 
 #ifdef __cplusplus
 }

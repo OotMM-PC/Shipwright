@@ -180,9 +180,10 @@ s32 EnDs_CheckRupeesAndBottle() {
 void EnDs_GiveBluePotion(EnDs* this, PlayState* play) {
     if (Actor_HasParent(&this->actor, play)) {
         this->actor.parent = NULL;
-        this->actionFunc = EnDs_Talk;
+        this->actionFunc = OotmmNpcChecks_IsShuffled("OOT_WITCH_BLUE_POTION") ? EnDs_Wait : EnDs_Talk;
     } else {
-        Actor_OfferGetItem(&this->actor, play, GI_POTION_BLUE, 10000.0f, 50.0f);
+        Actor_OfferGetItem(&this->actor, play, OotmmNpcChecks_MerchantRepeatGi("OOT_WITCH_BLUE_POTION", GI_POTION_BLUE),
+                           10000.0f, 50.0f);
     }
 }
 
@@ -196,7 +197,8 @@ void EnDs_OfferBluePotion(EnDs* this, PlayState* play) {
                         break;
                     case 1: // have 100 rupees but no empty bottle
                         Message_ContinueTextbox(play, 0x96);
-                        this->actionFunc = EnDs_TalkNoEmptyBottle;
+                        this->actionFunc =
+                            OotmmNpcChecks_IsShuffled("OOT_WITCH_BLUE_POTION") ? EnDs_Talk : EnDs_TalkNoEmptyBottle;
                         return;
                     case 2: // have 100 rupees and empty bottle
                         if (GameInteractor_Should(VB_GRANNY_TAKE_MONEY, true, this)) {
@@ -205,8 +207,9 @@ void EnDs_OfferBluePotion(EnDs* this, PlayState* play) {
                         this->actor.flags &= ~ACTOR_FLAG_TALK_OFFER_AUTO_ACCEPTED;
 
                         if (GameInteractor_Should(VB_GIVE_ITEM_FROM_GRANNYS_SHOP, true, this)) {
-                            GetItemEntry itemEntry = ItemTable_Retrieve(GI_POTION_BLUE);
-                            Actor_OfferGetItem(&this->actor, play, GI_POTION_BLUE, 10000.0f, 50.0f);
+                            s32 getItemId = OotmmNpcChecks_MerchantRepeatGi("OOT_WITCH_BLUE_POTION", GI_POTION_BLUE);
+                            GetItemEntry itemEntry = ItemTable_Retrieve(getItemId);
+                            Actor_OfferGetItem(&this->actor, play, getItemId, 10000.0f, 50.0f);
                             gSaveContext.ship.pendingSale = itemEntry.itemId;
                             gSaveContext.ship.pendingSaleMod = itemEntry.modIndex;
                             this->actionFunc = EnDs_GiveBluePotion;

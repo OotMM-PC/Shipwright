@@ -127,80 +127,30 @@ bool IsCollected(const Ship::OotmmPlacement& placement) {
     return OotmmCheckLedger_Contains(placement.CheckId) || OotmmIpc_IsCheckCompleted(placement.CheckId);
 }
 
-struct Renewal {
-    uint8_t Item;
-    uint8_t Ammo;
-};
-
-const std::unordered_map<std::string, Renewal> kRenewals = {
-    { "OOT_ARROWS_5", { ITEM_ARROWS_SMALL, ITEM_BOW } },
-    { "OOT_ARROWS_10", { ITEM_ARROWS_MEDIUM, ITEM_BOW } },
-    { "OOT_ARROWS_30", { ITEM_ARROWS_LARGE, ITEM_BOW } },
-    { "OOT_BOMB", { ITEM_BOMB, ITEM_BOMB } },
-    { "OOT_BOMBS_5", { ITEM_BOMBS_5, ITEM_BOMB } },
-    { "OOT_BOMBS_10", { ITEM_BOMBS_10, ITEM_BOMB } },
-    { "OOT_BOMBS_20", { ITEM_BOMBS_20, ITEM_BOMB } },
-    { "OOT_BOMBS_30", { ITEM_BOMBS_30, ITEM_BOMB } },
-    { "OOT_BOMBCHU_5", { ITEM_BOMBCHUS_5, ITEM_BOMBCHU } },
-    { "OOT_BOMBCHU_10", { ITEM_BOMBCHU, ITEM_BOMBCHU } },
-    { "OOT_BOMBCHU_20", { ITEM_BOMBCHUS_20, ITEM_BOMBCHU } },
-    { "OOT_NUTS_5", { ITEM_NUTS_5, ITEM_NUT } },
-    { "OOT_NUTS_10", { ITEM_NUTS_10, ITEM_NUT } },
-    { "OOT_STICK", { ITEM_STICK, ITEM_STICK } },
-    { "OOT_DEKU_SEEDS_5", { ITEM_SEEDS, ITEM_SLINGSHOT } },
-    { "OOT_DEKU_SEEDS_30", { ITEM_SEEDS_30, ITEM_SLINGSHOT } },
-    { "OOT_RECOVERY_HEART", { ITEM_HEART, ITEM_NONE } },
-    { "OOT_RUPEE_GREEN", { ITEM_RUPEE_GREEN, ITEM_NONE } },
-    { "OOT_RUPEE_BLUE", { ITEM_RUPEE_BLUE, ITEM_NONE } },
-    { "OOT_RUPEE_RED", { ITEM_RUPEE_RED, ITEM_NONE } },
-    { "OOT_RUPEE_PURPLE", { ITEM_RUPEE_PURPLE, ITEM_NONE } },
-    { "OOT_RUPEE_HUGE", { ITEM_RUPEE_GOLD, ITEM_NONE } },
-};
-
-const Renewal* FindRenewal(const Ship::OotmmPlacement& placement) {
-    if (!placement.CloakItemId.empty() || !placement.IsFor(OotmmSession_GetState().GetPlayerId())) {
-        return nullptr;
-    }
-    const auto found = kRenewals.find(placement.ItemId);
-    return found == kRenewals.end() ? nullptr : &found->second;
-}
-
-bool CanHold(const Renewal& renewal) {
-    switch (renewal.Ammo) {
-        case ITEM_BOW:
-            return INV_CONTENT(ITEM_BOW) == ITEM_BOW && AMMO(ITEM_BOW) < CUR_CAPACITY(UPG_QUIVER);
-        case ITEM_BOMB:
-            return CUR_UPG_VALUE(UPG_BOMB_BAG) > 0 && AMMO(ITEM_BOMB) < CUR_CAPACITY(UPG_BOMB_BAG);
-        case ITEM_BOMBCHU:
-            return INV_CONTENT(ITEM_BOMBCHU) == ITEM_BOMBCHU && AMMO(ITEM_BOMBCHU) < 50;
-        case ITEM_NUT:
-            return CUR_CAPACITY(UPG_NUTS) == 0 || AMMO(ITEM_NUT) < CUR_CAPACITY(UPG_NUTS);
-        case ITEM_STICK:
-            return CUR_CAPACITY(UPG_STICKS) == 0 || AMMO(ITEM_STICK) < CUR_CAPACITY(UPG_STICKS);
-        case ITEM_SLINGSHOT:
-            return INV_CONTENT(ITEM_SLINGSHOT) == ITEM_SLINGSHOT && AMMO(ITEM_SLINGSHOT) < CUR_CAPACITY(UPG_BULLET_BAG);
+s32 CanBuyWith(EnGirlA* item, s32 success) {
+    const auto* placement = FindShop(item);
+    switch (placement != nullptr ? OotmmNpcChecks_SaleResult(*placement, false, item->basePrice) : 1) {
+        case 0:
+            return CANBUY_RESULT_NEED_RUPEES;
+        case 1:
+            return CANBUY_RESULT_CANT_GET_NOW;
         default:
-            return renewal.Item != ITEM_HEART || gSaveContext.health < gSaveContext.healthCapacity;
+            return success;
     }
 }
 
 s32 CanBuyShuffled(PlayState*, EnGirlA* item) {
-    return gSaveContext.rupees < item->basePrice ? CANBUY_RESULT_NEED_RUPEES : CANBUY_RESULT_SUCCESS_FANFARE;
+    return CanBuyWith(item, CANBUY_RESULT_SUCCESS_FANFARE);
 }
 
 s32 CanBuyRenewal(PlayState*, EnGirlA* item) {
-    const auto* placement = FindShop(item);
-    const Renewal* renewal = placement != nullptr ? FindRenewal(*placement) : nullptr;
-    if (renewal == nullptr || !CanHold(*renewal)) {
-        return CANBUY_RESULT_CANT_GET_NOW;
-    }
-    return gSaveContext.rupees < item->basePrice ? CANBUY_RESULT_NEED_RUPEES : CANBUY_RESULT_SUCCESS;
+    return CanBuyWith(item, CANBUY_RESULT_SUCCESS);
 }
 
 void GiveRenewal(PlayState* play, EnGirlA* item) {
     const auto* placement = FindShop(item);
-    if (const Renewal* renewal = placement != nullptr ? FindRenewal(*placement) : nullptr) {
-        Item_Give(play, renewal->Item);
+    if (const auto* repeat = placement != nullptr ? OotmmNpcChecks_FindRepeat(*placement) : nullptr) {
+        OotmmNpcChecks_GiveRepeat(*repeat);
     }
     Rupees_ChangeBy(-item->basePrice);
 }
@@ -209,7 +159,7 @@ void Noop(PlayState*, EnGirlA*) {
 }
 
 void ApplyCollected(EnGirlA* item, const Ship::OotmmPlacement& placement) {
-    if (FindRenewal(placement) != nullptr) {
+    if (OotmmNpcChecks_FindRepeat(placement) != nullptr) {
         item->ootmmState = kRenewable;
         item->canBuyFunc = CanBuyRenewal;
         item->itemGiveFunc = GiveRenewal;
@@ -256,7 +206,9 @@ void BuildShopText(uint16_t* textId, bool* loadFromMessageTable) {
     if (placement == nullptr) {
         return;
     }
-    std::string text = OotmmNpcChecks_PlacementName(*placement) + "&%r" + std::to_string(item->basePrice) + " Rupees%w";
+    const auto* repeat = item->ootmmState == kRenewable ? OotmmNpcChecks_FindRepeat(*placement) : nullptr;
+    const std::string name = repeat != nullptr ? "%g" + std::string(repeat->Name) + "%w" : OotmmNpcChecks_PlacementName(*placement);
+    std::string text = name + "&%r" + std::to_string(item->basePrice) + " Rupees%w";
     if (description) {
         text += "\x0A";
     } else {
@@ -321,6 +273,15 @@ extern "C" int OotmmShops_Report(EnGirlA* item) {
         OotmmCheckLedger_Record(placement->CheckId);
     }
     return 1;
+}
+
+extern "C" int OotmmShops_InTransaction(PlayState* play) {
+    for (Actor* actor = play->actorCtx.actorLists[ACTORCAT_NPC].head; actor != nullptr; actor = actor->next) {
+        if (actor->id == ACTOR_EN_OSSAN && reinterpret_cast<EnOssan*>(actor)->stateFlag != OSSAN_STATE_IDLE) {
+            return 1;
+        }
+    }
+    return 0;
 }
 
 extern "C" int OotmmShops_ContinuePresentation(EnGirlA* item, PlayState* play, Player* player) {

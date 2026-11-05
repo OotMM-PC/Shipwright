@@ -11,6 +11,7 @@
 #include "variables.h"
 
 #include <libultraship/bridge/GameIpcSession.h>
+#include <libultraship/bridge/OotmmItemGrant.h>
 #include <ship/resource/ResourceManager.h>
 #include <ship/resource/archive/ArchiveManager.h>
 #include <spdlog/spdlog.h>
@@ -187,6 +188,18 @@ bool OotmmIpc_SendEndgameReached(const char* boss) {
 bool OotmmIpc_TakeRemotePresence(std::vector<Ship::OotmmPlayerPose>& poses,
                                  std::vector<Ship::OotmmPvpHit>& hits) {
     return sSession.TakeRemotePresence(poses, hits);
+}
+
+bool OotmmIpc_SendRenewalGrant(const std::string& itemId) {
+    if (!sSession.Send(nlohmann::json{ { "type", "renewalGrant" }, { "itemId", itemId } }.dump())) {
+        return false;
+    }
+    if (itemId.starts_with("MM_")) {
+        const auto& state = OotmmSession_GetState();
+        Ship::OotmmItemGrant::NoteRemoteGrant(itemId, state.GetBootConfig().StatePath + ".vitals.mm",
+                                              state.GetBoolSetting("sharedMagic", false));
+    }
+    return true;
 }
 
 bool OotmmIpc_SendCheckCollected(const std::string& checkId, bool present) {

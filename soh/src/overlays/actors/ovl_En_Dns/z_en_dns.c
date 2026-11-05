@@ -21,6 +21,7 @@ void EnDns_Update(Actor* thisx, PlayState* play);
 void EnDns_Draw(Actor* thisx, PlayState* play);
 
 u32 EnDns_CanBuyPrice(EnDns* this);
+u32 EnDns_CanBuyShuffled(EnDns* this);
 u32 EnDns_CanBuyDekuNuts(EnDns* this);
 u32 EnDns_CanBuyDekuSticks(EnDns* this);
 u32 EnDns_CanBuyDekuSeeds(EnDns* this);
@@ -133,7 +134,8 @@ void EnDns_Init(Actor* thisx, PlayState* play) {
         return;
     }
     // Sell Seeds instead of Arrows if Link is child
-    if ((this->actor.params == DNS_TYPE_ARROWS_30) && (LINK_AGE_IN_YEARS == YEARS_CHILD)) {
+    if ((this->actor.params == DNS_TYPE_ARROWS_30) && (LINK_AGE_IN_YEARS == YEARS_CHILD) &&
+        (OotmmNpcChecks_ScrubPrice(&this->actor, play, 0) < 0)) {
         this->actor.params = DNS_TYPE_DEKU_SEEDS_30;
     }
     // "Deku Salesman"
@@ -159,7 +161,8 @@ void EnDns_Init(Actor* thisx, PlayState* play) {
     if (ootmmPrice >= 0) {
         this->ootmmItemEntry = *this->dnsItemEntry;
         this->ootmmItemEntry.itemPrice = ootmmPrice;
-        this->ootmmItemEntry.purchaseableCheck = EnDns_CanBuyPrice;
+        this->ootmmItemEntry.getItemId = OotmmNpcChecks_ScrubRepeatGi(&this->actor);
+        this->ootmmItemEntry.purchaseableCheck = EnDns_CanBuyShuffled;
         this->dnsItemEntry = &this->ootmmItemEntry;
     }
     this->actionFunc = EnDns_SetupIdle;
@@ -215,6 +218,17 @@ u32 EnDns_CanBuyPrice(EnDns* this) {
         return DNS_CANBUY_RESULT_NEED_RUPEES;
     }
     return DNS_CANBUY_RESULT_SUCCESS;
+}
+
+u32 EnDns_CanBuyShuffled(EnDns* this) {
+    switch (OotmmNpcChecks_ScrubCanBuy(&this->actor, this->dnsItemEntry->itemPrice)) {
+        case 0:
+            return DNS_CANBUY_RESULT_NEED_RUPEES;
+        case 1:
+            return DNS_CANBUY_RESULT_CAPACITY_FULL;
+        default:
+            return DNS_CANBUY_RESULT_SUCCESS;
+    }
 }
 
 u32 EnDns_CanBuyDekuSeeds(EnDns* this) {
@@ -369,7 +383,9 @@ void EnDns_Talk(EnDns* this, PlayState* play) {
 
 void EnDns_OfferSaleItem(EnDns* this, PlayState* play) {
     u16 pendingGetItemId;
-    if (this->actor.params == DNS_TYPE_DEKU_STICK_UPGRADE) {
+    if (this->dnsItemEntry == &this->ootmmItemEntry) {
+        pendingGetItemId = this->dnsItemEntry->getItemId;
+    } else if (this->actor.params == DNS_TYPE_DEKU_STICK_UPGRADE) {
         if (CUR_UPG_VALUE(UPG_STICKS) < 2) {
             pendingGetItemId = GI_STICK_UPGRADE_20;
         } else {
