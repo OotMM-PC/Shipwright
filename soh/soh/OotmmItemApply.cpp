@@ -889,6 +889,15 @@ void ApplyOne(PlayState* play, const std::string& itemId, uint32_t count) {
                     }
                     break;
                 }
+                if (const auto found = kNativeItems.find(itemId);
+                    found != kNativeItems.end() && found->second >= ITEM_SHIELD_DEKU &&
+                    found->second <= ITEM_SHIELD_MIRROR) {
+                    if (count > already) {
+                        ApplyOnce(play, itemId, found->second);
+                        sLedger.SetApplied(itemId, count);
+                    }
+                    break;
+                }
                 if (already == 0) {
                     const auto found = kNativeItems.find(itemId);
                     if (found != kNativeItems.end()) {
