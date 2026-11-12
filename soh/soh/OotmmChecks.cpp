@@ -177,15 +177,17 @@ void SweepSavedBossContainers() {
 
 void ChestOpenAction(Player* player, PlayState* play) {
     if (LinkAnimation_Update(play, &player->skelAnime)) {
-        if (OotmmItemPresentation_ContinueChest(play, player, sOpeningChestCheck)) {
-            sOpeningChestCheck.clear();
-            return;
-        }
-        if (sChestOpeningFinishedFrame == 0) {
-            sChestOpeningFinishedFrame = play->gameplayFrames;
-        }
-        if (play->gameplayFrames - sChestOpeningFinishedFrame < 120) {
-            return;
+        if (!sOpeningChestCheck.empty()) {
+            if (OotmmItemPresentation_ContinueChest(play, player, sOpeningChestCheck)) {
+                sOpeningChestCheck.clear();
+                return;
+            }
+            if (sChestOpeningFinishedFrame == 0) {
+                sChestOpeningFinishedFrame = play->gameplayFrames;
+            }
+            if (play->gameplayFrames - sChestOpeningFinishedFrame < 120) {
+                return;
+            }
         }
         sOpeningChestCheck.clear();
         func_8084DFAC(play, player);
@@ -421,7 +423,7 @@ void OotmmChecks_Init() {
         Player* player = GET_PLAYER(gPlayState);
         sActiveChest = FindChest(gPlayState->sceneNum, chest->dyna.actor.params & kChestFlagMask);
         if (sActiveChest != nullptr && player != nullptr) {
-            sOpeningChestCheck = sActiveChest->CheckId;
+            sOpeningChestCheck = IsCollected(*sActiveChest) ? std::string() : sActiveChest->CheckId;
             sChestOpeningFinishedFrame = 0;
             OotmmChecks_OpenChestSilently(gPlayState, player);
             Report(*sActiveChest, true);
