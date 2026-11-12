@@ -317,6 +317,10 @@ static void FileChoose_BeginNameEntry(FileChooseContext* this) {
     static u8 linkNameJP[] = { 0x81, 0x87, 0x61, 0xDF, 0xDF, 0xDF, 0xDF, 0xDF };
     void* defaultName;
 
+    if (!OotmmSession_RequestFileSelection(this->buttonIndex)) {
+        return;
+    }
+
     this->configMode = CM_ROTATE_TO_NAME_ENTRY;
     this->logoAlpha = 0;
     this->kbdButton = FS_KBD_BTN_NONE;
