@@ -511,6 +511,12 @@ static void ApplySetupString(const char* variable, const std::string& setup) {
             if (gPlayState != nullptr && gPlayState->sceneNum == first) {
                 Flags_SetSwitch(gPlayState, static_cast<s32>(second));
             }
+        } else if (key == "unchest" && first >= 0 &&
+                   first < static_cast<long>(ARRAY_COUNT(gSaveContext.sceneFlags)) && second >= 0 && second < 32) {
+            gSaveContext.sceneFlags[first].chest &= ~(1u << second);
+            if (gPlayState != nullptr && gPlayState->sceneNum == first) {
+                gPlayState->actorCtx.flags.chest &= ~(1u << second);
+            }
         } else if (key == "clear" && first >= 0 && first < static_cast<long>(ARRAY_COUNT(gSaveContext.sceneFlags)) &&
                    second >= 0 && second < 32) {
             gSaveContext.sceneFlags[first].clear |= 1u << second;
