@@ -35,6 +35,8 @@ extern "C" {
 #include "z64.h"
 
 extern PlayState* gPlayState;
+void Player_Action_8084FB10(Player* thisx, PlayState* play);
+void Player_Action_8084FBF4(Player* thisx, PlayState* play);
 }
 
 namespace {
@@ -1116,28 +1118,51 @@ void ApplyOne(PlayState* play, const std::string& itemId, uint32_t count) {
 constexpr u32 kTrapBlockingStates = PLAYER_STATE1_HOOKSHOT_FALLING | PLAYER_STATE1_TALKING | PLAYER_STATE1_DEAD |
                                     PLAYER_STATE1_READY_TO_FIRE | PLAYER_STATE1_GETTING_ITEM | PLAYER_STATE1_ON_HORSE;
 
-void HurtForTrap(Player* player, s32 response, f32 speed, f32 yVelocity, s16 yaw) {
-    player->actor.colChkInfo.damage = 0;
+constexpr f32 kKnockbackLift = 10.0f;
+constexpr f32 kKnockbackFramesPerUnit = 30.0f;
+
+void HurtForTrap(Player* player, s32 response, f32 speed, f32 yVelocity, s16 yaw, s32 damage = 0) {
+    player->actor.colChkInfo.damage = static_cast<u8>(std::clamp(damage, 0, 255));
     func_80837C0C(gPlayState, player, response, speed, yVelocity, yaw, 20);
+}
+
+void ApplyKnockback(Player* player) {
+    const auto& traps = OotmmIpc_GetSettings().Traps;
+    const s16 yaw = static_cast<s16>(Rand_Next() & 0xFFFF);
+    if (const auto* chance = traps.PickKnockback(Rand_ZeroFloat(100.0f)); chance != nullptr) {
+        const f32 lift = chance->Distance > 0.0f ? kKnockbackLift : 0.0f;
+        HurtForTrap(player, 1, chance->Distance / kKnockbackFramesPerUnit, lift, yaw);
+        return;
+    }
+    HurtForTrap(player, 1, Rand_ZeroFloat(20.0f), Rand_ZeroFloat(15.0f), yaw);
 }
 
 bool ApplyTrap(size_t type, Player* player) {
     switch (type) {
         case 0:
-            HurtForTrap(player, 3, 0, 0, 0);
+            HurtForTrap(player, 3, 0, 0, 0, OotmmIpc_GetSettings().Traps.IceDamage);
+            if (player->actionFunc == Player_Action_8084FB10) {
+                player->av2.actionVar2 = static_cast<s16>(100 - OotmmIpc_GetSettings().Traps.IceBreakoutPercent);
+            }
             return true;
         case 1:
             if (player->currentTunic == 2) {
                 return true;
             }
-            HurtForTrap(player, 0, 0, 0, 0);
-            player->bodyIsBurning = true;
-            for (int part = 0; part < PLAYER_BODYPART_MAX; part++) {
-                player->bodyFlameTimers[part] = Rand_S16Offset(0, 200);
+            HurtForTrap(player, 0, 0, 0, 0, OotmmIpc_GetSettings().Traps.FireDamage);
+            if (OotmmIpc_GetSettings().Traps.FireDuration > 0) {
+                player->bodyIsBurning = true;
+                for (int part = 0; part < PLAYER_BODYPART_MAX; part++) {
+                    player->bodyFlameTimers[part] =
+                        Rand_S16Offset(0, static_cast<s16>(OotmmIpc_GetSettings().Traps.FireDuration));
+                }
             }
             return true;
         case 2:
-            HurtForTrap(player, 4, 0, 0, 0);
+            HurtForTrap(player, 4, 0, 0, 0, OotmmIpc_GetSettings().Traps.ShockDamage);
+            if (player->actionFunc == Player_Action_8084FBF4) {
+                player->av2.actionVar2 = static_cast<s16>(OotmmIpc_GetSettings().Traps.ShockDuration);
+            }
             return true;
         case 3:
             gSaveContext.health = 1;
@@ -1148,7 +1173,7 @@ bool ApplyTrap(size_t type, Player* player) {
             HurtForTrap(player, 0, 0, 0, 0);
             return true;
         case 5:
-            HurtForTrap(player, 1, Rand_ZeroFloat(20.0f), Rand_ZeroFloat(15.0f), static_cast<s16>(Rand_Next() & 0xFFFF));
+            ApplyKnockback(player);
             return true;
         case 6:
             Rupees_ChangeBy(-10);
