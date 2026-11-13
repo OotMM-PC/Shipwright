@@ -303,12 +303,14 @@ void EnButte_FollowLink(EnButte* this, PlayState* play) {
     f32 distSqFromSword;
     s16 yaw;
 
+    const s32 quickTransform = OotmmXflags_IsShuffled(&this->actor);
+
     func_809CD634(this);
     Math_SmoothStepToF(&this->actor.speedXZ, flightParams->speedXZTarget, flightParams->speedXZScale,
                        flightParams->speedXZStep, 0.0f);
     minAnimSpeed = 0.0f;
 
-    if ((this->flightParamsIdx != 0) && (this->timer < 12)) {
+    if (quickTransform || ((this->flightParamsIdx != 0) && (this->timer < 12))) {
         swordTip.x = player->meleeWeaponInfo[0].tip.x + Math_SinS(player->actor.shape.rot.y) * 10.0f;
         swordTip.y = player->meleeWeaponInfo[0].tip.y;
         swordTip.z = player->meleeWeaponInfo[0].tip.z + Math_CosS(player->actor.shape.rot.y) * 10.0f;
@@ -342,7 +344,7 @@ void EnButte_FollowLink(EnButte* this, PlayState* play) {
     if (!((player->heldItemAction == PLAYER_IA_DEKU_STICK) && (fabsf(player->actor.speedXZ) < 1.8f) &&
           (this->swordDownTimer <= 0) && (distSqFromHome < SQ(320.0f)))) {
         EnButte_SetupFlyAround(this);
-    } else if (distSqFromHome > SQ(240.0f)) {
+    } else if ((distSqFromHome > SQ(240.0f)) || quickTransform) {
         distSqFromSword = Math3D_Dist2DSq(player->meleeWeaponInfo[0].tip.x, player->meleeWeaponInfo[0].tip.z,
                                           this->actor.world.pos.x, this->actor.world.pos.z);
         if (distSqFromSword < SQ(60.0f)) {
