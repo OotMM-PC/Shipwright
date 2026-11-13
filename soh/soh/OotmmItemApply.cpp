@@ -365,10 +365,19 @@ void ApplyOnce(PlayState* play, const std::string& key, uint8_t item) {
     if (item == ITEM_NONE) {
         return;
     }
-    if (item == ITEM_SWORD_KNIFE || item == ITEM_SWORD_BGS) {
-        Item_Give(play, ITEM_SWORD_BGS);
+    if ((item >= ITEM_SWORD_KOKIRI && item <= ITEM_SWORD_BGS) || item == ITEM_SWORD_KNIFE) {
+        const u8 bButton = gSaveContext.equips.buttonItems[0];
+        const u16 equipment = gSaveContext.equips.equipment;
+        Item_Give(play, item == ITEM_SWORD_KNIFE ? ITEM_SWORD_BGS : item);
         if (item == ITEM_SWORD_BGS) {
             gSaveContext.bgsFlag = 1;
+        }
+        if (bButton != ITEM_SWORD_KNIFE) {
+            gSaveContext.equips.buttonItems[0] = bButton;
+            gSaveContext.equips.equipment = equipment;
+            if (play != nullptr) {
+                Interface_LoadItemIcon1(play, 0);
+            }
         }
     } else {
         Item_Give(play, item);
