@@ -6,6 +6,8 @@
 
 #include "z_en_ishi.h"
 #include "soh/OotmmXflags.h"
+#include "soh/OotmmItemApply.h"
+#include "soh/OotmmSession.h"
 #include "overlays/effects/ovl_Effect_Ss_Kakera/z_eff_ss_kakera.h"
 #include "objects/gameplay_field_keep/gameplay_field_keep.h"
 #include "soh/OTRGlobals.h"
@@ -261,6 +263,17 @@ void EnIshi_DropCollectible(EnIshi* this, PlayState* play) {
 
         if (dropParams >= 0xD) {
             dropParams = 0;
+        }
+
+        if (OotmmSession_IsActive() && play->sceneNum == SCENE_DEATH_MOUNTAIN_TRAIL && dropParams == 0xB &&
+            this->actor.home.pos.y < 900.0f) {
+            s32 bombDrop = OotmmItemApply_SelectBombDrop(ITEM00_BOMBS_A, ITEM00_BOMBCHU);
+            if (bombDrop >= 0) {
+                Item_DropCollectible(play, &this->actor.world.pos, bombDrop);
+            } else {
+                Item_DropCollectibleRandom(play, NULL, &this->actor.world.pos, 0);
+            }
+            return;
         }
 
         Item_DropCollectibleRandom(play, NULL, &this->actor.world.pos, dropParams << 4);
