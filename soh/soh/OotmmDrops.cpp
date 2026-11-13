@@ -2,6 +2,7 @@
 
 #include "Enhancements/game-interactor/GameInteractor.h"
 #include "OotmmCheckLedger.h"
+#include "OotmmCsmc.h"
 #include "OotmmIpc.h"
 #include "OotmmItemModels.h"
 #include "OotmmSession.h"
@@ -34,6 +35,7 @@ struct Drop {
     std::string DrawItemId;
     std::string DrawItemName;
     bool Collected = false;
+    const Ship::OotmmPlacement* Glitter = nullptr;
 };
 
 void PickDisguise(std::string& drawItemId, std::string& drawItemName) {
@@ -56,6 +58,8 @@ void PickDisguise(std::string& drawItemId, std::string& drawItemName) {
 std::unordered_map<Actor*, Drop> sDrops;
 
 constexpr s16 kDespawnRefresh = 220;
+constexpr float kHiddenGlitterHeight = 60.0f;
+uint32_t sHiddenGlitterDraws = 0;
 constexpr float kWorldScale = 0.25f;
 
 void Present(const Drop& drop) {
@@ -129,10 +133,14 @@ extern "C" void OotmmDrops_DrawActor(Actor* actor, PlayState* play) {
         const float scale = kWorldScale / actor->scale.x;
         Matrix_Scale(scale, scale, scale, MTXMODE_APPLY);
     }
-    if (OotmmItemModel_DrawById(play, it->second.DrawItemId, it->second.DrawItemName)) {
-        return;
+    if (!OotmmItemModel_DrawById(play, it->second.DrawItemId, it->second.DrawItemName)) {
+        GetItem_Draw(play, GID_RUPEE_GREEN);
     }
-    GetItem_Draw(play, GID_RUPEE_GREEN);
+    if (it->second.Glitter != nullptr && !it->second.Collected &&
+        !OotmmCheckLedger_Contains(it->second.CheckId) && !OotmmIpc_IsCheckCompleted(it->second.CheckId)) {
+        OotmmCsmc_DrawGlitter(play, actor, *it->second.Glitter, kHiddenGlitterHeight);
+        sHiddenGlitterDraws++;
+    }
 }
 
 bool OotmmDrops_Spawn(PlayState* play, float x, float y, float z, const std::string& itemId,
@@ -166,7 +174,11 @@ bool OotmmDrops_Adopt(Actor* actor, const Ship::OotmmPlacement& placement, int c
     if (actor == nullptr || actor->id != ACTOR_EN_ITEM00) {
         return false;
     }
-    Track(reinterpret_cast<EnItem00*>(actor), PlacementDrop(placement, collectibleFlag));
+    Drop drop = PlacementDrop(placement, collectibleFlag);
+    if (placement.CheckType == "wonder") {
+        drop.Glitter = &placement;
+    }
+    Track(reinterpret_cast<EnItem00*>(actor), std::move(drop));
     return true;
 }
 

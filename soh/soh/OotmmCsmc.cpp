@@ -270,7 +270,7 @@ void OotmmCsmc_ClearChestOverrides() {
     sChestOverrides.clear();
 }
 
-void OotmmCsmc_DrawGlitter(PlayState* play, Actor* actor, const Ship::OotmmPlacement& placement) {
+void OotmmCsmc_DrawGlitter(PlayState* play, Actor* actor, const Ship::OotmmPlacement& placement, float height) {
     static Vtx sVtx[] = {
         VTX(-10, -10, 0, 0, 0, 0xFF, 0xFF, 0xFF, 0xFF),
         VTX(10, -10, 0, 0x400, 0, 0xFF, 0xFF, 0xFF, 0xFF),
@@ -296,7 +296,7 @@ void OotmmCsmc_DrawGlitter(PlayState* play, Actor* actor, const Ship::OotmmPlace
 
     Matrix_Translate(actor->world.pos.x, actor->world.pos.y, actor->world.pos.z, MTXMODE_NEW);
     Matrix_ReplaceRotation(&play->billboardMtxF);
-    Matrix_Translate(0.0f, 20.0f, 0.0f, MTXMODE_APPLY);
+    Matrix_Translate(0.0f, height, 0.0f, MTXMODE_APPLY);
 
     OPEN_DISPS(play->state.gfxCtx);
     gSPMatrix(POLY_XLU_DISP++, MATRIX_NEWMTX(play->state.gfxCtx), G_MTX_NOPUSH | G_MTX_LOAD | G_MTX_MODELVIEW);
