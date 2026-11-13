@@ -368,7 +368,8 @@ void KeepKakarikoGateLocked(void* actorRef) {
 
 void UpdateHyperEnemy(void* refActor) {
     Actor* actor = static_cast<Actor*>(refActor);
-    if (actor->id == ACTOR_EN_DOG || actor->id == ACTOR_BOSS_VA || actor->id == ACTOR_BOSS_GANON) {
+    if (actor->id == ACTOR_EN_DOG || actor->id == ACTOR_BOSS_VA || actor->id == ACTOR_BOSS_GANON ||
+        actor->id == ACTOR_EN_ENCOUNT2 || actor->id == ACTOR_EN_FIRE_ROCK) {
         return;
     }
     if ((actor->category != ACTORCAT_BOSS && actor->category != ACTORCAT_ENEMY) || actor->update == nullptr ||
