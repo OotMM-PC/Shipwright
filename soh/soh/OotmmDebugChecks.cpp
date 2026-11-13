@@ -447,7 +447,27 @@ static void ApplySetupString(const char* variable, const std::string& setup) {
         const size_t colon = value.find(':');
         const long first = std::strtol(value.c_str(), nullptr, 0);
         const long second = colon == std::string::npos ? 0 : std::strtol(value.c_str() + colon + 1, nullptr, 0);
-        if (key == "drop") {
+        if (key == "remote") {
+            Ship::GameIpcItemPresentation presentation;
+            presentation.ItemId = value;
+            presentation.ItemName = value;
+            presentation.ItemGame = value.starts_with("MM_") ? "mm" : "oot";
+            for (const auto& placement : OotmmSession_GetState().GetPlacements()) {
+                if (placement.ItemId == value) {
+                    presentation.ItemName = placement.ItemName;
+                    presentation.ItemGame = placement.ItemGame;
+                    break;
+                }
+            }
+            presentation.DestinationGame = presentation.ItemGame == "mm" || presentation.ItemGame == "oot"
+                                               ? presentation.ItemGame
+                                               : "oot";
+            presentation.SourcePlayer = 2;
+            presentation.RecipientPlayer = 1;
+            presentation.ViewerPlayer = 1;
+            presentation.Background = true;
+            OotmmItemPresentation_Queue(presentation);
+        } else if (key == "drop") {
             const Ship::OotmmPlacement* match = nullptr;
             for (const auto& placement : OotmmSession_GetState().GetPlacements()) {
                 if (placement.ItemId == value) {
@@ -1007,6 +1027,7 @@ void OotmmDebugChecks_Init() {
                  }() },
                 { "trapState", {
                     { "burning", GET_PLAYER(gPlayState)->bodyIsBurning },
+                    { "shock", GET_PLAYER(gPlayState)->bodyShockTimer },
                     { "invincibility", GET_PLAYER(gPlayState)->invincibilityTimer },
                     { "applied", OotmmItemApply_TrapsApplied() }
                 } },
@@ -1019,7 +1040,7 @@ void OotmmDebugChecks_Init() {
                 } },
                 { "saveSucceeded", SaveManager::Instance->LastBaseSaveSucceeded(gSaveContext.fileNum) },
                 { "savePending", SaveManager::Instance->IsSaving() },
-                { "messageState", Message_GetState(&gPlayState->msgCtx) },
+                { "messageState", Message_GetState(&gPlayState->msgCtx) }, { "presentationPending", OotmmItemPresentation_IsPending() ? 1 : 0 }, { "backgroundShown", OotmmItemPresentation_DebugBackgroundShown() }, { "hiddenGlitterDraws", OotmmDrops_DebugHiddenGlitterDraws() },
                 { "pauseState", gPlayState->pauseCtx.state },
                 { "pausePage", gPlayState->pauseCtx.pageIndex },
                 { "infoMenu", nlohmann::json({ OotmmPauseInfo_Screen(), OotmmPauseInfo_Cursor() }) },

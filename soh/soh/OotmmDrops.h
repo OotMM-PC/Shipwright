@@ -17,3 +17,6 @@ bool OotmmDrops_Adopt(Actor* actor, const Ship::OotmmPlacement& placement, int c
 bool OotmmDrops_HasCheck(const std::string& checkId);
 void OotmmDrops_Report(const std::string& checkId, const std::string& itemId, bool present);
 void OotmmDrops_Init();
+#if !defined(NDEBUG) || defined(OOTMM_RUNTIME_TEST)
+uint32_t OotmmDrops_DebugHiddenGlitterDraws();
+#endif

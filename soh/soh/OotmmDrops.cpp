@@ -239,3 +239,9 @@ void OotmmDrops_Init() {
         sDrops = std::move(alive);
     });
 }
+
+#if !defined(NDEBUG) || defined(OOTMM_RUNTIME_TEST)
+uint32_t OotmmDrops_DebugHiddenGlitterDraws() {
+    return sHiddenGlitterDraws;
+}
+#endif

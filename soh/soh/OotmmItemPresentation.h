@@ -25,6 +25,7 @@ struct OotmmChestPresentationDebugState {
 };
 OotmmChestPresentationDebugState OotmmItemPresentation_DebugChestState();
 int OotmmItemPresentation_DebugLastFanfare();
+int OotmmItemPresentation_DebugBackgroundShown();
 #endif
 std::string OotmmItemPresentation_GameName(const std::string& game);
 

@@ -48,6 +48,7 @@ std::optional<std::pair<std::string, uint32_t>> sDeliveredCheck;
 OotmmChestPresentationDebugState sChestDebug;
 int sLastFanfare = -1;
 #endif
+int sBackgroundShown = 0;
 
 std::string GameName(const std::string& game) {
     return OotmmItemPresentation_GameName(game);
@@ -125,6 +126,7 @@ void PumpJunk() {
     if (OotmmDrops_ShowOverhead(gPlayState, junk.ItemId, junk.ItemName)) {
         PlayItemFanfare(junk.ItemId, true);
         sJunk.pop_front();
+        sBackgroundShown++;
         sJunkCooldown = kJunkSpacingFrames;
     }
 }
@@ -186,6 +188,7 @@ void PumpPresentation() {
     sQueue.pop_front();
     if (sCurrent->Background) {
         OotmmDrops_ShowOverhead(gPlayState, sCurrent->ItemId, sCurrent->ItemName);
+        sBackgroundShown++;
     }
     OotmmItemPresentation_PlayFanfare(1);
     Message_StartTextbox(gPlayState, kPresentationTextId, nullptr);
@@ -338,6 +341,10 @@ OotmmChestPresentationDebugState OotmmItemPresentation_DebugChestState() {
 #if !defined(NDEBUG) || defined(OOTMM_RUNTIME_TEST)
 int OotmmItemPresentation_DebugLastFanfare() {
     return sLastFanfare;
+}
+
+int OotmmItemPresentation_DebugBackgroundShown() {
+    return sBackgroundShown;
 }
 #endif
 
