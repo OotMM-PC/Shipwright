@@ -419,6 +419,12 @@ void PresenceTick() {
         return;
     }
     const uint16_t localPlayer = static_cast<uint16_t>(OotmmSession_GetState().GetPlayerId());
+    for (auto& [id, slot] : gPuppets) {
+        if (slot.actor != nullptr && !ActorStillSpawned(gPlayState, slot.actor)) {
+            slot.actor = nullptr;
+            slot.taggedName.clear();
+        }
+    }
 
     Ship::OotmmPlayerPose pose;
     pose.PlayerId = localPlayer;
@@ -512,6 +518,9 @@ void PresenceTick() {
         if (slot.actor == nullptr && gOotmmPuppetId >= 0) {
             slot.actor = Actor_Spawn(&gPlayState->actorCtx, gPlayState, gOotmmPuppetId, remote.Pos[0], remote.Pos[1],
                                      remote.Pos[2], 0, remote.Yaw, 0, static_cast<s16>(remote.Form & 1));
+            if (slot.actor != nullptr) {
+                slot.actor->room = -1;
+            }
         }
         if (slot.actor != nullptr) {
             ApplyPoseToPuppet(slot, gPlayState, remote);
