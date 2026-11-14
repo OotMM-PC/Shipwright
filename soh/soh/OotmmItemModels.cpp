@@ -1097,6 +1097,8 @@ struct AnimatedFish {
     SkelAnime AnimationState{};
     std::string Skeleton;
     std::string Animation;
+    std::vector<Vec3s> JointTable;
+    std::vector<Vec3s> MorphTable;
     bool Initialized = false;
 };
 
@@ -1124,11 +1126,19 @@ bool DrawPondFish(PlayState* play, std::string_view id,
             !ResourceMgr_FileExists(fish.Animation.c_str())) {
             return false;
         }
+        auto* header = reinterpret_cast<FlexSkeletonHeader*>(
+            ResourceMgr_LoadSkeletonByName(fish.Skeleton.c_str(), nullptr));
+        if (header == nullptr) {
+            return false;
+        }
+        const s32 limbCount = header->sh.limbCount + 1;
+        fish.JointTable.assign(limbCount, Vec3s{});
+        fish.MorphTable.assign(limbCount, Vec3s{});
         SkelAnime_InitFlex(
             play, &fish.AnimationState,
             reinterpret_cast<FlexSkeletonHeader*>(const_cast<char*>(fish.Skeleton.c_str())),
             reinterpret_cast<AnimationHeader*>(const_cast<char*>(fish.Animation.c_str())),
-            nullptr, nullptr, 0);
+            fish.JointTable.data(), fish.MorphTable.data(), limbCount);
         Animation_PlayLoop(
             &fish.AnimationState,
             reinterpret_cast<AnimationHeader*>(const_cast<char*>(fish.Animation.c_str())));
