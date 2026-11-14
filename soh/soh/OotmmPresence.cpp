@@ -190,6 +190,16 @@ void PuppetInitSkeleton(OotmmPuppetActor* puppet, PlayState* play, u8 age) {
     puppet->age = age & 1;
 }
 
+int PresencePlace(PlayState* play) {
+    if (play->sceneNum != SCENE_GROTTOS && play->sceneNum != SCENE_FAIRYS_FOUNTAIN) {
+        return 0;
+    }
+    const RespawnData& grotto = gSaveContext.respawn[RESPAWN_MODE_RETURN];
+    const int parent =
+        grotto.entranceIndex >= 0 && grotto.entranceIndex < ENTR_MAX ? gEntranceTable[grotto.entranceIndex].scene : 0xFF;
+    return 0x10000 | ((parent & 0xFF) << 8) | static_cast<u8>(grotto.data);
+}
+
 bool ActorStillSpawned(PlayState* play, const Actor* target) {
     for (const auto& list : play->actorCtx.actorLists) {
         for (const Actor* actor = list.head; actor != nullptr; actor = actor->next) {
@@ -431,6 +441,7 @@ void PresenceTick() {
     pose.Game = "oot";
     pose.SceneId = gPlayState->sceneNum;
     pose.RoomId = gPlayState->roomCtx.curRoom.num;
+    pose.Place = PresencePlace(gPlayState);
     pose.Pos[0] = player->actor.world.pos.x;
     pose.Pos[1] = player->actor.world.pos.y;
     pose.Pos[2] = player->actor.world.pos.z;
@@ -508,7 +519,8 @@ void PresenceTick() {
     }
 
     for (const Ship::OotmmPlayerPose& remote : roster) {
-        if (remote.PlayerId == localPlayer || remote.Game != "oot" || remote.SceneId != gPlayState->sceneNum) {
+        if (remote.PlayerId == localPlayer || remote.Game != "oot" || remote.SceneId != gPlayState->sceneNum ||
+            remote.Place != pose.Place) {
             continue;
         }
         PuppetSlot& slot = gPuppets[remote.PlayerId];
