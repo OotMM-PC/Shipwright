@@ -44,6 +44,7 @@
 #include "soh/OotmmSession.h"
 #include "soh/OotmmNpcChecks.h"
 #include "soh/OotmmItemPresentation.h"
+#include "soh/OotmmItemApply.h"
 #include "soh/ResourceManagerHelpers.h"
 
 #include <string.h>
@@ -11833,7 +11834,7 @@ void Player_UpdateBodyBurn(PlayState* play, Player* this) {
             dmgCooldown = 7;
         }
 
-        if ((dmgCooldown & play->gameplayFrames) == 0) {
+        if (!OotmmItemApply_TrapDamageTick(play, 1) && (dmgCooldown & play->gameplayFrames) == 0) {
             Player_InflictDamage(play, -1);
         }
     } else {
@@ -15045,7 +15046,7 @@ void Player_Action_8084FB10(Player* this, PlayState* play) {
             this->stateFlags2 |= PLAYER_STATE2_FROZEN;
         }
 
-        if ((play->gameplayFrames % 4) == 0) {
+        if (!OotmmItemApply_TrapDamageTick(play, 0) && (play->gameplayFrames % 4) == 0) {
             Player_InflictDamage(play, -1);
         }
     } else {
@@ -15060,7 +15061,8 @@ void Player_Action_8084FBF4(Player* this, PlayState* play) {
     LinkAnimation_Update(play, &this->skelAnime);
     func_808382BC(this);
 
-    if (((this->av2.actionVar2 % 25) != 0) || func_80837B18(play, this, -1)) {
+    const s32 trapDamage = OotmmItemApply_TrapDamageTick(play, 2);
+    if (((this->av2.actionVar2 % 25) != 0) || trapDamage || func_80837B18(play, this, -1)) {
         if (DECR(this->av2.actionVar2) == 0) {
             func_80839F90(this, play);
         }
