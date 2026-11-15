@@ -77,6 +77,11 @@ void func_8099375C(DemoTreLgt* this, PlayState* play) {
     EnBox* treasureChest = (EnBox*)this->actor.parent;
 
     if (treasureChest != NULL && Animation_OnFrame(&treasureChest->skelanime, 10.0f)) {
+        s32 nativeSmall = treasureChest->type == ENBOX_TYPE_SMALL || treasureChest->type == ENBOX_TYPE_6 ||
+                          treasureChest->type == ENBOX_TYPE_ROOM_CLEAR_SMALL ||
+                          treasureChest->type == ENBOX_TYPE_SWITCH_FLAG_FALL_SMALL;
+        Actor_SetScale(&this->actor,
+                       0.01f * treasureChest->dyna.actor.scale.x / (nativeSmall ? 0.005f : 0.01f));
         func_809937B4(this, play, treasureChest->skelanime.curFrame);
     }
 }
