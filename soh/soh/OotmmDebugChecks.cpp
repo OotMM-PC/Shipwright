@@ -4,6 +4,7 @@
 #include "OotmmChecks.h"
 #include "OotmmCsmc.h"
 #include "OotmmCustomItems.h"
+#include "OotmmDialog.h"
 #include "OotmmDrops.h"
 #include "OotmmNpcChecks.h"
 #include "OotmmPauseInfo.h"
@@ -402,6 +403,23 @@ extern "C" int OotmmDebugChecks_ReadRuntimePad(uint16_t* buttons, int8_t* x, int
 
 static void ApplySetupString(const char* variable, const std::string& setup);
 
+static int sDialogResult = -1;
+
+static void StartTestDialog(const std::string& name) {
+    const char* directory = std::getenv("OOTMM_RUNTIME_TEST_DIR");
+    if (directory == nullptr || gPlayState == nullptr) {
+        return;
+    }
+    std::ifstream file(std::filesystem::u8path(directory) / ("dialog-" + name + ".json"), std::ios::binary);
+    const auto spec = nlohmann::json::parse(file, nullptr, false);
+    if (!spec.is_object()) {
+        return;
+    }
+    sDialogResult = -1;
+    OotmmDialog::Start(gPlayState, spec.value("body", std::string()),
+                       spec.value("options", std::vector<std::string>()), [](int choice) { sDialogResult = choice; });
+}
+
 static void ApplyRuntimeSetup(const char* variable) {
     const char* probe = std::getenv(variable);
     const char* directory = std::getenv("OOTMM_RUNTIME_TEST_DIR");
@@ -710,6 +728,8 @@ static void ApplySetupString(const char* variable, const std::string& setup) {
                     }
                 }
             }
+        } else if (key == "dialog") {
+            StartTestDialog(value);
         } else if (key == "event" && first >= 0 && first < 0x100) {
             Flags_SetEventChkInf(static_cast<s32>(first));
         } else if (key == "getinf" && first >= 0 &&
@@ -779,6 +799,7 @@ void OotmmDebugChecks_Init() {
             input.cur.button = pad.Buttons;
             input.cur.stick_x = pad.X;
             input.cur.stick_y = pad.Y;
+            input.cur.right_stick_y = pad.RightY;
             input.press.button = input.cur.button & ~previous.button;
             input.rel.button = previous.button & ~input.cur.button;
             input.press.stick_x = input.cur.stick_x - previous.stick_x;
@@ -1040,6 +1061,16 @@ void OotmmDebugChecks_Init() {
                     { "fillTarget", gSaveContext.magicFillTarget }, { "addTarget", gSaveContext.magicTarget }
                 } },
                 { "saveSucceeded", SaveManager::Instance->LastBaseSaveSucceeded(gSaveContext.fileNum) },
+                { "dialog",
+                  [] {
+                      const auto dialog = OotmmDialog::Debug();
+                      return nlohmann::json{ { "active", dialog.Active },       { "top", dialog.Top },
+                                             { "total", dialog.Total },         { "choice", dialog.Choice },
+                                             { "cursorRow", dialog.CursorRow }, { "scrollable", dialog.Scrollable },
+                                             { "shown", dialog.Shown },         { "optionRows", dialog.OptionRows },
+                                             { "optionLines", dialog.OptionLines },
+                                             { "result", sDialogResult } };
+                  }() },
                 { "savePending", SaveManager::Instance->IsSaving() },
                 { "messageState", Message_GetState(&gPlayState->msgCtx) }, { "presentationPending", OotmmItemPresentation_IsPending() ? 1 : 0 }, { "backgroundShown", OotmmItemPresentation_DebugBackgroundShown() }, { "hiddenGlitterDraws", OotmmDrops_DebugHiddenGlitterDraws() },
                 { "pauseState", gPlayState->pauseCtx.state },
