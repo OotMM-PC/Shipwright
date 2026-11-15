@@ -46,6 +46,10 @@ void Main_LogSystemHeap(void) {
 
 #ifdef _WIN32
 int SDL_main(int argc, char* argv[]) {
+    int crashMonitorExit = 0;
+    if (CrashMonitorRunIfRequested(argc, argv, &crashMonitorExit)) {
+        return crashMonitorExit;
+    }
     if (GetEnvironmentVariableA("OOTMM_PARENT_HWND", NULL, 0) == 0 &&
         GetEnvironmentVariableA("OOTMM_RUNTIME_TEST_DIR", NULL, 0) == 0) {
         AllocConsole();
@@ -63,6 +67,7 @@ int SDL_main(int argc, char* argv[]) {
 int main(int argc, char* argv[]) {
 #endif
     GameConsole_Init();
+    CrashHandler_SetBuildNote();
     InitOTR(argc, argv);
     // TODO: Was moved to below InitOTR because it requires window to be setup. But will be late to catch crashes.
     CrashHandlerRegisterCallback(CrashHandler_PrintSohData);

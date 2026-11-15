@@ -19,8 +19,17 @@ Ship::IResource* OTRPlay_LoadFile(PlayState* play, const char* fileName) {
     return res.get();
 }
 
+static void SetSceneNote(const char* state, s32 sceneId, s32 spawn) {
+    char note[200];
+    snprintf(note, sizeof(note), "%s scene 0x%X, spawn %d, entrance 0x%X, cutscene 0x%X, %s Link", state, sceneId, spawn,
+             gSaveContext.entranceIndex & 0xFFFF, gSaveContext.cutsceneIndex & 0xFFFF,
+             gSaveContext.linkAge == LINK_AGE_ADULT ? "adult" : "child");
+    CrashHandlerSetNote("scene", note);
+}
+
 extern "C" void OTRPlay_SpawnScene(PlayState* play, s32 sceneId, s32 spawn) {
     SceneTableEntry* scene = &gSceneTable[sceneId];
+    SetSceneNote("loading", sceneId, spawn);
 
     scene->unk_13 = 0;
     play->loadedScene = scene;
@@ -60,6 +69,7 @@ extern "C" void OTRPlay_SpawnScene(PlayState* play, s32 sceneId, s32 spawn) {
     osSyncPrintf("ROOM SIZE=%fK\n", roomSize / 1024.0f);
 
     GameInteractor_ExecuteOnSceneInit(play->sceneNum);
+    SetSceneNote("in", play->sceneNum, spawn);
     SPDLOG_INFO("Scene Init - sceneNum: {0:#x}, entranceIndex: {1:#x}", play->sceneNum, gSaveContext.entranceIndex);
 }
 
