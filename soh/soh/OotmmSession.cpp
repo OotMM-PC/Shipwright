@@ -932,7 +932,7 @@ bool UpdateCrossGameRequest() {
 }
 
 void UpdateEntranceTransition() {
-    if (gPlayState == nullptr || UpdateCrossGameRequest()) {
+    if (gPlayState == nullptr || gSaveContext.gameMode != GAMEMODE_NORMAL || UpdateCrossGameRequest()) {
         return;
     }
     if (sLoadSpawnCrossGame.has_value()) {
@@ -1611,4 +1611,19 @@ extern "C" int32_t OotmmSession_GerudoCaughtEntrance(int32_t sceneNum) {
         return ENTR_GERUDOS_FORTRESS_EAST_EXIT;
     }
     return ENTR_GERUDOS_FORTRESS_18;
+}
+
+bool OotmmSession_SaveForLauncher() {
+    if (!OotmmSession_IsActive() || gPlayState == nullptr || gSaveContext.fileNum == 0xFF) {
+        return true;
+    }
+    Play_PerformSave(gPlayState);
+    SaveManager::Instance->ThreadPoolWait();
+    if (!SaveManager::Instance->LastBaseSaveSucceeded(gSaveContext.fileNum)) {
+        SPDLOG_ERROR("[OoTMM] Launcher-requested save failed");
+        return false;
+    }
+    RecordActiveSaveFile(gSaveContext.fileNum);
+    SPDLOG_INFO("[OoTMM] Saved for the launcher");
+    return true;
 }

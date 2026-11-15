@@ -39,6 +39,7 @@ int32_t OotmmSession_BoolSetting(const char* key);
 }
 
 bool OotmmSession_BeginCrossGameTransition(const Ship::OotmmEntranceMapping& mapping);
+bool OotmmSession_SaveForLauncher();
 bool OotmmSession_IsCrossGameTransitionPending();
 void OotmmSession_Init();
 const Ship::OotmmGameState& OotmmSession_GetState();
