@@ -6,6 +6,8 @@
 #include "OotmmBottles.h"
 #include "OotmmCheckLedger.h"
 #include "OotmmChecks.h"
+#include "OotmmDialog.h"
+#include <libultraship/bridge/OotmmDialog.h>
 #include "OotmmIpc.h"
 #include <libultraship/bridge/OotmmBottles.h>
 #include <libultraship/bridge/OotmmItemGrant.h>
@@ -513,11 +515,8 @@ void BuildScrubText(uint16_t* textId, bool* loadFromMessageTable) {
     const std::string name = scrub->ootmmItemEntry.getItemId != GI_NONE
                                  ? "%g" + std::string(OotmmNpcChecks_FindRepeat(*placement)->Name) + "%w"
                                  : PlacementName(*placement);
-    CustomMessage message("Do you want " + name + " for %r" +
-                          std::to_string(scrub->dnsItemEntry->itemPrice) + " Rupees%w?" +
-                          CustomMessage::TWO_WAY_CHOICE() + "%gYes&No%w");
-    message.AutoFormat();
-    message.LoadIntoFont();
+    OotmmDialog::Load("Do you want " + name + " for %r" + Ship::OotmmDialogPrice(scrub->dnsItemEntry->itemPrice) + "%w?",
+                      { "Yes", "No" });
     *loadFromMessageTable = false;
 }
 
@@ -526,18 +525,16 @@ void LoadMerchantOffer(const char* site, int merchant, int vanillaPrice, bool* l
     if (placement == nullptr) {
         return;
     }
-    const std::string price = std::to_string(OotmmNpcChecks_MerchantPrice(merchant, vanillaPrice));
+    const std::string price = Ship::OotmmDialogPrice(OotmmNpcChecks_MerchantPrice(merchant, vanillaPrice));
     const auto* repeat = OotmmNpcChecks_FindRepeat(*placement);
     const std::string name = !IsCollected(*placement)
                                  ? PlacementName(*placement)
                                  : "%g" + std::string(repeat != nullptr ? repeat->Name : kRepeatHeart.Name) + "%w";
-    CustomMessage message(merchant == OOTMM_MERCHANT_MEDIGORON
-                              ? "How about buying " + name + " for %r" + price + " Rupees%w?" +
-                                    CustomMessage::TWO_WAY_CHOICE() + "%gBuy&Don't buy%w"
-                              : name + "!&How about %r" + price + " Rupees%w?" +
-                                    CustomMessage::TWO_WAY_CHOICE() + "%gYes&No%w");
-    message.AutoFormat();
-    message.LoadIntoFont();
+    if (merchant == OOTMM_MERCHANT_MEDIGORON) {
+        OotmmDialog::Load("How about buying " + name + " for %r" + price + "%w?", { "Buy", "Don't buy" });
+    } else {
+        OotmmDialog::Load(name + "!\nHow about %r" + price + "%w?", { "Yes", "No" });
+    }
     *loadFromMessageTable = false;
 }
 

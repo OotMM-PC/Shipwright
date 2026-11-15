@@ -7,6 +7,8 @@
 #include "OotmmItemModels.h"
 #include "OotmmItemPresentation.h"
 #include "OotmmNpcChecks.h"
+#include "OotmmDialog.h"
+#include <libultraship/bridge/OotmmDialog.h>
 #include "OotmmSession.h"
 
 #include <string>
@@ -208,14 +210,13 @@ void BuildShopText(uint16_t* textId, bool* loadFromMessageTable) {
     }
     const auto* repeat = item->ootmmState == kRenewable ? OotmmNpcChecks_FindRepeat(*placement) : nullptr;
     const std::string name = repeat != nullptr ? "%g" + std::string(repeat->Name) + "%w" : OotmmNpcChecks_PlacementName(*placement);
-    std::string text = name + "&%r" + std::to_string(item->basePrice) + " Rupees%w";
-    if (description) {
-        text += "\x0A";
-    } else {
-        text += "&" + CustomMessage::TWO_WAY_CHOICE() + "%gBuy&No thanks%w";
+    if (!description) {
+        OotmmDialog::Load(name + "\n%r" + Ship::OotmmDialogPrice(item->basePrice), { "Buy", "No thanks" });
+        *loadFromMessageTable = false;
+        return;
     }
-    CustomMessage message(text);
-    message.Format();
+    CustomMessage message(name + "&%r" + std::to_string(item->basePrice) + " Rupees%w\x0A");
+    message.AutoFormat();
     message.LoadIntoFont();
     *loadFromMessageTable = false;
 }

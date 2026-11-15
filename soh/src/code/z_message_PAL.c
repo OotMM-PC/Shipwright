@@ -14,6 +14,7 @@
 #include "soh/OTRGlobals.h"
 #include "soh/SaveManager.h"
 #include "soh/ResourceManagerHelpers.h"
+#include "soh/OotmmDialog.h"
 #include "soh/OotmmSongs.h"
 #include "soh/OotmmSongsPlayer.h"
 #include "soh/OotmmSongEvents.h"
@@ -163,6 +164,10 @@ void Message_UpdateOcarinaGame(PlayState* play) {
 u8 Message_ShouldAdvance(PlayState* play) {
     Input* input = &play->state.input[0];
 
+    if (OotmmDialog_HoldAdvance(play)) {
+        return false;
+    }
+
     bool isB_Held = CVarGetInteger(CVAR_ENHANCEMENT("SkipText"), 0) != 0 ? CHECK_BTN_ALL(input->cur.button, BTN_B)
                                                                          : CHECK_BTN_ALL(input->press.button, BTN_B);
 
@@ -175,6 +180,10 @@ u8 Message_ShouldAdvance(PlayState* play) {
 
 u8 Message_ShouldAdvanceSilent(PlayState* play) {
     Input* input = &play->state.input[0];
+
+    if (OotmmDialog_HoldAdvance(play)) {
+        return false;
+    }
 
     bool isB_Held = CVarGetInteger(CVAR_ENHANCEMENT("SkipText"), 0) != 0 ? CHECK_BTN_ALL(input->cur.button, BTN_B)
                                                                          : CHECK_BTN_ALL(input->press.button, BTN_B);
@@ -229,6 +238,8 @@ void Message_HandleChoiceSelection(PlayState* play, u8 numChoices) {
     msgCtx->textPosX = R_TEXT_CHOICE_XPOS;
     msgCtx->textPosY =
         (numChoices == 1) ? R_TEXT_CHOICE_YPOS(msgCtx->choiceIndex + 1) : R_TEXT_CHOICE_YPOS(msgCtx->choiceIndex);
+    OotmmDialog_HandleInput(play);
+    msgCtx->textPosY = OotmmDialog_CursorY(play, msgCtx->textPosY);
 }
 
 void Message_DrawTextChar(PlayState* play, void* textureImage, Gfx** p) {
@@ -1332,6 +1343,8 @@ void Message_DrawText(PlayState* play, Gfx** gfxP) {
 
     gTextSpeed = CVarGetInteger(CVAR_ENHANCEMENT("TextSpeed"), 1);
     gSlowTextSpeed = CVarGetInteger(CVAR_ENHANCEMENT("SlowTextSpeed"), gTextSpeed);
+
+    OotmmDialog_Draw(play, &gfx);
 
     for (i = 0; i < msgCtx->textDrawPos; i++) {
         character = msgCtx->msgBufDecoded[i];
@@ -2725,6 +2738,7 @@ void Message_OpenText(PlayState* play, u16 textId) {
     s16 textBoxType;
 
     bool loadFromMessageTable = true;
+    OotmmDialog_Reset();
     GameInteractor_ExecuteOnOpenText(&textId, &loadFromMessageTable);
 
     sDisplayNextMessageAsEnglish = false;
@@ -4751,6 +4765,7 @@ void Message_Update(PlayState* play) {
                     } else {
                         Audio_PlaySoundGeneral(NA_SE_SY_DECIDE, &gSfxDefaultPos, 4, &gSfxDefaultFreqAndVolScale,
                                                &gSfxDefaultFreqAndVolScale, &gSfxDefaultReverb);
+                        OotmmDialog_Confirm(play);
                         Message_CloseTextbox(play);
                     }
                 }
