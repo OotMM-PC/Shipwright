@@ -37,6 +37,7 @@ extern "C" {
 #include "macros.h"
 #include "variables.h"
 #include "z64.h"
+void Audio_OcaGetPlaybackDebug(u8* state, u8* note, u8* pos);
 #include "src/overlays/actors/ovl_En_Box/z_en_box.h"
 #include "src/overlays/actors/ovl_En_Bom/z_en_bom.h"
 #include "src/overlays/actors/ovl_Boss_Dodongo/z_boss_dodongo.h"
@@ -1089,7 +1090,7 @@ void OotmmDebugChecks_Init() {
                 { "pauseCursorItem", gPlayState->pauseCtx.cursorItem },
                 { "pauseCursorSpecial", gPlayState->pauseCtx.cursorSpecialPos },
                 { "cButtonItems", gSaveContext.equips.buttonItems },
-                { "equipment", gSaveContext.equips.equipment }, { "ownedEquipment", gSaveContext.inventory.equipment }, { "bgsFlag", gSaveContext.bgsFlag }, { "swordHealth", gSaveContext.swordHealth }, { "mmSongs", OotmmSongs_OwnedMask() },
+                { "equipment", gSaveContext.equips.equipment }, { "ownedEquipment", gSaveContext.inventory.equipment }, { "bgsFlag", gSaveContext.bgsFlag }, { "swordHealth", gSaveContext.swordHealth }, { "mmSongs", OotmmSongs_OwnedMask() }, { "ocarinaPlayback", [] { u8 st = 0, note = 0, pos = 0; Audio_OcaGetPlaybackDebug(&st, &note, &pos); return nlohmann::json({ st, note, pos }); }() },
                 { "x", player->actor.world.pos.x }, { "y", player->actor.world.pos.y },
                 { "z", player->actor.world.pos.z }, { "yaw", player->actor.shape.rot.y },
                 { "stateFlags1", player->stateFlags1 }, { "stateFlags2", player->stateFlags2 }, { "message", gPlayState->msgCtx.textId },

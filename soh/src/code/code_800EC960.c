@@ -1889,6 +1889,12 @@ void Audio_OcaSetSongPlayback(s8 songIdxPlusOne, s8 playbackState) {
     }
 }
 
+void Audio_OcaGetPlaybackDebug(u8* state, u8* note, u8* pos) {
+    *state = sPlaybackState;
+    *note = sDisplayedNoteValue;
+    *pos = sStaffPlaybackPos;
+}
+
 void Ootmm_OcarinaSetSongPlayback(s32 song) {
     if (song <= OOTMM_SONG_NONE || song >= OOTMM_SONG_MAX) {
         return;
