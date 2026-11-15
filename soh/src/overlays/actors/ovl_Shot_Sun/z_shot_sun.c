@@ -58,6 +58,37 @@ static ColliderCylinderInit sCylinderInit = {
     { 30, 60, 0, { 0, 0, 0 } },
 };
 
+static f32 ShotSun_SongPadHeight(PlayState* play, Vec3f* centre) {
+    static const f32 sCorners[][2] = {
+        { 0.0f, 0.0f }, { 30.0f, 30.0f }, { 30.0f, -30.0f }, { -30.0f, 30.0f }, { -30.0f, -30.0f },
+    };
+    CollisionPoly* floorPoly;
+    WaterBox* waterBox;
+    f32 height = BGCHECK_Y_MIN;
+    f32 surface;
+    s32 i;
+
+    for (i = 0; i < ARRAY_COUNT(sCorners); i++) {
+        Vec3f probe = { centre->x + sCorners[i][0], centre->y + 50.0f, centre->z + sCorners[i][1] };
+        f32 floor = BgCheck_EntityRaycastFloor1(&play->colCtx, &floorPoly, &probe);
+
+        if (floor <= BGCHECK_Y_MIN) {
+            continue;
+        }
+        if (height <= BGCHECK_Y_MIN || (floor > height && floor < height + 25.0f)) {
+            height = floor;
+        }
+    }
+    if (height <= BGCHECK_Y_MIN) {
+        height = centre->y;
+    }
+    surface = height;
+    if (WaterBox_GetSurface1(play, &play->colCtx, centre->x, centre->z, &surface, &waterBox) && surface > height) {
+        height = surface + 1.0f;
+    }
+    return height;
+}
+
 void ShotSun_Init(Actor* thisx, PlayState* play) {
     ShotSun* this = (ShotSun*)thisx;
     s32 params;
@@ -72,14 +103,7 @@ void ShotSun_Init(Actor* thisx, PlayState* play) {
         this->actionFunc = func_80BADF0C;
         this->actor.flags |= ACTOR_FLAG_LOCK_ON_DISABLED;
         if (OotmmSession_IsActive()) {
-            CollisionPoly* floorPoly;
-            Vec3f probe = this->actor.world.pos;
-
-            probe.y += 50.0f;
-            this->actor.floorHeight = BgCheck_EntityRaycastFloor1(&play->colCtx, &floorPoly, &probe);
-            if (this->actor.floorHeight <= BGCHECK_Y_MIN) {
-                this->actor.floorHeight = this->actor.world.pos.y;
-            }
+            this->actor.floorHeight = ShotSun_SongPadHeight(play, &this->actor.world.pos);
             this->actor.draw = ShotSun_DrawSongPad;
         }
     } else {
@@ -217,6 +241,9 @@ void ShotSun_UpdateHyliaSun(ShotSun* this, PlayState* play) {
 void ShotSun_DrawSongPad(Actor* thisx, PlayState* play) {
     Vec3f pos = { thisx->world.pos.x, thisx->floorHeight + 0.1f, thisx->world.pos.z };
 
+    if (!OotmmXflags_IsShuffled(thisx)) {
+        return;
+    }
     EnOkarinaTag_DrawSongPad(play, &pos, 0.0f, 1.2f, false,
                              (thisx->params & 0xFF) == 0x40 ? OOTMM_SONG_TAG_SUN : OOTMM_SONG_TAG_STORMS);
 }
