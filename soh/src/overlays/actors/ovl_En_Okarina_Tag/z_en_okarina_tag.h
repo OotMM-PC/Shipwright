@@ -20,4 +20,9 @@ typedef struct EnOkarinaTag {
     /* 0x015C */ f32 interactRange;
 } EnOkarinaTag; // size = 0x0160
 
+#define OOTMM_SONG_TAG_STORMS 3
+#define OOTMM_SONG_TAG_SUN 4
+
+void EnOkarinaTag_DrawSongPad(PlayState* play, Vec3f* padPos, f32 rot, f32 padScale, s32 vertical, s32 song);
+
 #endif

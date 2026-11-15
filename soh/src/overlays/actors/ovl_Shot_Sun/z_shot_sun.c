@@ -7,6 +7,8 @@
 #include "z_shot_sun.h"
 #include "soh/OotmmXflags.h"
 #include "overlays/actors/ovl_En_Elf/z_en_elf.h"
+#include "overlays/actors/ovl_En_Okarina_Tag/z_en_okarina_tag.h"
+#include "soh/OotmmSession.h"
 #include "scenes/overworld/spot06/spot06_scene.h"
 #include "soh/Enhancements/game-interactor/GameInteractor_Hooks.h"
 #include "vt.h"
@@ -21,6 +23,7 @@ void ShotSun_SpawnFairy(ShotSun* this, PlayState* play);
 void ShotSun_TriggerFairy(ShotSun* this, PlayState* play);
 void func_80BADF0C(ShotSun* this, PlayState* play);
 void ShotSun_UpdateHyliaSun(ShotSun* this, PlayState* play);
+void ShotSun_DrawSongPad(Actor* thisx, PlayState* play);
 
 const ActorInit Shot_Sun_InitVars = {
     ACTOR_SHOT_SUN,
@@ -68,6 +71,17 @@ void ShotSun_Init(Actor* thisx, PlayState* play) {
         this->actor.flags |= ACTOR_FLAG_UPDATE_DURING_OCARINA;
         this->actionFunc = func_80BADF0C;
         this->actor.flags |= ACTOR_FLAG_LOCK_ON_DISABLED;
+        if (OotmmSession_IsActive()) {
+            CollisionPoly* floorPoly;
+            Vec3f probe = this->actor.world.pos;
+
+            probe.y += 50.0f;
+            this->actor.floorHeight = BgCheck_EntityRaycastFloor1(&play->colCtx, &floorPoly, &probe);
+            if (this->actor.floorHeight <= BGCHECK_Y_MIN) {
+                this->actor.floorHeight = this->actor.world.pos.y;
+            }
+            this->actor.draw = ShotSun_DrawSongPad;
+        }
     } else {
         Collider_InitCylinder(play, &this->collider);
         Collider_SetCylinder(play, &this->collider, &this->actor, &sCylinderInit);
@@ -198,6 +212,13 @@ void ShotSun_UpdateHyliaSun(ShotSun* this, PlayState* play) {
             CollisionCheck_SetAC(play, &play->colChkCtx, &this->collider.base);
         }
     }
+}
+
+void ShotSun_DrawSongPad(Actor* thisx, PlayState* play) {
+    Vec3f pos = { thisx->world.pos.x, thisx->floorHeight + 0.1f, thisx->world.pos.z };
+
+    EnOkarinaTag_DrawSongPad(play, &pos, 0.0f, 1.2f, false,
+                             (thisx->params & 0xFF) == 0x40 ? OOTMM_SONG_TAG_SUN : OOTMM_SONG_TAG_STORMS);
 }
 
 void ShotSun_Update(Actor* thisx, PlayState* play) {

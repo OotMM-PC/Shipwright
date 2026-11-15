@@ -190,6 +190,14 @@ static void EnOkarinaTag_DrawOotmm(Actor* thisx, PlayState* play) {
             }
             break;
     }
+    EnOkarinaTag_DrawSongPad(play, &pos, rot, padScale, vertical, song);
+}
+
+void EnOkarinaTag_DrawSongPad(PlayState* play, Vec3f* padPos, f32 rot, f32 padScale, s32 vertical, s32 song) {
+    if (song < 0 || song >= ARRAY_COUNT(sOotmmSongTagTextures)) {
+        return;
+    }
+    Vec3f pos = *padPos;
     Matrix_Translate(pos.x, pos.y, pos.z, MTXMODE_NEW);
     if (vertical) {
         Matrix_RotateX(M_PI / 2.0f, MTXMODE_APPLY);
