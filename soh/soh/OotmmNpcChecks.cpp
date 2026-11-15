@@ -20,7 +20,9 @@
 #include <iterator>
 #include <cmath>
 #include <string>
+#include <string_view>
 #include <unordered_map>
+#include <utility>
 
 extern "C" {
 #include "functions.h"
@@ -218,19 +220,18 @@ const char* DekuTheaterSite(int32_t getItemId) {
 }
 
 std::string PlacementName(const Ship::OotmmPlacement& placement) {
-    const bool cloaked = !placement.CloakItemId.empty();
-    std::string name =
-        "%g" + Ship::OotmmItemCatalog::TrimGameSuffix(cloaked ? placement.CloakItemName : placement.ItemName) + "%w";
-    const std::string game = cloaked ? (placement.CloakItemId.starts_with("MM_") ? "mm" : "oot") : placement.ItemGame;
-    const bool otherPlayer = !placement.IsFor(OotmmSession_GetState().GetPlayerId());
-    const bool otherGame = !game.empty() && game != "oot";
-    if (otherPlayer) {
-        name += " for %bPlayer " + std::to_string(placement.OwnerPlayer) + "%w";
-        if (otherGame) {
-            name += "'s %r" + OotmmItemPresentation_GameName(game) + "%w";
+    const std::string& raw = placement.CloakItemId.empty() ? placement.ItemName : placement.CloakItemName;
+    std::string name = "%g" + raw + "%w";
+    for (const auto& [suffix, tag] : { std::pair<std::string_view, std::string_view>{ " (OoT)", "%cOoT" },
+                                       { " (OOT)", "%cOoT" },
+                                       { " (MM)", "%pMM" } }) {
+        if (raw.ends_with(suffix)) {
+            name = "%g" + raw.substr(0, raw.size() - suffix.size()) + "%w (" + std::string(tag) + "%w)";
+            break;
         }
-    } else if (otherGame) {
-        name += " for %r" + OotmmItemPresentation_GameName(game) + "%w";
+    }
+    if (!placement.IsFor(OotmmSession_GetState().GetPlayerId())) {
+        name += " for %yPlayer " + std::to_string(placement.OwnerPlayer) + "%w";
     }
     return name;
 }
