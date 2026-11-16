@@ -241,7 +241,7 @@ void ShotSun_UpdateHyliaSun(ShotSun* this, PlayState* play) {
 void ShotSun_DrawSongPad(Actor* thisx, PlayState* play) {
     Vec3f pos = { thisx->world.pos.x, thisx->floorHeight + 0.1f, thisx->world.pos.z };
 
-    if (!OotmmXflags_IsShuffled(thisx)) {
+    if (!OotmmSession_FairySpotPads() || !OotmmXflags_IsShuffled(thisx)) {
         return;
     }
     EnOkarinaTag_DrawSongPad(play, &pos, 0.0f, 1.2f, false,

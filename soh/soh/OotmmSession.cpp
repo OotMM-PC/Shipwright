@@ -1371,6 +1371,14 @@ extern "C" int32_t OotmmSession_IsActive(void) {
     return sGameState.IsActive() && sGameState.HasSeed() ? 1 : 0;
 }
 
+extern "C" int32_t OotmmSession_PotRolling(void) {
+    return OotmmSession_IsActive() && gOotmmPotRolling;
+}
+
+extern "C" int32_t OotmmSession_FairySpotPads(void) {
+    return OotmmSession_IsActive() && gOotmmFairySpotPads;
+}
+
 extern "C" int32_t OotmmSession_TryBootDirectly(void* gameState) {
     if (OotmmSession_IsActive() && sGameState.GetBootConfig().OpenFileSelect && !sBootedIntoGame && gameState != nullptr) {
         sBootedIntoGame = true;

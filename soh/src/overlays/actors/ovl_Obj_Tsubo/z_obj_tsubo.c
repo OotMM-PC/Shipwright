@@ -247,7 +247,7 @@ void Player_Action_Roll(Player* this, PlayState* play);
 s32 ObjTsubo_RolledInto(ObjTsubo* this, PlayState* play) {
     Player* player = GET_PLAYER(play);
 
-    return OotmmSession_IsActive() && (player->actionFunc == Player_Action_Roll) &&
+    return OotmmSession_PotRolling() && (player->actionFunc == Player_Action_Roll) &&
            (player->skelAnime.curFrame >= 8.0f) && (player->skelAnime.curFrame < 18.0f) &&
            (this->actor.xzDistToPlayer < this->collider.dim.radius + 12.0f + player->linearVelocity) &&
            (fabsf(this->actor.yDistToPlayer) < this->collider.dim.height);

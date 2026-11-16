@@ -41,3 +41,5 @@ extern "C" int gOotmmPvpEnabled;
 extern "C" int gOotmmShowNames;
 extern "C" int gOotmmGameSpeedPercent;
 extern "C" int gOotmmGameSpeedSmooth;
+extern "C" int gOotmmFairySpotPads;
+extern "C" int gOotmmPotRolling;

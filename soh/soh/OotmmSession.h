@@ -11,6 +11,8 @@ extern "C" {
 #endif
 
 int32_t OotmmSession_IsActive(void);
+int32_t OotmmSession_PotRolling(void);
+int32_t OotmmSession_FairySpotPads(void);
 int32_t OotmmSession_ApplyFreestandingCosmetics(void);
 void OotmmSession_HorseSpawnFixup(struct PlayState* play);
 void OotmmSession_PatchWeather(struct PlayState* play);
