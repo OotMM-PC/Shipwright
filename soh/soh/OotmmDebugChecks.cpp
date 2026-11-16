@@ -1162,6 +1162,7 @@ void OotmmDebugChecks_Init() {
                 { "dayTime", gSaveContext.dayTime }, { "sunsSongState", gSaveContext.sunsSongState }, { "fanfare", { { "resolved", OotmmItemPresentation_DebugLastFanfare() }, { "seq", func_800FA0B4(SEQ_PLAYER_FANFARE) }, { "font", gAudioContext.seqPlayers[SEQ_PLAYER_FANFARE].defaultFont } } },
                 { "pvp", { { "enabled", gOotmmPvpEnabled }, { "sent", gOotmmPvpHitsSent },
                            { "received", gOotmmPvpHitsReceived }, { "applied", gOotmmPvpHitsApplied } } },
+                { "qol", { { "fairySpotPads", gOotmmFairySpotPads }, { "potRolling", gOotmmPotRolling } } },
                 { "sunPosition", { { "x", gPlayState->envCtx.sunPos.x },
                                      { "y", gPlayState->envCtx.sunPos.y }, { "z", gPlayState->envCtx.sunPos.z } } },
                 { "playerBody7", { { "x", player->bodyPartsPos[7].x },
