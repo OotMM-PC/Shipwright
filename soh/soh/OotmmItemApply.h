@@ -41,6 +41,7 @@ void OotmmItemApply_SetSaveSnapshot(int fileNum, const nlohmann::json& snapshot,
 bool OotmmItemApply_CaptureSharedSnapshot(nlohmann::json& snapshot);
 void OotmmItemApply_Reconcile();
 nlohmann::json OotmmItemApply_TrapsApplied();
+bool OotmmItemApply_PvpHit(int kind, int damage, int16_t yaw);
 
 void OotmmItemApply_ResetLedgerForNewSave();
 

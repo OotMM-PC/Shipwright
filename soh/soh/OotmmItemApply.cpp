@@ -1132,6 +1132,7 @@ struct TrapDot {
     bool Active = false;
     u32 LastFrame = 0;
     f32 Pending = 0.0f;
+    int Percent = 0;
 };
 TrapDot sTrapDot[kTrapDotCount];
 
@@ -1147,14 +1148,19 @@ int TrapDamagePercent(int kind) {
     }
 }
 
-void StartTrapDot(int kind) {
-    sTrapDot[kind] = { true, gPlayState != nullptr ? gPlayState->gameplayFrames : 0u, 0.0f };
+void StartTrapDot(int kind, int percent = 0) {
+    sTrapDot[kind] = { true, gPlayState != nullptr ? gPlayState->gameplayFrames : 0u, 0.0f, percent };
 }
 
-void HurtForTrap(Player* player, s32 response, f32 speed, f32 yVelocity, s16 yaw) {
-    player->actor.colChkInfo.damage = 0;
+void HurtForTrap(Player* player, s32 response, f32 speed, f32 yVelocity, s16 yaw, s32 damage = 0) {
+    player->actor.colChkInfo.damage = static_cast<u8>(damage);
     func_80837C0C(gPlayState, player, response, speed, yVelocity, yaw, 20);
 }
+
+constexpr u32 kPvpBlockingStates = PLAYER_STATE1_TALKING | PLAYER_STATE1_DEAD | PLAYER_STATE1_GETTING_ITEM |
+                                   PLAYER_STATE1_ON_HORSE | PLAYER_STATE1_IN_CUTSCENE;
+constexpr int kPvpHealthPerDamage = 8;
+constexpr s16 kPvpBurnFrames = 80;
 
 void ApplyKnockback(Player* player) {
     const auto& traps = OotmmIpc_GetSettings().Traps;
@@ -1420,6 +1426,64 @@ extern "C" int32_t OotmmItemApply_BombchuCapacity(void) {
     return sLedgerValid ? BombchuCapacity() : 0;
 }
 
+bool OotmmItemApply_PvpHit(int kind, int damage, int16_t yaw) {
+    Player* player = gPlayState != nullptr ? GET_PLAYER(gPlayState) : nullptr;
+    if (player == nullptr || (player->stateFlags1 & kPvpBlockingStates)) {
+        return false;
+    }
+    if (kind == Ship::OOTMM_PVP_BLOCKED) {
+        Audio_PlayActorSound2(&player->actor, NA_SE_IT_SHIELD_BOUND);
+        return true;
+    }
+    const auto& settings = OotmmIpc_GetSettings();
+    const s32 health = kind == Ship::OOTMM_PVP_STUN
+                           ? 0
+                           : std::clamp(std::max(damage, 1) * kPvpHealthPerDamage * settings.PvpDamagePercent / 100, 1,
+                                        255);
+    const int lingering = std::max(settings.PvpDamagePercent / 2, 1);
+    switch (kind) {
+        case Ship::OOTMM_PVP_FLINCH:
+        case Ship::OOTMM_PVP_STUN:
+            HurtForTrap(player, 0, 0.0f, 0.0f, yaw, health);
+            return true;
+        case Ship::OOTMM_PVP_STAGGER:
+            HurtForTrap(player, 2, 0.0f, 0.0f, yaw, health);
+            return true;
+        case Ship::OOTMM_PVP_BLAST:
+            HurtForTrap(player, 1, 8.0f, 7.0f, yaw, health);
+            return true;
+        case Ship::OOTMM_PVP_FIRE:
+            if (player->currentTunic == 2) {
+                HurtForTrap(player, 0, 0.0f, 0.0f, yaw, health);
+                return true;
+            }
+            HurtForTrap(player, 0, 0.0f, 0.0f, yaw, health);
+            player->bodyIsBurning = true;
+            StartTrapDot(kTrapDotFire, lingering);
+            for (int part = 0; part < PLAYER_BODYPART_MAX; part++) {
+                player->bodyFlameTimers[part] = Rand_S16Offset(kPvpBurnFrames / 2, kPvpBurnFrames / 2);
+            }
+            return true;
+        case Ship::OOTMM_PVP_ICE:
+            HurtForTrap(player, 3, 0.0f, 0.0f, yaw, health);
+            if (player->actionFunc == Player_Action_8084FB10) {
+                player->av2.actionVar2 = static_cast<s16>(100 - settings.Traps.IceBreakoutPercent);
+                StartTrapDot(kTrapDotIce, lingering);
+            }
+            return true;
+        case Ship::OOTMM_PVP_SHOCK:
+            HurtForTrap(player, 4, 0.0f, 0.0f, yaw, health);
+            if (player->actionFunc == Player_Action_8084FBF4) {
+                player->av2.actionVar2 = static_cast<s16>(settings.Traps.ShockDuration);
+                StartTrapDot(kTrapDotShock, lingering);
+            }
+            return true;
+        default:
+            HurtForTrap(player, 1, 6.0f, 5.0f, yaw, health);
+            return true;
+    }
+}
+
 extern "C" int32_t OotmmItemApply_TrapDamageTick(PlayState* play, int32_t kind) {
     if (play == nullptr || kind < 0 || kind >= kTrapDotCount || !OotmmSession_IsActive()) {
         return 0;
@@ -1433,7 +1497,7 @@ extern "C" int32_t OotmmItemApply_TrapDamageTick(PlayState* play, int32_t kind) 
         return 0;
     }
     dot.LastFrame = play->gameplayFrames;
-    const int percent = TrapDamagePercent(kind);
+    const int percent = dot.Percent > 0 ? dot.Percent : TrapDamagePercent(kind);
     if (percent == 100 && kind != kTrapDotShock) {
         return 0;
     }

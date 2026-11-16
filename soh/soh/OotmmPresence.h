@@ -22,6 +22,7 @@ typedef struct OotmmPuppetActor {
     u8 hasPose;
     u8 playerId;
     u8 moveFlags;
+    u8 guard;
     char dlLeftHand[OOTMM_PUPPET_DL_NAME_BUF];
     char dlRightHand[OOTMM_PUPPET_DL_NAME_BUF];
     char dlSheath[OOTMM_PUPPET_DL_NAME_BUF];
@@ -51,6 +52,8 @@ extern s16 gOotmmPuppetId;
 extern s32 gOotmmPvpHitsSent;
 extern s32 gOotmmPvpHitsReceived;
 extern s32 gOotmmPvpHitsApplied;
+extern s32 gOotmmPvpLastSentKind;
+extern s32 gOotmmPvpLastAppliedKind;
 extern const char* gOotmmEquipDlCapture[4];
 extern s32 gOotmmEquipTypeCapture[2];
 

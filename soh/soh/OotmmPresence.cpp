@@ -1,6 +1,7 @@
 #include "soh/OotmmPresence.h"
 #include "soh/OotmmSession.h"
 #include "soh/OotmmIpc.h"
+#include "soh/OotmmItemApply.h"
 #include "soh/OotmmCustomItems.h"
 #include "soh/OotmmCustomItemsPlayer.h"
 
@@ -42,6 +43,8 @@ s16 gOotmmPuppetId = -1;
 s32 gOotmmPvpHitsSent = 0;
 s32 gOotmmPvpHitsReceived = 0;
 s32 gOotmmPvpHitsApplied = 0;
+s32 gOotmmPvpLastSentKind = -1;
+s32 gOotmmPvpLastAppliedKind = -1;
 const char* gOotmmEquipDlCapture[4] = { NULL, NULL, NULL, NULL };
 s32 gOotmmEquipTypeCapture[2] = { -1, -1 };
 
@@ -171,8 +174,47 @@ struct PendingPvpHit {
     uint16_t targetPlayer;
     int damage;
     int16_t yaw;
+    int kind;
 };
 std::vector<PendingPvpHit> gPendingPvpHits;
+
+constexpr u32 kPvpGraceFrames = 60;
+constexpr s16 kPvpGuardArc = 0x3000;
+constexpr int kPvpBlastDamage = 2;
+
+int PvpKind(u32 flags) {
+    if (flags & DMG_EXPLOSIVE) {
+        return Ship::OOTMM_PVP_BLAST;
+    }
+    if (flags & (DMG_ARROW_FIRE | DMG_MAGIC_FIRE)) {
+        return Ship::OOTMM_PVP_FIRE;
+    }
+    if (flags & (DMG_ARROW_ICE | DMG_MAGIC_ICE)) {
+        return Ship::OOTMM_PVP_ICE;
+    }
+    if (flags & (DMG_ARROW_LIGHT | DMG_MAGIC_LIGHT)) {
+        return Ship::OOTMM_PVP_SHOCK;
+    }
+    if (flags & DMG_DEKU_NUT) {
+        return Ship::OOTMM_PVP_STUN;
+    }
+    if (flags & (DMG_SPIN_KOKIRI | DMG_SPIN_GIANT | DMG_SPIN_MASTER | DMG_JUMP_KOKIRI | DMG_JUMP_GIANT |
+                 DMG_JUMP_MASTER | DMG_HAMMER_SWING | DMG_HAMMER_JUMP)) {
+        return Ship::OOTMM_PVP_KNOCKDOWN;
+    }
+    if (flags & (DMG_SLINGSHOT | DMG_ARROW_NORMAL | DMG_HOOKSHOT | DMG_BOOMERANG)) {
+        return Ship::OOTMM_PVP_FLINCH;
+    }
+    return Ship::OOTMM_PVP_STAGGER;
+}
+
+bool PvpGuarded(OotmmPuppetActor* puppet, int kind, Vec3f* from) {
+    if (!puppet->guard || kind == Ship::OOTMM_PVP_BLAST || kind == Ship::OOTMM_PVP_SHOCK) {
+        return false;
+    }
+    const s16 toward = Math_Vec3f_Yaw(&puppet->actor.world.pos, from);
+    return ABS(static_cast<s16>(toward - puppet->actor.shape.rot.y)) < kPvpGuardArc;
+}
 
 void PuppetInitSkeleton(OotmmPuppetActor* puppet, PlayState* play, u8 age) {
     ResourceMgr_UnregisterSkeleton(&puppet->skelAnime);
@@ -247,6 +289,7 @@ extern "C" void OotmmPuppet_Init(Actor* thisx, PlayState* play) {
     puppet->tunic = puppet->boots = puppet->strength = puppet->mask = 0;
     puppet->pvpCooldown = 0;
     puppet->pvpLastProjectile = nullptr;
+    puppet->guard = 0;
     Collider_InitCylinder(play, &puppet->collider);
     Collider_SetCylinder(play, &puppet->collider, thisx, &sPuppetCylinderInit);
 }
@@ -292,14 +335,22 @@ extern "C" void OotmmPuppet_Update(Actor* thisx, PlayState* play) {
                 puppet->pvpLastProjectile = source;
             }
             puppet->pvpCooldown = 8;
-            int damage = 4;
-            if (puppet->collider.info.acHitInfo != NULL && puppet->collider.info.acHitInfo->toucher.damage > 0) {
-                damage = puppet->collider.info.acHitInfo->toucher.damage;
-            }
+            const ColliderInfo* hitInfo = puppet->collider.info.acHitInfo;
+            int kind = PvpKind(hitInfo != NULL ? hitInfo->toucher.dmgFlags : 0);
+            const int damage =
+                kind == Ship::OOTMM_PVP_BLAST ? kPvpBlastDamage : (hitInfo != NULL ? hitInfo->toucher.damage : 0);
             Player* attacker = GET_PLAYER(play);
-            const int16_t yaw = attacker != NULL ? Math_Vec3f_Yaw(&attacker->actor.world.pos, &thisx->world.pos)
-                                                 : thisx->yawTowardsPlayer;
-            gPendingPvpHits.push_back(PendingPvpHit{ static_cast<uint16_t>(puppet->playerId), damage, yaw });
+            Vec3f* from = kind == Ship::OOTMM_PVP_BLAST && source != nullptr ? &source->world.pos
+                                                                            : &attacker->actor.world.pos;
+            if (PvpGuarded(puppet, kind, from)) {
+                kind = Ship::OOTMM_PVP_BLOCKED;
+                Audio_PlayActorSound2(thisx, NA_SE_IT_SHIELD_BOUND);
+            } else {
+                Actor_SetColorFilter(thisx, 0x4000, 255, 0, 12);
+            }
+            const int16_t yaw = Math_Vec3f_Yaw(from, &thisx->world.pos);
+            gPendingPvpHits.push_back(
+                PendingPvpHit{ static_cast<uint16_t>(puppet->playerId), std::clamp(damage, 1, 255), yaw, kind });
         }
         puppet->collider.base.acFlags &= ~AC_HIT;
         Collider_UpdateCylinder(thisx, &puppet->collider);
@@ -368,6 +419,7 @@ void ApplyPoseToPuppet(PuppetSlot& slot, PlayState* play, const Ship::OotmmPlaye
     const bool ownerChanged = playerId != puppet->playerId;
     puppet->playerId = playerId;
     puppet->moveFlags = static_cast<u8>(pose.MoveFlags & 0xFF);
+    puppet->guard = pose.Guard ? 1 : 0;
     if (age != puppet->age || ownerChanged) {
         PuppetInitSkeleton(puppet, play, age);
     }
@@ -448,6 +500,7 @@ void PresenceTick() {
     pose.Yaw = player->actor.shape.rot.y;
     pose.YOffset = player->actor.shape.yOffset;
     pose.MoveFlags = player->skelAnime.movementFlags;
+    pose.Guard = (player->stateFlags1 & PLAYER_STATE1_SHIELDING) != 0;
     pose.Form = gSaveContext.linkAge;
     pose.Seq = ++gLocalSeq;
     pose.DlLeftHand = CanonicalDl(gOotmmEquipDlCapture[0]);
@@ -489,9 +542,11 @@ void PresenceTick() {
             hit.TargetPlayer = pending.targetPlayer;
             hit.Damage = pending.damage;
             hit.Yaw = pending.yaw;
+            hit.Kind = pending.kind;
             hit.Seq = ++pvpHitSeq;
             OotmmIpc_SendPvpHit(hit);
             gOotmmPvpHitsSent++;
+            gOotmmPvpLastSentKind = pending.kind;
         }
         gPendingPvpHits.clear();
     }
@@ -503,13 +558,10 @@ void PresenceTick() {
                 continue;
             }
             Player* self = GET_PLAYER(gPlayState);
-            if (self != nullptr && self->invincibilityTimer == 0 && !(self->stateFlags1 & PLAYER_STATE1_DEAD)) {
-                Actor* source = &self->actor;
-                if (const auto it = gPuppets.find(hit.SourcePlayer); it != gPuppets.end() && it->second.actor != nullptr) {
-                    source = it->second.actor;
-                }
-                func_8002F6D4(gPlayState, source, 6.0f, hit.Yaw, 5.0f, static_cast<u32>(std::clamp(hit.Damage, 1, 255)));
+            if (self != nullptr && self->invincibilityTimer == 0 && gPlayState->gameplayFrames >= kPvpGraceFrames &&
+                OotmmItemApply_PvpHit(hit.Kind, hit.Damage, hit.Yaw)) {
                 gOotmmPvpHitsApplied++;
+                gOotmmPvpLastAppliedKind = hit.Kind;
             }
         }
     }
