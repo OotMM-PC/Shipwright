@@ -117,6 +117,7 @@
 
 #include "soh/config/ConfigUpdaters.h"
 #include "soh/ShipInit.hpp"
+#include <libultraship/bridge/OotmmRuntimeTest.h>
 #include <cmath>
 
 bool SoH_HandleConfigDrop(char* filePath);
@@ -2331,6 +2332,9 @@ extern "C" int AudioPlayer_GetDesiredBuffered(void) {
 }
 
 extern "C" void AudioPlayer_Play(const uint8_t* buf, uint32_t len) {
+#if !defined(NDEBUG) || defined(OOTMM_RUNTIME_TEST)
+    Ship::OotmmRuntimeTest::Get().HearAudio(reinterpret_cast<const int16_t*>(buf), len / sizeof(int16_t));
+#endif
     AudioPlayerPlayFrame(buf, len);
 }
 
