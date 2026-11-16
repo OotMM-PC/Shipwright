@@ -1269,6 +1269,7 @@ void Actor_Init(Actor* actor, PlayState* play) {
             GameInteractor_ExecuteOnActorInit(actor);
         } else {
             actor->init = NULL;
+            actor->destroy = NULL;
             Actor_Kill(actor);
         }
     }
@@ -2644,6 +2645,7 @@ void Actor_UpdateAll(PlayState* play, ActorContext* actorCtx) {
                         GameInteractor_ExecuteOnActorInit(actor);
                     } else {
                         actor->init = NULL;
+                        actor->destroy = NULL;
                         Actor_Kill(actor);
                     }
                 }
