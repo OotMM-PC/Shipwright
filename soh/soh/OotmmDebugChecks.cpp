@@ -405,6 +405,45 @@ static void ApplySetupString(const char* variable, const std::string& setup);
 
 static int sDialogResult = -1;
 
+struct CaptureCamera {
+    bool Active = false;
+    bool Native = false;
+    Vec3f Eye{};
+    Vec3f At{};
+    f32 Fov = 60.0f;
+};
+
+static CaptureCamera sCaptureCamera;
+static bool sCaptureHideActors = false;
+
+static void SetCaptureCamera(const std::string& value) {
+    sCaptureCamera.Native = value == "native";
+    if (sCaptureCamera.Native) {
+        sCaptureCamera.Active = false;
+        return;
+    }
+    f32 parts[7] = {};
+    size_t count = 0;
+    size_t start = 0;
+    while (start <= value.size() && count < 7) {
+        const size_t end = std::min(value.find(':', start), value.size());
+        parts[count++] = std::strtof(value.substr(start, end - start).c_str(), nullptr);
+        start = end + 1;
+    }
+    sCaptureCamera.Active = count == 7;
+    sCaptureCamera.Eye = { parts[0], parts[1], parts[2] };
+    sCaptureCamera.At = { parts[3], parts[4], parts[5] };
+    sCaptureCamera.Fov = parts[6];
+}
+
+static Vec3f CaptureCameraUp() {
+    const f32 dx = sCaptureCamera.At.x - sCaptureCamera.Eye.x;
+    const f32 dy = sCaptureCamera.At.y - sCaptureCamera.Eye.y;
+    const f32 dz = sCaptureCamera.At.z - sCaptureCamera.Eye.z;
+    const bool vertical = dy * dy > 99.0f * (dx * dx + dz * dz);
+    return vertical ? Vec3f{ 0.0f, 0.0f, -1.0f } : Vec3f{ 0.0f, 1.0f, 0.0f };
+}
+
 static void StartTestDialog(const std::string& name) {
     const char* directory = std::getenv("OOTMM_RUNTIME_TEST_DIR");
     if (directory == nullptr || gPlayState == nullptr) {
@@ -532,6 +571,7 @@ static void ApplySetupString(const char* variable, const std::string& setup) {
             gSaveContext.respawn[RESPAWN_MODE_RETURN].data = static_cast<s8>(first);
         } else if (key == "time") {
             gSaveContext.dayTime = static_cast<u16>(first);
+            gSaveContext.skyboxTime = static_cast<u16>(first);
         } else if (key == "rupees") {
             gSaveContext.rupees = static_cast<s16>(first);
         } else if (key == "health") {
@@ -645,6 +685,10 @@ static void ApplySetupString(const char* variable, const std::string& setup) {
                     }
                 }
             }
+        } else if (key == "cam") {
+            SetCaptureCamera(value);
+        } else if (key == "hideactors") {
+            sCaptureHideActors = value == "1";
         } else if (key == "invuln" && gPlayState != nullptr) {
             GET_PLAYER(gPlayState)->invincibilityTimer = static_cast<s8>(first);
         } else if (key == "aim" && gPlayState != nullptr) {
@@ -759,6 +803,34 @@ void OotmmDebugChecks_Init() {
             }
             if (gPlayState != nullptr && gPlayState->gameplayFrames % 10 == 0) {
                 ApplyLiveSetup();
+            }
+        });
+        GameInteractor::Instance->RegisterGameHook<GameInteractor::OnPlayDrawBegin>([]() {
+            if (gPlayState != nullptr && sCaptureHideActors) {
+                for (auto& list : gPlayState->actorCtx.actorLists) {
+                    for (Actor* actor = list.head; actor != nullptr; actor = actor->next) {
+                        actor->draw = nullptr;
+                    }
+                }
+            }
+            if (gPlayState != nullptr && sCaptureCamera.Native) {
+                Interface_ChangeAlpha(1);
+                GET_PLAYER(gPlayState)->actor.draw = nullptr;
+                return;
+            }
+            if (!sCaptureCamera.Active || gPlayState == nullptr) {
+                return;
+            }
+            Vec3f up = CaptureCameraUp();
+            func_800AA358(&gPlayState->view, &sCaptureCamera.Eye, &sCaptureCamera.At, &up);
+            gPlayState->view.fovy = sCaptureCamera.Fov;
+            gPlayState->lightCtx.fogNear = 1000;
+            gPlayState->lightCtx.fogFar = 12800;
+            Interface_ChangeAlpha(1);
+            for (auto& list : gPlayState->actorCtx.actorLists) {
+                for (Actor* actor = list.head; actor != nullptr; actor = actor->next) {
+                    actor->flags |= ACTOR_FLAG_UPDATE_CULLING_DISABLED | ACTOR_FLAG_DRAW_CULLING_DISABLED;
+                }
             }
         });
         GameInteractor::Instance->RegisterGameHook<GameInteractor::OnGameStateMainStart>([]() {
@@ -1158,6 +1230,10 @@ void OotmmDebugChecks_Init() {
                      }
                      return list;
                  }() }, { "cameraYaw", Camera_GetInputDirYaw(GET_ACTIVE_CAM(gPlayState)) },
+                { "view", { gPlayState->view.eye.x, gPlayState->view.eye.y, gPlayState->view.eye.z,
+                            gPlayState->view.lookAt.x, gPlayState->view.lookAt.y, gPlayState->view.lookAt.z,
+                            gPlayState->view.up.x, gPlayState->view.up.y, gPlayState->view.up.z,
+                            gPlayState->view.fovy } },
                 { "focusYaw", player->actor.focus.rot.y }, { "focusPitch", player->actor.focus.rot.x },
                 { "dayTime", gSaveContext.dayTime }, { "sunsSongState", gSaveContext.sunsSongState }, { "fanfare", { { "resolved", OotmmItemPresentation_DebugLastFanfare() }, { "seq", func_800FA0B4(SEQ_PLAYER_FANFARE) }, { "font", gAudioContext.seqPlayers[SEQ_PLAYER_FANFARE].defaultFont } } },
                 { "pvp", { { "enabled", gOotmmPvpEnabled }, { "sent", gOotmmPvpHitsSent },
