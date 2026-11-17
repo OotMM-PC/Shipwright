@@ -31,6 +31,7 @@ extern "C" {
 #include "macros.h"
 #include "variables.h"
 #include "z64.h"
+#include "src/overlays/actors/ovl_Bg_Dy_Yoseizo/z_bg_dy_yoseizo.h"
 #include "src/overlays/actors/ovl_En_Bom_Bowl_Pit/z_en_bom_bowl_pit.h"
 #include "src/overlays/actors/ovl_En_Ex_Item/z_en_ex_item.h"
 #include "src/overlays/actors/ovl_En_Dnt_Jiji/z_en_dnt_jiji.h"
@@ -912,12 +913,39 @@ static void ConsumeAdultTrade(uint8_t item) {
     OotmmItemApply_ConsumeTradeItem(SLOT_TRADE_ADULT, item);
 }
 
+static bool GiveGreatFairyReward(PlayState* play, int fountainType) {
+    static const char* const kUpgrades[] = { "OOT_FAIRY_MAGIC_UPGRADE", "OOT_FAIRY_MAGIC_UPGRADE2",
+                                             "OOT_FAIRY_DEFENSE_UPGRADE" };
+    static const char* const kSpells[] = { "OOT_FAIRY_SPELL_WIND", "OOT_FAIRY_SPELL_FIRE", "OOT_FAIRY_SPELL_LOVE" };
+    if (play == nullptr || fountainType < 0 || fountainType > 2) {
+        return false;
+    }
+    const bool spells = play->sceneNum != SCENE_GREAT_FAIRYS_FOUNTAIN_MAGIC;
+    const char* site = spells ? kSpells[fountainType] : kUpgrades[fountainType];
+    if (!OotmmNpcChecks_IsShuffled(site)) {
+        return false;
+    }
+    if (!OotmmNpcChecks_IsCollected(site)) {
+        OotmmNpcChecks_Collect(site);
+    }
+    Magic_Fill(play);
+    gSaveContext.healthAccumulator = MAX_HEALTH;
+    return true;
+}
+
 void OotmmNpcChecks_Init(void) {
     GameInteractor::Instance->RegisterGameHook<GameInteractor::OnGameFrameUpdate>(WriteVitals);
     REGISTER_VB_SHOULD(VB_GIVE_ITEM_SONG, {
         const int item = va_arg(args, int);
         if (item >= ITEM_SONG_MINUET && item <= ITEM_SONG_STORMS &&
             OotmmNpcChecks_Collect(kSongSites[item - ITEM_SONG_MINUET])) {
+            *should = false;
+        }
+    });
+
+    REGISTER_VB_SHOULD(VB_BE_ELIGIBLE_FOR_GREAT_FAIRY_REWARD, {
+        const BgDyYoseizo* fairy = va_arg(args, BgDyYoseizo*);
+        if (GiveGreatFairyReward(gPlayState, fairy->fountainType)) {
             *should = false;
         }
     });

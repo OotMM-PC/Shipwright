@@ -1235,11 +1235,6 @@ void OotmmSession_Init() {
                 *should = true;
             }
         });
-        REGISTER_VB_SHOULD(VB_BE_ELIGIBLE_FOR_GREAT_FAIRY_REWARD, {
-            if (OotmmSession_IsActive()) {
-                *should = true;
-            }
-        });
         REGISTER_VB_SHOULD(VB_MIDO_CONSIDER_DEKU_TREE_DEAD, {
             if (OotmmSession_IsActive()) {
                 *should = Flags_GetEventChkInf(EVENTCHKINF_OBTAINED_KOKIRI_EMERALD_DEKU_TREE_DEAD);
