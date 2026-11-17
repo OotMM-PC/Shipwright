@@ -84,6 +84,7 @@ bool sCrossGameAccepted = false;
 uint32_t sCrossGameWaitFrames = 0;
 std::optional<uint32_t> sPendingExtendedSource;
 std::optional<uint32_t> sLastResolvedEntrance;
+std::optional<uint32_t> sReportedEntranceSource;
 uint16_t sGrottoExitSource = 0;
 uint16_t sGrottoReturnEntrance = 0;
 constexpr int32_t kRespawnGrottoPopOut = 2;
@@ -931,6 +932,12 @@ bool UpdateCrossGameRequest() {
     return false;
 }
 
+void ReportLocation() {
+    if (gPlayState != nullptr && OotmmSession_IsActive()) {
+        OotmmIpc_SendLocation(gPlayState->sceneNum, static_cast<uint16_t>(gSaveContext.entranceIndex));
+    }
+}
+
 void UpdateEntranceTransition() {
     if (gPlayState == nullptr || gSaveContext.gameMode != GAMEMODE_NORMAL || UpdateCrossGameRequest()) {
         return;
@@ -945,6 +952,7 @@ void UpdateEntranceTransition() {
         sPlayerExitPending = false;
         sPendingExtendedSource.reset();
         sLastResolvedEntrance.reset();
+        sReportedEntranceSource.reset();
         return;
     }
 
@@ -978,6 +986,10 @@ void UpdateEntranceTransition() {
             TranslateGrottoEntry(static_cast<uint16_t>(nextEntrance), gPlayState->sceneNum,
                                  gSaveContext.respawn[RESPAWN_MODE_RETURN].data);
         source = grottoEntry != 0 ? grottoEntry : OverrideSource(nextEntrance);
+    }
+    if (sReportedEntranceSource != source) {
+        sReportedEntranceSource = source;
+        OotmmIpc_SendEntranceTaken(source);
     }
     const auto* mapping = sGameState.FindEntrance(Ship::OotmmGame::Oot, source);
     if (mapping == nullptr || !mapping->ToNativeId.has_value()) {
@@ -1199,6 +1211,7 @@ void OotmmSession_Init() {
         GameInteractor::Instance->RegisterGameHook<GameInteractor::OnGameFrameUpdate>(OotmmItemPage_FillDpadDefaults);
         GameInteractor::Instance->RegisterGameHook<GameInteractor::OnGameFrameUpdate>(OotmmSilverRupeesUpdateTempFlags);
         GameInteractor::Instance->RegisterGameHook<GameInteractor::OnGameFrameUpdate>(UpdateEntranceTransition);
+        GameInteractor::Instance->RegisterGameHook<GameInteractor::OnGameFrameUpdate>(ReportLocation);
         REGISTER_VB_SHOULD(VB_OPEN_KOKIRI_FOREST, {
             if (OotmmSession_IsActive()) {
                 *should = true;
