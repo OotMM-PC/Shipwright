@@ -1240,6 +1240,11 @@ void OotmmSession_Init() {
                 *should = Flags_GetEventChkInf(EVENTCHKINF_OBTAINED_KOKIRI_EMERALD_DEKU_TREE_DEAD);
             }
         });
+        REGISTER_VB_SHOULD(VB_NAVI_TALK, {
+            if (OotmmSession_IsActive()) {
+                *should = false;
+            }
+        });
         GameInteractor::Instance->RegisterGameHookForID<GameInteractor::OnActorInit>(ACTOR_BG_TREEMOUTH,
                                                                                      ConfigureDekuTreeMouth);
         GameInteractor::Instance->RegisterGameHookForID<GameInteractor::OnActorInit>(ACTOR_BG_SPOT01_IDOSOKO,
