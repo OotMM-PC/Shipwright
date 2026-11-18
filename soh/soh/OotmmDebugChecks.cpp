@@ -822,6 +822,22 @@ static void ApplySetupString(const char* variable, const std::string& setup) {
             gPlayState->nextEntranceIndex = static_cast<u16>(first);
             gPlayState->transitionTrigger = TRANS_TRIGGER_START;
             gPlayState->transitionType = TRANS_TYPE_FADE_BLACK;
+        } else if (key == "dump" && gPlayState != nullptr) {
+            Ship::OotmmStateDump_Write("oot", BuildStateDump());
+        } else if (key == "teleport" && gPlayState != nullptr) {
+            BuildTeleportPlaces();
+            std::ofstream names(Ship::Context::GetPathRelativeToAppDirectory("teleport-places.txt"));
+            for (const BetterSceneSelectEntry* place : sTeleportPlaces) {
+                names << TeleportPlaceName(place);
+                for (int i = 0; i < place->entranceCount; i++) {
+                    names << " | " << place->entrancePairs[i].englishName;
+                }
+                names << "\n";
+            }
+            if (first >= 0 && first < static_cast<long>(sTeleportPlaces.size()) && second >= 0 &&
+                second < sTeleportPlaces[first]->entranceCount) {
+                GoToEntrance(sTeleportPlaces[first]->entrancePairs[second].entranceIndex);
+            }
         } else if (key == "bombnear" && gPlayState != nullptr) {
             Player* holder = GET_PLAYER(gPlayState);
             Actor* best = nullptr;
