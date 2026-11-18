@@ -1890,3 +1890,12 @@ void Select_Init(GameState* thisx) {
     CVarClear(CVAR_GENERAL("BetterDebugWarpScreenMQModeScene"));
     Select_SwitchBetterWarpMode(this, CVarGetInteger(CVAR_DEVELOPER_TOOLS("BetterDebugWarpScreen"), 1));
 }
+
+const BetterSceneSelectEntry* Select_GetBetterScenes(s32* count) {
+    *count = ARRAY_COUNT(sBetterScenes);
+    return sBetterScenes;
+}
+
+s32 Select_BetterSceneLoadsEntrances(const BetterSceneSelectEntry* scene) {
+    return scene->loadFunc == Select_LoadGame;
+}

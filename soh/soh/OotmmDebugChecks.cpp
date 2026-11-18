@@ -14,17 +14,20 @@
 #include "OotmmItemApply.h"
 #include "OotmmItemPresentation.h"
 #include <libultraship/bridge/OotmmRuntimeTest.h>
+#include <libultraship/bridge/OotmmStateDump.h>
 #include "OotmmSession.h"
 #include "OotmmTriforce.h"
 #include "OotmmSongs.h"
 #include "OotmmXflags.h"
 #include "SaveManager.h"
 #include "soh/SohGui/UIWidgets.hpp"
+#include "soh/util.h"
 
 #include <algorithm>
 #include <atomic>
 #include <cctype>
 #include <cstdio>
+#include <cstring>
 #include <cstdlib>
 #include <filesystem>
 #include <fstream>
@@ -52,6 +55,8 @@ void Audio_OcaGetPlaybackDebug(u8* state, u8* note, u8* pos);
 #include "src/overlays/actors/ovl_En_Mk/z_en_mk.h"
 #include "src/overlays/actors/ovl_En_Go2/z_en_go2.h"
 void Fishing_DebugState(s32* out);
+const BetterSceneSelectEntry* Select_GetBetterScenes(s32* count);
+s32 Select_BetterSceneLoadsEntrances(const BetterSceneSelectEntry* scene);
 #if !defined(NDEBUG) || defined(OOTMM_RUNTIME_TEST)
 #include "src/overlays/actors/ovl_Shot_Sun/z_shot_sun.h"
 #include "src/overlays/actors/ovl_Boss_Ganon2/z_boss_ganon2.h"
@@ -289,6 +294,194 @@ const char* RouteHintForNpc(const std::string& nativeId) {
     return nullptr;
 }
 
+void GoToEntrance(int32_t wanted) {
+    const int32_t entrance = OotmmSession_ApplyResolvedOotEntrance(wanted);
+    if (entrance >= 0) {
+        GameInteractor::RawAction::TeleportPlayer(entrance);
+    }
+}
+
+std::vector<const BetterSceneSelectEntry*> sTeleportPlaces;
+int sTeleportPlace = 0;
+int sTeleportEntrance = 0;
+char sTeleportFilter[64] = {};
+
+const char* TeleportPlaceName(const BetterSceneSelectEntry* place) {
+    const char* colon = std::strchr(place->englishName, ':');
+    return colon != nullptr ? colon + 1 : place->englishName;
+}
+
+void BuildTeleportPlaces() {
+    if (!sTeleportPlaces.empty()) {
+        return;
+    }
+    s32 count = 0;
+    const BetterSceneSelectEntry* scenes = Select_GetBetterScenes(&count);
+    for (s32 i = 0; i < count; i++) {
+        if (Select_BetterSceneLoadsEntrances(&scenes[i]) && scenes[i].entranceCount > 0) {
+            sTeleportPlaces.push_back(&scenes[i]);
+        }
+    }
+    std::sort(sTeleportPlaces.begin(), sTeleportPlaces.end(),
+              [](const BetterSceneSelectEntry* a, const BetterSceneSelectEntry* b) {
+                  return std::strcmp(TeleportPlaceName(a), TeleportPlaceName(b)) < 0;
+              });
+}
+
+bool TeleportPlaceMatches(const BetterSceneSelectEntry* place) {
+    if (MatchesFilter(TeleportPlaceName(place), sTeleportFilter)) {
+        return true;
+    }
+    for (int i = 0; i < place->entranceCount; i++) {
+        if (MatchesFilter(place->entrancePairs[i].englishName, sTeleportFilter)) {
+            return true;
+        }
+    }
+    return false;
+}
+
+void DrawTeleportSection() {
+    ImGui::SeparatorText("Teleport");
+    BuildTeleportPlaces();
+    ImGui::SetNextItemWidth(ImGui::GetFontSize() * 12.0f);
+    ImGui::InputTextWithHint("##TeleportFilter", "Filter", sTeleportFilter, sizeof(sTeleportFilter));
+    ImGui::SetNextItemWidth(ImGui::GetFontSize() * 12.0f);
+    if (ImGui::BeginCombo("Place", TeleportPlaceName(sTeleportPlaces[sTeleportPlace]))) {
+        for (int i = 0; i < static_cast<int>(sTeleportPlaces.size()); i++) {
+            if (TeleportPlaceMatches(sTeleportPlaces[i]) &&
+                ImGui::Selectable(TeleportPlaceName(sTeleportPlaces[i]), i == sTeleportPlace)) {
+                sTeleportPlace = i;
+                sTeleportEntrance = 0;
+            }
+        }
+        ImGui::EndCombo();
+    }
+    const BetterSceneSelectEntry* place = sTeleportPlaces[sTeleportPlace];
+    ImGui::SetNextItemWidth(ImGui::GetFontSize() * 12.0f);
+    if (ImGui::BeginCombo("Entrance", place->entrancePairs[sTeleportEntrance].englishName)) {
+        for (int i = 0; i < place->entranceCount; i++) {
+            ImGui::PushID(i);
+            if (ImGui::Selectable(place->entrancePairs[i].englishName, i == sTeleportEntrance)) {
+                sTeleportEntrance = i;
+            }
+            ImGui::PopID();
+        }
+        ImGui::EndCombo();
+    }
+    ImGui::SameLine();
+    ImGui::BeginDisabled(gPlayState == nullptr);
+    if (ImGui::Button("Go##Teleport")) {
+        GoToEntrance(place->entrancePairs[sTeleportEntrance].entranceIndex);
+    }
+    ImGui::EndDisabled();
+}
+
+nlohmann::json BuildStateDump() {
+    PlayState* play = gPlayState;
+    const Player* player = GET_PLAYER(play);
+    const Camera* camera = play->cameraPtrs[play->activeCamera];
+    const auto& sceneFlags = play->actorCtx.flags;
+    nlohmann::json actors = nlohmann::json::array();
+    for (int category = 0; category < ACTORCAT_MAX; category++) {
+        for (const Actor* actor = play->actorCtx.actorLists[category].head; actor != nullptr; actor = actor->next) {
+            actors.push_back({ { "id", actor->id },
+                               { "params", actor->params },
+                               { "category", category },
+                               { "room", actor->room },
+                               { "flags", actor->flags },
+                               { "pos", { actor->world.pos.x, actor->world.pos.y, actor->world.pos.z } },
+                               { "yaw", actor->shape.rot.y },
+                               { "health", actor->colChkInfo.health },
+                               { "updates", actor->update != nullptr },
+                               { "draws", actor->draw != nullptr } });
+        }
+    }
+    return {
+        { "game", "oot" },
+        { "build", { { "version", std::string(gBuildVersion) }, { "commit", std::string(gGitCommitHash) } } },
+        { "session",
+          { { "seed", OotmmSession_GetState().GetSeedId() },
+            { "player", OotmmSession_GetState().GetPlayerId() },
+            { "inventoryRevision", OotmmIpc_GetInventory().GetRevision() },
+            { "presentationPending", OotmmItemPresentation_IsPending() != 0 },
+            { "trapsApplied", OotmmItemApply_TrapsApplied() } } },
+        { "player",
+          { { "pos", { player->actor.world.pos.x, player->actor.world.pos.y, player->actor.world.pos.z } },
+            { "yaw", player->actor.shape.rot.y },
+            { "velocity", { player->actor.velocity.x, player->actor.velocity.y, player->actor.velocity.z } },
+            { "speed", player->linearVelocity },
+            { "stateFlags1", player->stateFlags1 },
+            { "stateFlags2", player->stateFlags2 },
+            { "stateFlags3", player->stateFlags3 },
+            { "csAction", player->csAction },
+            { "actionFunc", Ship::OotmmStateDump_CodeOffset(reinterpret_cast<const void*>(player->actionFunc)) },
+            { "upperActionFunc",
+              Ship::OotmmStateDump_CodeOffset(reinterpret_cast<const void*>(player->upperActionFunc)) },
+            { "age", gSaveContext.linkAge },
+            { "mask", player->currentMask },
+            { "heldItemAction", player->heldItemAction },
+            { "itemAction", player->itemAction },
+            { "invincibilityTimer", player->invincibilityTimer },
+            { "heldActor", player->heldActor != nullptr ? player->heldActor->id : -1 },
+            { "rideActor", player->rideActor != nullptr ? player->rideActor->id : -1 },
+            { "health", gSaveContext.health },
+            { "healthCapacity", gSaveContext.healthCapacity },
+            { "magic", gSaveContext.magic },
+            { "bItem", gSaveContext.equips.buttonItems[0] },
+            { "cItems",
+              { gSaveContext.equips.buttonItems[1], gSaveContext.equips.buttonItems[2],
+                gSaveContext.equips.buttonItems[3] } } } },
+        { "play",
+          { { "scene", play->sceneNum },
+            { "sceneName", SohUtils::GetSceneName(play->sceneNum) },
+            { "room", play->roomCtx.curRoom.num },
+            { "entrance", gSaveContext.entranceIndex },
+            { "nextEntrance", play->nextEntranceIndex },
+            { "time", gSaveContext.dayTime },
+            { "frames", play->gameplayFrames },
+            { "transitionTrigger", play->transitionTrigger },
+            { "transitionMode", play->transitionMode },
+            { "cutsceneState", play->csCtx.state },
+            { "pauseState", play->pauseCtx.state },
+            { "message", play->msgCtx.textId },
+            { "messageMode", play->msgCtx.msgMode },
+            { "ocarinaMode", play->msgCtx.ocarinaMode },
+            { "ocarinaAction", play->msgCtx.ocarinaAction },
+            { "lastPlayedSong", play->msgCtx.lastPlayedSong },
+            { "camera", play->activeCamera },
+            { "cameraSetting", camera != nullptr ? camera->setting : -1 },
+            { "cameraMode", camera != nullptr ? camera->mode : -1 } } },
+        { "flags",
+          { { "switch", sceneFlags.swch },
+            { "tempSwitch", sceneFlags.tempSwch },
+            { "chest", sceneFlags.chest },
+            { "clear", sceneFlags.clear },
+            { "tempClear", sceneFlags.tempClear },
+            { "collect", sceneFlags.collect },
+            { "tempCollect", sceneFlags.tempCollect } } },
+        { "actors", actors },
+    };
+}
+
+std::string sStateDumpPath;
+bool sStateDumpFailed = false;
+
+void DrawStateDumpSection() {
+    ImGui::SeparatorText("State dump");
+    ImGui::TextWrapped("Saves the player, scene, flags and every actor to a file for bug reports.");
+    ImGui::BeginDisabled(gPlayState == nullptr || gGameState != &gPlayState->state);
+    if (ImGui::Button("Save state dump")) {
+        sStateDumpPath = Ship::OotmmStateDump_Write("oot", BuildStateDump());
+        sStateDumpFailed = sStateDumpPath.empty();
+    }
+    ImGui::EndDisabled();
+    if (sStateDumpFailed) {
+        ImGui::TextDisabled("The dump could not be written.");
+    } else if (!sStateDumpPath.empty()) {
+        ImGui::TextWrapped("Saved %s", sStateDumpPath.c_str());
+    }
+}
+
 void BuildNpcOptions() {
     if (!sNpcOptions.empty()) {
         return;
@@ -343,10 +536,7 @@ void DrawNpcSection() {
     const NpcOption& selected = sNpcOptions[sNpcSelection];
     ImGui::BeginDisabled(gPlayState == nullptr || selected.Entrance < 0);
     if (ImGui::Button("Go")) {
-        const int32_t entrance = OotmmSession_ApplyResolvedOotEntrance(selected.Entrance);
-        if (entrance >= 0) {
-            GameInteractor::RawAction::TeleportPlayer(entrance);
-        }
+        GoToEntrance(selected.Entrance);
     }
     ImGui::EndDisabled();
     const bool collected = OotmmNpcChecks_IsCollected(selected.NativeId.c_str()) != 0;
@@ -387,6 +577,8 @@ void OotmmDebugChecks_DrawTab() {
     }
     DrawDropSection();
     DrawNpcSection();
+    DrawTeleportSection();
+    DrawStateDumpSection();
 }
 
 #if !defined(NDEBUG) || defined(OOTMM_RUNTIME_TEST)
