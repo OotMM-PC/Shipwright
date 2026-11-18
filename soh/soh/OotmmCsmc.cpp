@@ -42,17 +42,20 @@ Gfx* LoadChestDL(const char* name, const char* fallback, const char* last = null
     return dl;
 }
 
+constexpr f32 kSmallChestScale = 0.005f;
+constexpr f32 kLargeChestScale = 0.01f;
+
 void SetVanillaLook(EnBox* chest) {
     switch (chest->type) {
         case ENBOX_TYPE_SMALL:
         case ENBOX_TYPE_6:
         case ENBOX_TYPE_ROOM_CLEAR_SMALL:
         case ENBOX_TYPE_SWITCH_FLAG_FALL_SMALL:
-            Actor_SetScale(&chest->dyna.actor, 0.005f);
+            Actor_SetScale(&chest->dyna.actor, kSmallChestScale);
             Actor_SetFocus(&chest->dyna.actor, 20.0f);
             break;
         default:
-            Actor_SetScale(&chest->dyna.actor, 0.01f);
+            Actor_SetScale(&chest->dyna.actor, kLargeChestScale);
             Actor_SetFocus(&chest->dyna.actor, 40.0f);
     }
 
@@ -69,7 +72,7 @@ void SetVanillaLook(EnBox* chest) {
 void ApplyClassLook(EnBox* chest, Ship::OotmmCsmcClass itemClass) {
     const bool large = itemClass == Ship::OotmmCsmcClass::Major ||
                        itemClass == Ship::OotmmCsmcClass::BossKey;
-    Actor_SetScale(&chest->dyna.actor, large ? 0.01f : 0.005f);
+    Actor_SetScale(&chest->dyna.actor, large ? kLargeChestScale : kSmallChestScale);
     Actor_SetFocus(&chest->dyna.actor, large ? 40.0f : 20.0f);
 
     const char* bakedBody = nullptr;
@@ -260,6 +263,10 @@ int32_t OotmmCsmc_UpdateChest(EnBox* chest, PlayState* play) {
     const bool revealed = mode == Ship::OotmmCsmcMode::Always || HasAgonyStone();
     ApplyClassLook(chest, Ship::OotmmCsmc_Classify(state, Ship::OotmmGame::Oot, *placement, revealed));
     return 1;
+}
+
+bool OotmmCsmc_IsLargeChest(const EnBox* chest) {
+    return chest->dyna.actor.scale.x > kSmallChestScale;
 }
 
 void OotmmCsmc_SetChestOverride(EnBox* chest, Ship::OotmmCsmcClass itemClass) {

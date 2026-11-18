@@ -18,6 +18,7 @@ int32_t OotmmCsmc_UpdateChest(struct EnBox* chest, struct PlayState* play);
 }
 
 void OotmmCsmc_SetChestOverride(EnBox* chest, Ship::OotmmCsmcClass itemClass);
+bool OotmmCsmc_IsLargeChest(const EnBox* chest);
 void OotmmCsmc_ClearChestOverrides();
 
 void OotmmCsmc_DrawGlitter(PlayState* play, Actor* actor, const Ship::OotmmPlacement& placement,

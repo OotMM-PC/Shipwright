@@ -11,6 +11,9 @@
 #include "OotmmItemModels.h"
 #include "OotmmItemPresentation.h"
 #include "OotmmSession.h"
+#include "cvar_prefixes.h"
+
+#include <libultraship/bridge/consolevariablebridge.h>
 
 #include <cmath>
 
@@ -484,8 +487,9 @@ void OotmmChecks_Init() {
     });
 
     REGISTER_VB_SHOULD(VB_PLAY_SLOW_CHEST_CS, {
-        if (sActiveChest != nullptr) {
-            *should = sActiveChest->Major;
+        if (OotmmSession_IsActive()) {
+            const EnBox* chest = va_arg(args, EnBox*);
+            *should = OotmmCsmc_IsLargeChest(chest) && !CVarGetInteger(CVAR_ENHANCEMENT("FastChests"), 0);
         }
     });
 
