@@ -1246,7 +1246,8 @@ void UpdateTraps() {
         }
         Player* player = GET_PLAYER(gPlayState);
         if (player == nullptr || (player->stateFlags1 & kTrapBlockingStates) ||
-            (player->stateFlags2 & PLAYER_STATE2_CRAWLING) || player->invincibilityTimer != 0) {
+            (player->stateFlags2 & PLAYER_STATE2_CRAWLING) || player->invincibilityTimer != 0 ||
+            Player_InBlockingCsMode(gPlayState, player)) {
             return;
         }
         if (ApplyTrap(type, player)) {
