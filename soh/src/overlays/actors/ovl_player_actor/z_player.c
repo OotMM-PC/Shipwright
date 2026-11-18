@@ -9357,6 +9357,10 @@ void Player_Action_80843188(Player* this, PlayState* play) {
         this->stateFlags1 |= PLAYER_STATE1_SHIELDING;
         Player_UpdateUpperBody(this, play);
         this->stateFlags1 &= ~PLAYER_STATE1_SHIELDING;
+    } else if (CHECK_BTN_ALL(sControlInput->press.button, BTN_B)) {
+        this->stateFlags1 |= PLAYER_STATE1_SHIELDING;
+        OotmmCustomItems_TryBlastMask(play, this);
+        this->stateFlags1 &= ~PLAYER_STATE1_SHIELDING;
     }
 
     Player_DecelerateToZero(this);

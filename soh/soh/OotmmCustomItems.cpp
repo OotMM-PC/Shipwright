@@ -377,7 +377,11 @@ extern "C" int OotmmCustomItems_TryBlastMask(PlayState* play, Player* player) {
     if (bomb == nullptr) {
         return 1;
     }
-    reinterpret_cast<OotmmBomMm*>(bomb)->timer = 0;
+    OotmmBomMm* blast = reinterpret_cast<OotmmBomMm*>(bomb);
+    blast->timer = 0;
+    if (player->stateFlags1 & PLAYER_STATE1_SHIELDING) {
+        blast->collider2.base.atFlags &= ~AT_TYPE_ENEMY;
+    }
 
     sBlastMaskTimer = static_cast<int16_t>(OotmmSession_GetState().GetBlastMaskCooldownFrames());
     return 1;
