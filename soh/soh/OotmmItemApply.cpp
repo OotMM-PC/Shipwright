@@ -243,6 +243,10 @@ void EnsureLedger() {
         SPDLOG_ERROR("[OoTMM] Invalid shared-resource snapshot");
     }
     if (sLedgerValid) {
+        const bool platinum =
+            sLedger.Applied("OOT_PLATINUM_TOKEN") != 0 || sLedger.Applied("SHARED_PLATINUM_TOKEN") != 0;
+        gSaveContext.inventory.gsTokens =
+            static_cast<s16>(platinum ? 100 : std::min<uint32_t>(100, sLedger.Applied("OOT_GS_TOKEN")));
         const auto health = Ship::ResolveOotmmSavedHealth(
             gSaveContext.healthCapacity, gSaveContext.health, gSaveContext.inventory.questItems >> 28,
             uint64_t(sLedger.Applied("OOT_HEART_CONTAINER")) + sLedger.Applied("SHARED_HEART_CONTAINER"),

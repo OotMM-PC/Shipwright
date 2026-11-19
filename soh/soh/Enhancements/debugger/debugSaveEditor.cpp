@@ -1099,6 +1099,9 @@ void DrawFlagsTab() {
                 setMask <<= 1;
             }
 
+            if (OotmmSession_IsActive()) {
+                return;
+            }
             static bool keepGsCountUpdated = true;
             Checkbox("Keep GS Count Updated", &keepGsCountUpdated,
                      checkboxOptionsBase.Tooltip(
