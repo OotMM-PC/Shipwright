@@ -7,6 +7,7 @@
 #include "soh/Enhancements/game-interactor/GameInteractor_Hooks.h"
 #include "soh/OotmmOcarinaButtons.h"
 #include "soh/OotmmSongs.h"
+#include "soh/OotmmSongsPlayer.h"
 
 // TODO: can these macros be shared between files? code_800F9280 seems to use
 // versions without any casts...
@@ -1277,7 +1278,7 @@ OcarinaNote sOotmmSongs[OOTMM_SONG_COUNT][20] = {
     },
 };
 
-OcarinaSongInfo sOotmmSongNotes[OOTMM_SONG_COUNT] = {
+static OcarinaSongInfo sOotmmSongNotes[OOTMM_SONG_COUNT] = {
     { 6, { OCARINA_NOTE_F4, OCARINA_NOTE_B4, OCARINA_NOTE_D5, OCARINA_NOTE_F4, OCARINA_NOTE_B4, OCARINA_NOTE_D5 } },
     { 7,
       { OCARINA_NOTE_A4, OCARINA_NOTE_B4, OCARINA_NOTE_A4, OCARINA_NOTE_F4, OCARINA_NOTE_A4, OCARINA_NOTE_D5,
@@ -1893,6 +1894,13 @@ void Audio_OcaGetPlaybackDebug(u8* state, u8* note, u8* pos) {
     *state = sPlaybackState;
     *note = sDisplayedNoteValue;
     *pos = sStaffPlaybackPos;
+}
+
+const OcarinaSongInfo* AudioOcarina_OotmmSongNotes(s32 song) {
+    if (song <= OOTMM_SONG_NONE || song >= OOTMM_SONG_MAX) {
+        return NULL;
+    }
+    return &sOotmmSongNotes[song - 1];
 }
 
 void Ootmm_OcarinaSetSongPlayback(s32 song) {

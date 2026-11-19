@@ -8,6 +8,7 @@ extern "C" {
 #endif
 
 void OotmmSongs_NotePlayed(int32_t song);
+const OcarinaSongInfo* AudioOcarina_OotmmSongNotes(int32_t song);
 int32_t OotmmSongs_Played(void);
 void OotmmSongs_ClearPlayed(void);
 

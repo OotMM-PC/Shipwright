@@ -26,6 +26,8 @@ typedef enum OotmmSongId {
 
 uint16_t OotmmSongs_AvailableMask(void);
 uint16_t OotmmSongs_OwnedMask(void);
+// Songs that can be played at all: the owned ones plus Song of Double Time when its setting grants it.
+uint16_t OotmmSongs_EnabledMask(void);
 uint16_t OotmmSongs_ScarecrowBlockMask(void);
 int32_t OotmmSongs_FanfareSeqId(int32_t song);
 const char* OotmmSongs_Name(int32_t song);

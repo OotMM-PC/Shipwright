@@ -1,4 +1,5 @@
 #include "soh/OotmmItemPage.h"
+#include "soh/OotmmSongPage.h"
 #include "soh/OotmmPauseInfo.h"
 #include "soh/OotmmScales.h"
 #include "soh/OotmmSaveMenu.h"
@@ -1295,7 +1296,7 @@ void KaleidoScope_SwitchPage(PauseContext* pauseCtx, u8 pt) {
 }
 
 void KaleidoScope_HandlePageToggles(PauseContext* pauseCtx, Input* input) {
-    if (OotmmItemPage_ConsumePageToggle()) {
+    if (OotmmItemPage_ConsumePageToggle() || OotmmSongPage_ConsumePageToggle()) {
         return;
     }
 
@@ -2505,7 +2506,7 @@ void KaleidoScope_UpdateNamePanel(PlayState* play) {
         }
     } else if (pauseCtx->nameColorSet == 0) {
         if (((pauseCtx->pageIndex == PAUSE_QUEST) && (pauseCtx->cursorSlot[PAUSE_QUEST] >= 6) &&
-             (pauseCtx->cursorSlot[PAUSE_QUEST] <= 0x11) && (pauseCtx->unk_1E4 == 8)) ||
+             (pauseCtx->cursorSlot[PAUSE_QUEST] <= 0x11) && (pauseCtx->unk_1E4 == 8) && !OotmmSongPage_Active()) ||
             (pauseCtx->pageIndex == PAUSE_ITEM) ||
             ((pauseCtx->pageIndex == PAUSE_EQUIP) && (pauseCtx->cursorX[PAUSE_EQUIP] != 0))) {
             if (pauseCtx->namedItem != ITEM_SOLD_OUT) {

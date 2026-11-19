@@ -5,6 +5,8 @@
 #include "soh/Enhancements/game-interactor/GameInteractor.h"
 #include "soh/Enhancements/game-interactor/GameInteractor_Hooks.h"
 #include "soh/OotmmOcarinaButtons.h"
+#include "soh/OotmmSongPage.h"
+#include "soh/OotmmSongsPlayer.h"
 
 extern const char* digitTextures[];
 
@@ -80,6 +82,7 @@ void KaleidoScope_DrawQuestStatus(PlayState* play, GraphicsContext* gfxCtx) {
     s16 pad2;
     s16 phi_s0_2;
     s16 sp208[3];
+    const OcarinaSongInfo* songNotes;
 
     OPEN_DISPS(gfxCtx);
 
@@ -187,6 +190,7 @@ void KaleidoScope_DrawQuestStatus(PlayState* play, GraphicsContext* gfxCtx) {
                 }
 
                 sp216 = pauseCtx->cursorPoint[PAUSE_QUEST];
+                phi_s0_2 = OotmmSongPage_CursorItem(play, phi_s0_2);
                 pauseCtx->cursorItem[pauseCtx->pageIndex] = phi_s0_2;
                 pauseCtx->cursorSlot[pauseCtx->pageIndex] = sp216;
             }
@@ -195,7 +199,8 @@ void KaleidoScope_DrawQuestStatus(PlayState* play, GraphicsContext* gfxCtx) {
 
             if ((pauseCtx->state == 6) && (pauseCtx->unk_1E4 == 0) && (pauseCtx->cursorSpecialPos == 0)) {
                 if ((sp216 >= QUEST_SONG_MINUET) && (sp216 < QUEST_KOKIRI_EMERALD)) {
-                    if (CHECK_QUEST_ITEM(pauseCtx->cursorPoint[PAUSE_QUEST])) {
+                    OotmmSongPage_EnterHover(play);
+                    if (!OotmmSongPage_Active() && CHECK_QUEST_ITEM(pauseCtx->cursorPoint[PAUSE_QUEST])) {
                         sp216 = pauseCtx->cursorSlot[PAUSE_QUEST];
                         pauseCtx->ocarinaSongIdx = gOcarinaSongItemMap[sp216 - QUEST_SONG_MINUET];
                         D_8082A120 = 10;
@@ -226,8 +231,8 @@ void KaleidoScope_DrawQuestStatus(PlayState* play, GraphicsContext* gfxCtx) {
                     Audio_OcaSetInstrument(0);
                 }
             } else if (pauseCtx->unk_1E4 == 8) {
-                if (CHECK_BTN_ALL(input->press.button, BTN_A) && (sp216 >= QUEST_SONG_MINUET) &&
-                    (sp216 < QUEST_KOKIRI_EMERALD)) {
+                if (!OotmmSongPage_Active() && CHECK_BTN_ALL(input->press.button, BTN_A) &&
+                    (sp216 >= QUEST_SONG_MINUET) && (sp216 < QUEST_KOKIRI_EMERALD)) {
                     pauseCtx->unk_1E4 = 9;
                     D_8082A120 = 10;
                 }
@@ -371,7 +376,8 @@ void KaleidoScope_DrawQuestStatus(PlayState* play, GraphicsContext* gfxCtx) {
                         G_TX_NOMIRROR | G_TX_WRAP, G_TX_NOMASK, G_TX_NOMASK, G_TX_NOLOD, G_TX_NOLOD);
 
     for (sp218 = 0; sp218 < QUEST_KOKIRI_EMERALD - QUEST_SONG_MINUET; sp218++, sp21A += 4) {
-        if (CHECK_QUEST_ITEM(sp218 + QUEST_SONG_MINUET)) {
+        if (OotmmSongPage_Active() ? (OotmmSongPage_SlotSong(sp218) != 0)
+                                   : CHECK_QUEST_ITEM(sp218 + QUEST_SONG_MINUET)) {
             if ((sp218 + QUEST_SONG_MINUET) == sp216) {
                 pauseCtx->questVtx[sp21A + 0].v.ob[0] = pauseCtx->questVtx[sp21A + 2].v.ob[0] =
                     pauseCtx->questVtx[sp21A + 0].v.ob[0] - 2;
@@ -602,11 +608,15 @@ void KaleidoScope_DrawQuestStatus(PlayState* play, GraphicsContext* gfxCtx) {
             }
         } else if (((pauseCtx->unk_1E4 >= 4) && (pauseCtx->unk_1E4 <= 6)) || (pauseCtx->unk_1E4 == 8)) {
             sp224 = pauseCtx->ocarinaSongIdx;
-            sp226 = gOcarinaSongNotes[sp224].len;
+            songNotes = AudioOcarina_OotmmSongNotes(OotmmSongPage_HoverSong(play));
+            if (songNotes == NULL) {
+                songNotes = &gOcarinaSongNotes[sp224];
+            }
+            sp226 = songNotes->len;
 
             for (sp218 = sp21A, phi_s3 = 0; phi_s3 < sp226; phi_s3++, sp21A += 4) {
                 pauseCtx->questVtx[sp21A + 0].v.ob[1] = pauseCtx->questVtx[sp21A + 1].v.ob[1] =
-                    VREG(21 + gOcarinaSongNotes[sp224].notesIdx[phi_s3]);
+                    VREG(21 + songNotes->notesIdx[phi_s3]);
 
                 pauseCtx->questVtx[sp21A + 2].v.ob[1] = pauseCtx->questVtx[sp21A + 3].v.ob[1] =
                     pauseCtx->questVtx[sp21A + 0].v.ob[1] - 12;
@@ -615,20 +625,20 @@ void KaleidoScope_DrawQuestStatus(PlayState* play, GraphicsContext* gfxCtx) {
 
                 if (pauseCtx->unk_1E4 == 8) {
                     s16 Notes_alpha = 200;
-                    if (gOcarinaSongNotes[sp224].notesIdx[phi_s3] == 0) {
+                    if (songNotes->notesIdx[phi_s3] == 0) {
                         gDPSetPrimColor(POLY_OPA_DISP++, 0, 0, aButtonColor.r, aButtonColor.g, aButtonColor.b,
                                         Notes_alpha);
                     } else {
-                        if (gOcarinaSongNotes[sp224].notesIdx[phi_s3] == OCARINA_NOTE_D5) {
+                        if (songNotes->notesIdx[phi_s3] == OCARINA_NOTE_D5) {
                             gDPSetPrimColor(POLY_OPA_DISP++, 0, 0, cUpButtonColor.r, cUpButtonColor.g, cUpButtonColor.b,
                                             Notes_alpha);
-                        } else if (gOcarinaSongNotes[sp224].notesIdx[phi_s3] == OCARINA_NOTE_B4) {
+                        } else if (songNotes->notesIdx[phi_s3] == OCARINA_NOTE_B4) {
                             gDPSetPrimColor(POLY_OPA_DISP++, 0, 0, cLeftButtonColor.r, cLeftButtonColor.g,
                                             cLeftButtonColor.b, Notes_alpha);
-                        } else if (gOcarinaSongNotes[sp224].notesIdx[phi_s3] == OCARINA_NOTE_A4) {
+                        } else if (songNotes->notesIdx[phi_s3] == OCARINA_NOTE_A4) {
                             gDPSetPrimColor(POLY_OPA_DISP++, 0, 0, cRightButtonColor.r, cRightButtonColor.g,
                                             cRightButtonColor.b, Notes_alpha);
-                        } else if (gOcarinaSongNotes[sp224].notesIdx[phi_s3] == OCARINA_NOTE_F4) {
+                        } else if (songNotes->notesIdx[phi_s3] == OCARINA_NOTE_F4) {
                             gDPSetPrimColor(POLY_OPA_DISP++, 0, 0, cDownButtonColor.r, cDownButtonColor.g,
                                             cDownButtonColor.b, Notes_alpha);
                         } else {
@@ -644,7 +654,7 @@ void KaleidoScope_DrawQuestStatus(PlayState* play, GraphicsContext* gfxCtx) {
 
                 gSPVertex(POLY_OPA_DISP++, &pauseCtx->questVtx[sp21A], 4, 0);
 
-                gDPLoadTextureBlock(POLY_OPA_DISP++, D_8082A130[gOcarinaSongNotes[sp224].notesIdx[phi_s3]], G_IM_FMT_IA,
+                gDPLoadTextureBlock(POLY_OPA_DISP++, D_8082A130[songNotes->notesIdx[phi_s3]], G_IM_FMT_IA,
                                     G_IM_SIZ_8b, 16, 16, 0, G_TX_NOMIRROR | G_TX_WRAP, G_TX_NOMIRROR | G_TX_WRAP,
                                     G_TX_NOMASK, G_TX_NOMASK, G_TX_NOLOD, G_TX_NOLOD);
 
@@ -782,6 +792,8 @@ void KaleidoScope_DrawQuestStatus(PlayState* play, GraphicsContext* gfxCtx) {
             }
         }
     }
+
+    OotmmSongPage_DrawPageIndicator(play);
 
     CLOSE_DISPS(gfxCtx);
 }

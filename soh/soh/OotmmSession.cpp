@@ -1,6 +1,7 @@
 #include "OotmmSession.h"
 #include "OotmmDeathLink.h"
 #include "OotmmItemPage.h"
+#include "OotmmSongPage.h"
 #include "OotmmSilverRupees.h"
 #include "OotmmDungeonRespawn.h"
 #include "OotmmCheckLedger.h"
@@ -1191,6 +1192,7 @@ void OotmmSession_Init() {
         OotmmScales_Init();
         OotmmAgony_Init();
         OotmmBottles_Init();
+        OotmmSongPage_Init();
         OotmmExtraSwords_Init();
         OotmmPresence_Init();
         OotmmDeathLink_Init();

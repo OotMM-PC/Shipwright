@@ -610,11 +610,12 @@ extern "C" uint16_t OotmmSongs_AvailableMask(void) {
     return MaskFor(SongAvailable);
 }
 
+extern "C" uint16_t OotmmSongs_EnabledMask(void) {
+    return OotmmSession_IsActive() ? MaskFor(SongEnabled) : 0;
+}
+
 extern "C" uint16_t OotmmSongs_ScarecrowBlockMask(void) {
-    if (!OotmmSession_IsActive()) {
-        return 0;
-    }
-    return MaskFor(SongEnabled);
+    return OotmmSongs_EnabledMask();
 }
 
 extern "C" int32_t OotmmSongs_FanfareSeqId(int32_t song) {

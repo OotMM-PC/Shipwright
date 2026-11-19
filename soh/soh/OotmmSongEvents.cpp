@@ -11,7 +11,6 @@ extern "C" {
 #include "OotmmSongsPlayer.h"
 
 extern OcarinaSongInfo gOcarinaSongNotes[];
-extern OcarinaSongInfo sOotmmSongNotes[];
 }
 
 namespace {
@@ -146,7 +145,7 @@ int32_t OotmmSongEvents_GuideNotes(PlayState* play, uint8_t* notes, int32_t max)
     } else if (action >= OCARINA_ACTION_CHECK_OOTMM_HEALING && action <= OCARINA_ACTION_CHECK_OOTMM_ORDER) {
         const int32_t song = MmSongFor(12 + (action - OCARINA_ACTION_CHECK_OOTMM_HEALING));
         if (song != OOTMM_SONG_NONE && (OotmmSongs_AvailableMask() & (1u << song))) {
-            info = &sOotmmSongNotes[song - 1];
+            info = AudioOcarina_OotmmSongNotes(song);
         }
     }
     if (info == nullptr) {
