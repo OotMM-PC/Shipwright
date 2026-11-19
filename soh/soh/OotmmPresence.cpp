@@ -372,6 +372,8 @@ extern "C" void OotmmPuppet_Draw(Actor* thisx, PlayState* play) {
     gPuppetItemAction = puppet->itemAction;
     gPuppetCustomMask = puppet->customMask;
     gPuppetMaskMatrix = nullptr;
+    gSPSegment(POLY_OPA_DISP++, 0x0C, (uintptr_t)gCullBackDList);
+    gSPSegment(POLY_XLU_DISP++, 0x0C, (uintptr_t)gCullBackDList);
     Player_DrawImpl(play, puppet->skelAnime.skeleton, puppet->skelAnime.jointTable, puppet->skelAnime.dListCount, 0,
                     puppet->tunic, puppet->boots, 0, OotmmPuppet_OverrideLimbDraw, OotmmPuppet_PostLimbDraw, puppet);
     if (gPuppetCustomMask != 0) {
