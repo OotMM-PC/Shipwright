@@ -582,6 +582,7 @@ void ApplyEnhancements() {
                    DamageMultiplier(sGameState.GetStringSetting("damageMultiplierOot", "normal")));
     CVarSetInteger(CVAR_CHEAT("EasyFrameAdvance"), 1);
     CVarSetInteger(CVAR_ENHANCEMENT("PauseBufferWindow"), 1);
+    CVarSetInteger(CVAR_ENHANCEMENT("QuickPutaway"), 1);
     CVarSetInteger(CVAR_ENHANCEMENT("DpadEquips"), 1);
     CVarSetInteger(CVAR_ENHANCEMENT("BowArrowCycle"), 1);
     ApplySeedColors();
