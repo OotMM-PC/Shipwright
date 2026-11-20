@@ -85,7 +85,7 @@ int ShopId(const EnGirlA* item, const PlayState* play) {
                 default: return -1;
             }
         case SCENE_BAZAAR: {
-            const int kakariko = gEntranceTable[gSaveContext.entranceIndex].spawn == 1 ? 0x10 : 0x00;
+            const int kakariko = gEntranceTable[gSaveContext.entranceIndex].spawn == 0 ? 0x10 : 0x00;
             switch (params) {
                 case SI_ARROWS_10: return 0x20 | kakariko;
                 case SI_ARROWS_30: return 0x21 | kakariko;
