@@ -213,14 +213,12 @@ void EnOkarinaTag_DrawSongPad(PlayState* play, Vec3f* padPos, f32 rot, f32 padSc
         Matrix_Scale(padScale, 1.0f, padScale, MTXMODE_APPLY);
         gSPMatrix(POLY_XLU_DISP++, MATRIX_NEWMTX(play->state.gfxCtx), G_MTX_NOPUSH | G_MTX_LOAD | G_MTX_MODELVIEW);
         Matrix_Pop();
-        CLOSE_DISPS(play->state.gfxCtx);
         EnOkarinaTag_DrawTexture(play, sSongTagPadTex, 32, 32, 200, 200, 200);
-        OPEN_DISPS(play->state.gfxCtx);
     }
     gSPMatrix(POLY_XLU_DISP++, MATRIX_NEWMTX(play->state.gfxCtx), G_MTX_NOPUSH | G_MTX_LOAD | G_MTX_MODELVIEW);
-    CLOSE_DISPS(play->state.gfxCtx);
     EnOkarinaTag_DrawTexture(play, sOotmmSongTagTextures[song], sOotmmSongTagWidths[song], sOotmmSongTagHeights[song],
                              sOotmmSongTagColors[song].r, sOotmmSongTagColors[song].g, sOotmmSongTagColors[song].b);
+    CLOSE_DISPS(play->state.gfxCtx);
 }
 
 static void EnOkarinaTag_InhibitShuffledSongEffect(PlayState* play) {
