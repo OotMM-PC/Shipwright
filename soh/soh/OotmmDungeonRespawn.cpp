@@ -161,6 +161,27 @@ bool IsDungeonScene(int16_t scene) {
     }
 }
 
+bool IsDungeonEntrance(uint16_t entrance) {
+    switch (entrance) {
+        case ENTR_DEKU_TREE_ENTRANCE:
+        case ENTR_DODONGOS_CAVERN_ENTRANCE:
+        case ENTR_JABU_JABU_ENTRANCE:
+        case ENTR_FOREST_TEMPLE_ENTRANCE:
+        case ENTR_FIRE_TEMPLE_ENTRANCE:
+        case ENTR_WATER_TEMPLE_ENTRANCE:
+        case ENTR_SHADOW_TEMPLE_ENTRANCE:
+        case ENTR_SPIRIT_TEMPLE_ENTRANCE:
+        case ENTR_BOTTOM_OF_THE_WELL_ENTRANCE:
+        case ENTR_ICE_CAVERN_ENTRANCE:
+        case ENTR_GERUDO_TRAINING_GROUND_ENTRANCE:
+        case ENTR_INSIDE_GANONS_CASTLE_ENTRANCE:
+        case ENTR_GANONS_TOWER_0:
+            return true;
+        default:
+            return false;
+    }
+}
+
 Record FromRespawn(const RespawnData& respawn) {
     Record record;
     record.Game = "oot";
@@ -230,8 +251,11 @@ void OnSceneReady() {
     }
     auto& store = Ensure();
     if (IsDungeonScene(gPlayState->sceneNum)) {
-        if (!store.Current.has_value()) {
-            store.Current = FromRespawn(gSaveContext.respawn[RESPAWN_MODE_DOWN]);
+        const Record arrival = FromRespawn(gSaveContext.respawn[RESPAWN_MODE_DOWN]);
+        if (!store.Current.has_value() ||
+            (IsDungeonEntrance(arrival.Entrance) &&
+             (store.Current->Game != arrival.Game || store.Current->Entrance != arrival.Entrance))) {
+            store.Current = arrival;
             store.Pending = false;
             Persist();
         }
