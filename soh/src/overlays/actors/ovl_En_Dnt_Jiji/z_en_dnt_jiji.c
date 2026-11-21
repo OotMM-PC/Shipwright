@@ -260,13 +260,12 @@ void EnDntJiji_Talk(EnDntJiji* this, PlayState* play) {
     if ((Message_GetState(&play->msgCtx) == TEXT_STATE_EVENT) && Message_ShouldAdvance(play)) {
         func_8005B1A4(GET_ACTIVE_CAM(play));
         Message_CloseTextbox(play);
+        Player_SetCsActionWithHaltedActors(play, NULL, 7);
         this->actor.parent = NULL;
         if (GameInteractor_Should(VB_GIVE_ITEM_FROM_DEKU_THEATER, true, this)) {
-            Player_SetCsActionWithHaltedActors(play, NULL, 7);
             Actor_OfferGetItem(&this->actor, play, this->getItemId, 400.0f, 200.0f);
             this->actionFunc = EnDntJiji_SetupGivePrize;
         } else {
-            GET_PLAYER(play)->stateFlags1 &= ~PLAYER_STATE1_IN_CUTSCENE;
             this->actionFunc = EnDntJiji_GivePrize;
         }
     }
